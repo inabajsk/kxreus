@@ -1,0 +1,353 @@
+<?xml version="1.0"?>
+<ArrayOfDictionaryEntry xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <DictionaryEntry>
+    <Key xsi:type="xsd:string">右腿（ヨー）</Key>
+    <Value xsi:type="PositionData">
+      <Name>右腿（ヨー）</Name>
+      <ID>0</ID>
+      <DeviceNumber>0</DeviceNumber>
+      <Trim>0</Trim>
+      <Position>7500</Position>
+    </Value>
+  </DictionaryEntry>
+  <DictionaryEntry>
+    <Key xsi:type="xsd:string">左腿（ヨー）</Key>
+    <Value xsi:type="PositionData">
+      <Name>左腿（ヨー）</Name>
+      <ID>0</ID>
+      <DeviceNumber>1</DeviceNumber>
+      <Trim>0</Trim>
+      <Position>7500</Position>
+    </Value>
+  </DictionaryEntry>
+  <DictionaryEntry>
+    <Key xsi:type="xsd:string">右肩（ピッチ）</Key>
+    <Value xsi:type="PositionData">
+      <Name>右肩（ピッチ）</Name>
+      <ID>1</ID>
+      <DeviceNumber>2</DeviceNumber>
+      <Trim>0</Trim>
+      <Position>7500</Position>
+    </Value>
+  </DictionaryEntry>
+  <DictionaryEntry>
+    <Key xsi:type="xsd:string">左肩（ピッチ）</Key>
+    <Value xsi:type="PositionData">
+      <Name>左肩（ピッチ）</Name>
+      <ID>1</ID>
+      <DeviceNumber>3</DeviceNumber>
+      <Trim>2</Trim>
+      <Position>7500</Position>
+    </Value>
+  </DictionaryEntry>
+  <DictionaryEntry>
+    <Key xsi:type="xsd:string">右肩（ロール）</Key>
+    <Value xsi:type="PositionData">
+      <Name>右肩（ロール）</Name>
+      <ID>2</ID>
+      <DeviceNumber>4</DeviceNumber>
+      <Trim>0</Trim>
+      <Position>7500</Position>
+    </Value>
+  </DictionaryEntry>
+  <DictionaryEntry>
+    <Key xsi:type="xsd:string">左肩（ロール）</Key>
+    <Value xsi:type="PositionData">
+      <Name>左肩（ロール）</Name>
+      <ID>2</ID>
+      <DeviceNumber>5</DeviceNumber>
+      <Trim>0</Trim>
+      <Position>7500</Position>
+    </Value>
+  </DictionaryEntry>
+  <DictionaryEntry>
+    <Key xsi:type="xsd:string">右肘</Key>
+    <Value xsi:type="PositionData">
+      <Name>右肘</Name>
+      <ID>3</ID>
+      <DeviceNumber>6</DeviceNumber>
+      <Trim>0</Trim>
+      <Position>7500</Position>
+    </Value>
+  </DictionaryEntry>
+  <DictionaryEntry>
+    <Key xsi:type="xsd:string">左肘</Key>
+    <Value xsi:type="PositionData">
+      <Name>左肘</Name>
+      <ID>3</ID>
+      <DeviceNumber>7</DeviceNumber>
+      <Trim>0</Trim>
+      <Position>7500</Position>
+    </Value>
+  </DictionaryEntry>
+  <DictionaryEntry>
+    <Key xsi:type="xsd:string">右腿（ロール）</Key>
+    <Value xsi:type="PositionData">
+      <Name>右腿（ロール）</Name>
+      <ID>4</ID>
+      <DeviceNumber>8</DeviceNumber>
+      <Trim>0</Trim>
+      <Position>7500</Position>
+    </Value>
+  </DictionaryEntry>
+  <DictionaryEntry>
+    <Key xsi:type="xsd:string">左腿（ロール）</Key>
+    <Value xsi:type="PositionData">
+      <Name>左腿（ロール）</Name>
+      <ID>4</ID>
+      <DeviceNumber>9</DeviceNumber>
+      <Trim>0</Trim>
+      <Position>7500</Position>
+    </Value>
+  </DictionaryEntry>
+  <DictionaryEntry>
+    <Key xsi:type="xsd:string">右腿（ピッチ）</Key>
+    <Value xsi:type="PositionData">
+      <Name>右腿（ピッチ）</Name>
+      <ID>5</ID>
+      <DeviceNumber>10</DeviceNumber>
+      <Trim>-350</Trim>
+      <Position>7500</Position>
+    </Value>
+  </DictionaryEntry>
+  <DictionaryEntry>
+    <Key xsi:type="xsd:string">左腿（ピッチ）</Key>
+    <Value xsi:type="PositionData">
+      <Name>左腿（ピッチ）</Name>
+      <ID>5</ID>
+      <DeviceNumber>11</DeviceNumber>
+      <Trim>-350</Trim>
+      <Position>7500</Position>
+    </Value>
+  </DictionaryEntry>
+  <DictionaryEntry>
+    <Key xsi:type="xsd:string">右膝</Key>
+    <Value xsi:type="PositionData">
+      <Name>右膝</Name>
+      <ID>6</ID>
+      <DeviceNumber>12</DeviceNumber>
+      <Trim>-2000</Trim>
+      <Position>7500</Position>
+    </Value>
+  </DictionaryEntry>
+  <DictionaryEntry>
+    <Key xsi:type="xsd:string">左膝</Key>
+    <Value xsi:type="PositionData">
+      <Name>左膝</Name>
+      <ID>6</ID>
+      <DeviceNumber>13</DeviceNumber>
+      <Trim>-2000</Trim>
+      <Position>7500</Position>
+    </Value>
+  </DictionaryEntry>
+  <DictionaryEntry>
+    <Key xsi:type="xsd:string">右足首（ピッチ）</Key>
+    <Value xsi:type="PositionData">
+      <Name>右足首（ピッチ）</Name>
+      <ID>7</ID>
+      <DeviceNumber>14</DeviceNumber>
+      <Trim>450</Trim>
+      <Position>7500</Position>
+    </Value>
+  </DictionaryEntry>
+  <DictionaryEntry>
+    <Key xsi:type="xsd:string">左足首（ピッチ）</Key>
+    <Value xsi:type="PositionData">
+      <Name>左足首（ピッチ）</Name>
+      <ID>7</ID>
+      <DeviceNumber>15</DeviceNumber>
+      <Trim>450</Trim>
+      <Position>7500</Position>
+    </Value>
+  </DictionaryEntry>
+  <DictionaryEntry>
+    <Key xsi:type="xsd:string">右足首（ロール）</Key>
+    <Value xsi:type="PositionData">
+      <Name>右足首（ロール）</Name>
+      <ID>8</ID>
+      <DeviceNumber>16</DeviceNumber>
+      <Trim>0</Trim>
+      <Position>7500</Position>
+    </Value>
+  </DictionaryEntry>
+  <DictionaryEntry>
+    <Key xsi:type="xsd:string">左足首（ロール）</Key>
+    <Value xsi:type="PositionData">
+      <Name>左足首（ロール）</Name>
+      <ID>8</ID>
+      <DeviceNumber>17</DeviceNumber>
+      <Trim>0</Trim>
+      <Position>7500</Position>
+    </Value>
+  </DictionaryEntry>
+  <DictionaryEntry>
+    <Key xsi:type="xsd:string">右グリッパー</Key>
+    <Value xsi:type="PositionData">
+      <Name>右グリッパー</Name>
+      <ID>9</ID>
+      <DeviceNumber>18</DeviceNumber>
+      <Trim>0</Trim>
+      <Position>7500</Position>
+    </Value>
+  </DictionaryEntry>
+  <DictionaryEntry>
+    <Key xsi:type="xsd:string">左グリッパー</Key>
+    <Value xsi:type="PositionData">
+      <Name>左グリッパー</Name>
+      <ID>9</ID>
+      <DeviceNumber>19</DeviceNumber>
+      <Trim>0</Trim>
+      <Position>7500</Position>
+    </Value>
+  </DictionaryEntry>
+  <DictionaryEntry>
+    <Key xsi:type="xsd:string">右拡張3</Key>
+    <Value xsi:type="PositionData">
+      <Name>右拡張3</Name>
+      <ID>10</ID>
+      <DeviceNumber>20</DeviceNumber>
+      <Trim>0</Trim>
+      <Position>7500</Position>
+    </Value>
+  </DictionaryEntry>
+  <DictionaryEntry>
+    <Key xsi:type="xsd:string">左拡張3</Key>
+    <Value xsi:type="PositionData">
+      <Name>左拡張3</Name>
+      <ID>10</ID>
+      <DeviceNumber>21</DeviceNumber>
+      <Trim>0</Trim>
+      <Position>7500</Position>
+    </Value>
+  </DictionaryEntry>
+  <DictionaryEntry>
+    <Key xsi:type="xsd:string">右拡張4</Key>
+    <Value xsi:type="PositionData">
+      <Name>右拡張4</Name>
+      <ID>11</ID>
+      <DeviceNumber>22</DeviceNumber>
+      <Trim>0</Trim>
+      <Position>7500</Position>
+    </Value>
+  </DictionaryEntry>
+  <DictionaryEntry>
+    <Key xsi:type="xsd:string">左拡張4</Key>
+    <Value xsi:type="PositionData">
+      <Name>左拡張4</Name>
+      <ID>11</ID>
+      <DeviceNumber>23</DeviceNumber>
+      <Trim>0</Trim>
+      <Position>7500</Position>
+    </Value>
+  </DictionaryEntry>
+  <DictionaryEntry>
+    <Key xsi:type="xsd:string">右拡張5</Key>
+    <Value xsi:type="PositionData">
+      <Name>右拡張5</Name>
+      <ID>12</ID>
+      <DeviceNumber>24</DeviceNumber>
+      <Trim>0</Trim>
+      <Position>7500</Position>
+    </Value>
+  </DictionaryEntry>
+  <DictionaryEntry>
+    <Key xsi:type="xsd:string">左拡張5</Key>
+    <Value xsi:type="PositionData">
+      <Name>左拡張5</Name>
+      <ID>12</ID>
+      <DeviceNumber>25</DeviceNumber>
+      <Trim>0</Trim>
+      <Position>7500</Position>
+    </Value>
+  </DictionaryEntry>
+  <DictionaryEntry>
+    <Key xsi:type="xsd:string">右拡張6</Key>
+    <Value xsi:type="PositionData">
+      <Name>右拡張6</Name>
+      <ID>13</ID>
+      <DeviceNumber>26</DeviceNumber>
+      <Trim>0</Trim>
+      <Position>7500</Position>
+    </Value>
+  </DictionaryEntry>
+  <DictionaryEntry>
+    <Key xsi:type="xsd:string">左拡張6</Key>
+    <Value xsi:type="PositionData">
+      <Name>左拡張6</Name>
+      <ID>13</ID>
+      <DeviceNumber>27</DeviceNumber>
+      <Trim>0</Trim>
+      <Position>7500</Position>
+    </Value>
+  </DictionaryEntry>
+  <DictionaryEntry>
+    <Key xsi:type="xsd:string">右肩（ヨー）</Key>
+    <Value xsi:type="PositionData">
+      <Name>右肩（ヨー）</Name>
+      <ID>14</ID>
+      <DeviceNumber>28</DeviceNumber>
+      <Trim>0</Trim>
+      <Position>7500</Position>
+    </Value>
+  </DictionaryEntry>
+  <DictionaryEntry>
+    <Key xsi:type="xsd:string">左肩（ヨー）</Key>
+    <Value xsi:type="PositionData">
+      <Name>左肩（ヨー）</Name>
+      <ID>14</ID>
+      <DeviceNumber>29</DeviceNumber>
+      <Trim>0</Trim>
+      <Position>7500</Position>
+    </Value>
+  </DictionaryEntry>
+  <DictionaryEntry>
+    <Key xsi:type="xsd:string">右手首（ピッチ）</Key>
+    <Value xsi:type="PositionData">
+      <Name>右手首（ピッチ）</Name>
+      <ID>15</ID>
+      <DeviceNumber>30</DeviceNumber>
+      <Trim>0</Trim>
+      <Position>7500</Position>
+    </Value>
+  </DictionaryEntry>
+  <DictionaryEntry>
+    <Key xsi:type="xsd:string">左手首（ピッチ）</Key>
+    <Value xsi:type="PositionData">
+      <Name>左手首（ピッチ）</Name>
+      <ID>15</ID>
+      <DeviceNumber>31</DeviceNumber>
+      <Trim>0</Trim>
+      <Position>7500</Position>
+    </Value>
+  </DictionaryEntry>
+  <DictionaryEntry>
+    <Key xsi:type="xsd:string">右手首（ロール）</Key>
+    <Value xsi:type="PositionData">
+      <Name>右手首（ロール）</Name>
+      <ID>16</ID>
+      <DeviceNumber>32</DeviceNumber>
+      <Trim>0</Trim>
+      <Position>7500</Position>
+    </Value>
+  </DictionaryEntry>
+  <DictionaryEntry>
+    <Key xsi:type="xsd:string">左手首（ロール）</Key>
+    <Value xsi:type="PositionData">
+      <Name>左手首（ロール）</Name>
+      <ID>16</ID>
+      <DeviceNumber>33</DeviceNumber>
+      <Trim>0</Trim>
+      <Position>7500</Position>
+    </Value>
+  </DictionaryEntry>
+  <DictionaryEntry>
+    <Key xsi:type="xsd:string">右拡張10</Key>
+    <Value xsi:type="PositionData">
+      <Name>右拡張10</Name>
+      <ID>17</ID>
+      <DeviceNumber>34</DeviceNumber>
+      <Trim>0</Trim>
+      <Position>7500</Position>
+    </Value>
+  </DictionaryEntry>
+</ArrayOfDictionaryEntry>

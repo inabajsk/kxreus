@@ -1,0 +1,2907 @@
+<?xml version="1.0"?>
+<Rcb4 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <Config>
+    <unsignedByte>11</unsignedByte>
+    <unsignedByte>64</unsignedByte>
+  </Config>
+  <AdcReference>
+    <unsignedByte>0</unsignedByte>
+    <unsignedByte>0</unsignedByte>
+    <unsignedByte>0</unsignedByte>
+    <unsignedByte>0</unsignedByte>
+    <unsignedByte>0</unsignedByte>
+    <unsignedByte>0</unsignedByte>
+    <unsignedByte>0</unsignedByte>
+    <unsignedByte>0</unsignedByte>
+    <unsignedByte>0</unsignedByte>
+    <unsignedByte>0</unsignedByte>
+    <unsignedByte>0</unsignedByte>
+    <unsignedByte>0</unsignedByte>
+    <unsignedByte>0</unsignedByte>
+    <unsignedByte>0</unsignedByte>
+    <unsignedByte>0</unsignedByte>
+    <unsignedByte>0</unsignedByte>
+    <unsignedByte>0</unsignedByte>
+    <unsignedByte>0</unsignedByte>
+    <unsignedByte>0</unsignedByte>
+    <unsignedByte>0</unsignedByte>
+    <unsignedByte>0</unsignedByte>
+    <unsignedByte>0</unsignedByte>
+  </AdcReference>
+  <Kri3>
+    <Name>KRI-3</Name>
+    <Count>11</Count>
+    <RomAddress>0</RomAddress>
+    <RamAddress>844</RamAddress>
+    <DeviceNumber>35</DeviceNumber>
+    <Code>1</Code>
+    <ID>31</ID>
+    <ReceiveDataAddress>0</ReceiveDataAddress>
+    <ReceiveDataSize>7</ReceiveDataSize>
+    <ButtonValue>0</ButtonValue>
+    <PA1>0</PA1>
+    <PA2>0</PA2>
+    <PA3>0</PA3>
+    <PA4>0</PA4>
+    <CheckSum>0</CheckSum>
+  </Kri3>
+  <MotionDataCollection>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M001</Key>
+      <Value xsi:type="Motion">
+        <Number>0</Number>
+        <Name>XL4T_101_一定歩行前（3回)</Name>
+        <Date>2017-01-14T20:19:50.7992666+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData>
+          <anyType xsi:type="xsd:string">08 00 02 57 04 00 03 68</anyType>
+          <anyType xsi:type="xsd:string">1B 10 00 03 33 03 01 08 64 19 AE 15 AE 15 64 19 4C 1D 06 18 06 18 4C 1D 4C 1D 64</anyType>
+          <anyType xsi:type="xsd:string">1B 10 00 03 33 03 01 06 AE 15 AE 15 AE 15 64 19 92 22 4C 1D 06 18 4C 1D 4C 1D 3E</anyType>
+          <anyType xsi:type="xsd:string">1B 10 00 03 33 03 01 05 AE 15 AE 15 AE 15 AE 15 92 22 4C 1D 06 18 4C 1D 4C 1D 83</anyType>
+          <anyType xsi:type="xsd:string">1B 10 00 03 33 03 01 05 AE 15 64 19 AE 15 AE 15 92 22 4C 1D 06 18 4C 1D 4C 1D 3D</anyType>
+          <anyType xsi:type="xsd:string">1B 10 00 03 33 03 01 08 AE 15 64 19 64 19 AE 15 92 22 4C 1D 4C 1D 92 22 4C 1D 90</anyType>
+          <anyType xsi:type="xsd:string">19 10 00 03 33 03 00 06 AE 15 AE 15 64 19 AE 15 4C 1D 06 18 4C 1D 92 22 D2</anyType>
+          <anyType xsi:type="xsd:string">1B 10 00 03 33 03 01 05 AE 15 AE 15 AE 15 AE 15 4C 1D 06 18 4C 1D 92 22 4C 1D 83</anyType>
+          <anyType xsi:type="xsd:string">1B 10 00 03 33 03 01 05 64 19 AE 15 AE 15 AE 15 4C 1D 06 18 4C 1D 92 22 4C 1D 3D</anyType>
+          <anyType xsi:type="xsd:string">08 07 02 57 04 00 01 6D</anyType>
+          <anyType xsi:type="xsd:string">07 0B 74 0C 00 05 97</anyType>
+          <anyType xsi:type="xsd:string">07 0B 88 0B 00 00 A5</anyType>
+          <anyType xsi:type="xsd:string">1B 10 01 03 33 03 00 1E 4C 1D AE 15 AE 15 AE 15 AE 15 4C 1D 4C 1D 4C 1D 4C 1D 9C</anyType>
+          <anyType xsi:type="xsd:string">03 0D 10</anyType>
+          <anyType xsi:type="xsd:string">03 0D 10 FF</anyType>
+        </MotionData>
+        <Address>2944</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M002</Key>
+      <Value xsi:type="Motion">
+        <Number>1</Number>
+        <Name>XL4T_102_一定歩行後（3回）</Name>
+        <Date>2017-01-14T20:16:22.1423321+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData>
+          <anyType xsi:type="xsd:string">08 00 02 57 04 00 03 68</anyType>
+          <anyType xsi:type="xsd:string">19 10 00 03 33 03 00 05 64 19 AE 15 AE 15 AE 15 4C 1D 06 18 4C 1D 92 22 D1</anyType>
+          <anyType xsi:type="xsd:string">19 10 00 03 33 03 00 05 AE 15 AE 15 AE 15 AE 15 4C 1D 06 18 4C 1D 92 22 17</anyType>
+          <anyType xsi:type="xsd:string">19 10 00 03 33 03 00 06 AE 15 AE 15 64 19 AE 15 4C 1D 06 18 4C 1D 92 22 D2</anyType>
+          <anyType xsi:type="xsd:string">19 10 00 03 33 03 00 08 AE 15 64 19 64 19 AE 15 92 22 4C 1D 4C 1D 92 22 24</anyType>
+          <anyType xsi:type="xsd:string">08 07 02 57 04 00 01 6D</anyType>
+          <anyType xsi:type="xsd:string">07 0B 66 14 00 05 91</anyType>
+          <anyType xsi:type="xsd:string">19 10 00 03 33 03 00 05 AE 15 64 19 AE 15 AE 15 92 22 4C 1D 06 18 4C 1D D1</anyType>
+          <anyType xsi:type="xsd:string">19 10 00 03 33 03 00 05 AE 15 AE 15 AE 15 AE 15 92 22 4C 1D 06 18 4C 1D 17</anyType>
+          <anyType xsi:type="xsd:string">19 10 00 03 33 03 00 06 AE 15 AE 15 AE 15 64 19 92 22 4C 1D 06 18 4C 1D D2</anyType>
+          <anyType xsi:type="xsd:string">19 10 00 03 33 03 00 08 64 19 AE 15 AE 15 64 19 4C 1D 06 18 06 18 4C 1D F8</anyType>
+          <anyType xsi:type="xsd:string">07 0B 88 13 00 00 AD</anyType>
+          <anyType xsi:type="xsd:string">1B 10 01 03 33 03 00 1E 4C 1D AE 15 AE 15 AE 15 AE 15 4C 1D 4C 1D 4C 1D 4C 1D 9C</anyType>
+          <anyType xsi:type="xsd:string">03 0D 10</anyType>
+          <anyType xsi:type="xsd:string">03 0D 10 FF</anyType>
+        </MotionData>
+        <Address>4992</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M003</Key>
+      <Value xsi:type="Motion">
+        <Number>2</Number>
+        <Name>XL4T_103_左旋回（３回）</Name>
+        <Date>2017-01-14T20:23:03.736302+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData>
+          <anyType xsi:type="xsd:string">08 00 02 57 04 00 03 68</anyType>
+          <anyType xsi:type="xsd:string">1B 10 00 03 33 03 01 0A AE 15 AE 15 AE 15 AE 15 4C 1D 06 18 06 18 4C 1D 44 16 E3</anyType>
+          <anyType xsi:type="xsd:string">1B 10 00 03 33 03 01 0A AE 15 64 19 64 19 AE 15 06 18 4C 1D 4C 1D 06 18 44 16 57</anyType>
+          <anyType xsi:type="xsd:string">08 07 02 57 04 00 01 6D</anyType>
+          <anyType xsi:type="xsd:string">07 0B 0A 1C 00 05 3D</anyType>
+          <anyType xsi:type="xsd:string">1B 10 00 03 33 03 01 0A AE 15 AE 15 AE 15 AE 15 06 18 4C 1D 4C 1D 06 18 44 16 E3</anyType>
+          <anyType xsi:type="xsd:string">1B 10 00 03 33 03 01 0A 64 19 AE 15 AE 15 64 19 4C 1D 06 18 06 18 4C 1D 44 16 57</anyType>
+          <anyType xsi:type="xsd:string">07 0B 88 1B 00 00 B5</anyType>
+          <anyType xsi:type="xsd:string">1B 10 01 03 33 03 00 1E 4C 1D AE 15 AE 15 AE 15 AE 15 4C 1D 4C 1D 4C 1D 4C 1D 9C</anyType>
+          <anyType xsi:type="xsd:string">03 0D 10</anyType>
+          <anyType xsi:type="xsd:string">03 0D 10 FF</anyType>
+        </MotionData>
+        <Address>7040</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M004</Key>
+      <Value xsi:type="Motion">
+        <Number>3</Number>
+        <Name>XL4T_104_右旋回（3回）</Name>
+        <Date>2017-04-08T15:42:40.4451616+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData>
+          <anyType xsi:type="xsd:string">08 00 02 57 04 00 03 68</anyType>
+          <anyType xsi:type="xsd:string">1B 10 00 03 33 03 01 0A AE 15 64 19 64 19 AE 15 92 22 4C 1D 4C 1D 92 22 54 24 A1</anyType>
+          <anyType xsi:type="xsd:string">1B 10 00 03 33 03 01 0A AE 15 AE 15 AE 15 AE 15 92 22 4C 1D 4C 1D 92 22 54 24 2D</anyType>
+          <anyType xsi:type="xsd:string">08 07 02 57 04 00 01 6D</anyType>
+          <anyType xsi:type="xsd:string">07 0B 0A 24 00 05 45</anyType>
+          <anyType xsi:type="xsd:string">1B 10 00 03 33 03 01 0A 64 19 AE 15 AE 15 64 19 4C 1D 92 22 92 22 4C 1D 54 24 A1</anyType>
+          <anyType xsi:type="xsd:string">1B 10 00 03 33 03 01 0A AE 15 AE 15 AE 15 AE 15 4C 1D 92 22 92 22 4C 1D 54 24 2D</anyType>
+          <anyType xsi:type="xsd:string">07 0B 88 23 00 00 BD</anyType>
+          <anyType xsi:type="xsd:string">1B 10 00 03 33 03 01 06 AE 15 64 19 64 19 AE 15 4C 1D 4C 1D 4C 1D 4C 1D 54 24 07</anyType>
+          <anyType xsi:type="xsd:string">1B 10 00 03 33 03 01 1E AE 15 AE 15 AE 15 AE 15 4C 1D 4C 1D 4C 1D 4C 1D 4C 1D 9C</anyType>
+          <anyType xsi:type="xsd:string">03 0D 10</anyType>
+          <anyType xsi:type="xsd:string">03 0D 10 FF</anyType>
+        </MotionData>
+        <Address>9088</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M005</Key>
+      <Value xsi:type="Motion">
+        <Number>4</Number>
+        <Name>XL4T_105_前進</Name>
+        <Date>2017-01-17T23:45:39.9513912+09:00</Date>
+        <ButtonData>1</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData>
+          <anyType xsi:type="xsd:string">1B 10 00 03 33 03 01 05 64 19 AE 15 AE 15 AE 15 4C 1D 06 18 4C 1D 92 22 4C 1D 3D</anyType>
+          <anyType xsi:type="xsd:string">09 07 82 50 03 00 00 01 E6</anyType>
+          <anyType xsi:type="xsd:string">07 0B C9 2B 00 05 0B</anyType>
+          <anyType xsi:type="xsd:string">1B 10 00 03 33 03 01 1E AE 15 AE 15 AE 15 AE 15 4C 1D 4C 1D 4C 1D 4C 1D 4C 1D 9C</anyType>
+          <anyType xsi:type="xsd:string">03 0D 10</anyType>
+          <anyType xsi:type="xsd:string">1B 10 00 03 33 03 01 08 64 19 AE 15 AE 15 64 19 4C 1D 06 18 06 18 4C 1D 4C 1D 64</anyType>
+          <anyType xsi:type="xsd:string">1B 10 00 03 33 03 01 06 AE 15 AE 15 AE 15 64 19 92 22 4C 1D 06 18 4C 1D 4C 1D 3E</anyType>
+          <anyType xsi:type="xsd:string">1B 10 00 03 33 03 01 05 AE 15 AE 15 AE 15 AE 15 92 22 4C 1D 06 18 4C 1D 4C 1D 83</anyType>
+          <anyType xsi:type="xsd:string">1B 10 00 03 33 03 01 05 AE 15 64 19 AE 15 AE 15 92 22 4C 1D 06 18 4C 1D 4C 1D 3D</anyType>
+          <anyType xsi:type="xsd:string">09 07 82 50 03 00 00 01 E6</anyType>
+          <anyType xsi:type="xsd:string">07 0B 4C 2C 00 05 8F</anyType>
+          <anyType xsi:type="xsd:string">07 0B AB 2B 00 00 E8</anyType>
+          <anyType xsi:type="xsd:string">1B 10 00 03 33 03 01 08 AE 15 64 19 64 19 AE 15 92 22 4C 1D 4C 1D 92 22 4C 1D 90</anyType>
+          <anyType xsi:type="xsd:string">19 10 00 03 33 03 00 06 AE 15 AE 15 64 19 AE 15 4C 1D 06 18 4C 1D 92 22 D2</anyType>
+          <anyType xsi:type="xsd:string">1B 10 00 03 33 03 01 05 AE 15 AE 15 AE 15 AE 15 4C 1D 06 18 4C 1D 92 22 4C 1D 83</anyType>
+          <anyType xsi:type="xsd:string">07 0B 80 2B 00 00 BD</anyType>
+          <anyType xsi:type="xsd:string">03 0D 10 FF</anyType>
+        </MotionData>
+        <Address>11136</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M006</Key>
+      <Value xsi:type="Motion">
+        <Number>5</Number>
+        <Name>XL4T_106_後進</Name>
+        <Date>2017-01-14T20:25:39.6472196+09:00</Date>
+        <ButtonData>2</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData>
+          <anyType xsi:type="xsd:string">19 10 00 03 33 03 00 05 64 19 AE 15 AE 15 AE 15 4C 1D 06 18 4C 1D 92 22 D1</anyType>
+          <anyType xsi:type="xsd:string">19 10 00 03 33 03 00 05 AE 15 AE 15 AE 15 AE 15 4C 1D 06 18 4C 1D 92 22 17</anyType>
+          <anyType xsi:type="xsd:string">19 10 00 03 33 03 00 06 AE 15 AE 15 64 19 AE 15 4C 1D 06 18 4C 1D 92 22 D2</anyType>
+          <anyType xsi:type="xsd:string">19 10 00 03 33 03 00 08 AE 15 64 19 64 19 AE 15 92 22 4C 1D 4C 1D 92 22 24</anyType>
+          <anyType xsi:type="xsd:string">09 07 82 50 03 00 00 02 E7</anyType>
+          <anyType xsi:type="xsd:string">07 0B 10 34 00 05 5B</anyType>
+          <anyType xsi:type="xsd:string">19 10 00 03 33 03 00 1E AE 15 AE 15 AE 15 AE 15 4C 1D 4C 1D 4C 1D 4C 1D 30</anyType>
+          <anyType xsi:type="xsd:string">03 0D 10</anyType>
+          <anyType xsi:type="xsd:string">19 10 00 03 33 03 00 05 AE 15 64 19 AE 15 AE 15 92 22 4C 1D 06 18 4C 1D D1</anyType>
+          <anyType xsi:type="xsd:string">19 10 00 03 33 03 00 05 AE 15 AE 15 AE 15 AE 15 92 22 4C 1D 06 18 4C 1D 17</anyType>
+          <anyType xsi:type="xsd:string">19 10 00 03 33 03 00 06 AE 15 AE 15 AE 15 64 19 92 22 4C 1D 06 18 4C 1D D2</anyType>
+          <anyType xsi:type="xsd:string">19 10 00 03 33 03 00 08 64 19 AE 15 AE 15 64 19 4C 1D 06 18 06 18 4C 1D F8</anyType>
+          <anyType xsi:type="xsd:string">09 07 82 50 03 00 00 02 E7</anyType>
+          <anyType xsi:type="xsd:string">07 0B 80 33 00 05 CA</anyType>
+          <anyType xsi:type="xsd:string">07 0B F4 33 00 00 39</anyType>
+          <anyType xsi:type="xsd:string">07 0B 80 33 00 00 C5</anyType>
+          <anyType xsi:type="xsd:string">03 0D 10 FF</anyType>
+        </MotionData>
+        <Address>13184</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M007</Key>
+      <Value xsi:type="Motion">
+        <Number>6</Number>
+        <Name>XL4T_107_左移動</Name>
+        <Date>2017-04-08T15:45:19.2710422+09:00</Date>
+        <ButtonData>8</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData>
+          <anyType xsi:type="xsd:string">1B 10 00 03 33 03 01 08 64 19 AE 15 AE 15 64 19 4C 1D C0 12 70 17 4C 1D 44 16 72</anyType>
+          <anyType xsi:type="xsd:string">1B 10 00 03 33 03 01 03 AE 15 AE 15 AE 15 AE 15 4C 1D C0 12 70 17 4C 1D 44 16 F9</anyType>
+          <anyType xsi:type="xsd:string">1B 10 00 03 33 03 01 05 AE 15 64 19 64 19 AE 15 D8 27 C0 12 70 17 28 23 44 16 E7</anyType>
+          <anyType xsi:type="xsd:string">1B 10 00 03 33 03 01 05 AE 15 AE 15 64 19 AE 15 D8 27 C0 12 70 17 28 23 44 16 2D</anyType>
+          <anyType xsi:type="xsd:string">09 07 82 50 03 00 00 08 ED</anyType>
+          <anyType xsi:type="xsd:string">07 0B 6B 3C 00 05 BE</anyType>
+          <anyType xsi:type="xsd:string">1B 10 00 03 33 03 01 05 AE 15 64 19 64 19 AE 15 4C 1D C0 12 70 17 4C 1D 44 16 6F</anyType>
+          <anyType xsi:type="xsd:string">1B 10 00 03 33 03 01 03 AE 15 AE 15 AE 15 AE 15 4C 1D C0 12 70 17 4C 1D 44 16 F9</anyType>
+          <anyType xsi:type="xsd:string">1B 10 00 03 33 03 01 08 64 19 AE 15 AE 15 64 19 4C 1D 4C 1D 4C 1D 4C 1D 44 16 EB</anyType>
+          <anyType xsi:type="xsd:string">1B 10 00 03 33 03 01 0A AE 15 AE 15 AE 15 AE 15 4C 1D 4C 1D 4C 1D 4C 1D 4C 1D 88</anyType>
+          <anyType xsi:type="xsd:string">03 0D 10</anyType>
+          <anyType xsi:type="xsd:string">1B 10 00 03 33 03 01 05 AE 15 AE 15 AE 15 AE 15 D8 27 C0 12 70 17 28 23 44 16 73</anyType>
+          <anyType xsi:type="xsd:string">1B 10 00 03 33 03 01 08 64 19 AE 15 AE 15 64 19 D8 27 C0 12 70 17 28 23 44 16 EA</anyType>
+          <anyType xsi:type="xsd:string">1B 10 00 03 33 03 01 05 64 19 AE 15 AE 15 AE 15 28 23 70 17 C0 12 D8 27 44 16 2D</anyType>
+          <anyType xsi:type="xsd:string">09 07 82 50 03 00 00 08 ED</anyType>
+          <anyType xsi:type="xsd:string">07 0B 24 3D 00 05 78</anyType>
+          <anyType xsi:type="xsd:string">1B 10 00 03 33 03 01 05 64 19 AE 15 AE 15 64 19 28 23 4C 1D 4C 1D D8 27 44 16 60</anyType>
+          <anyType xsi:type="xsd:string">1B 10 00 03 33 03 01 03 AE 15 AE 15 AE 15 AE 15 28 23 4C 1D 4C 1D D8 27 44 16 EA</anyType>
+          <anyType xsi:type="xsd:string">1B 10 00 03 33 03 01 08 AE 15 64 19 64 19 AE 15 4C 1D 4C 1D 4C 1D 4C 1D 44 16 EB</anyType>
+          <anyType xsi:type="xsd:string">07 0B 4D 3C 00 00 9B</anyType>
+          <anyType xsi:type="xsd:string">1B 10 00 03 33 03 01 05 AE 15 AE 15 AE 15 AE 15 28 23 70 17 C0 12 D8 27 44 16 73</anyType>
+          <anyType xsi:type="xsd:string">1B 10 00 03 33 03 01 08 AE 15 64 19 64 19 AE 15 28 23 70 17 C0 12 D8 27 44 16 EA</anyType>
+          <anyType xsi:type="xsd:string">07 0B D1 3B 00 00 1E</anyType>
+          <anyType xsi:type="xsd:string">03 0D 10 FF</anyType>
+        </MotionData>
+        <Address>15232</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M008</Key>
+      <Value xsi:type="Motion">
+        <Number>7</Number>
+        <Name>XL4T_108_右移動</Name>
+        <Date>2017-04-08T15:45:28.225458+09:00</Date>
+        <ButtonData>4</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData>
+          <anyType xsi:type="xsd:string">1B 10 00 03 33 03 01 08 64 19 AE 15 AE 15 64 19 4C 1D C0 12 70 17 4C 1D 54 24 90</anyType>
+          <anyType xsi:type="xsd:string">1B 10 00 03 33 03 01 03 AE 15 AE 15 AE 15 AE 15 4C 1D C0 12 70 17 4C 1D 54 24 17</anyType>
+          <anyType xsi:type="xsd:string">1B 10 00 03 33 03 01 05 AE 15 64 19 64 19 AE 15 D8 27 C0 12 70 17 28 23 54 24 05</anyType>
+          <anyType xsi:type="xsd:string">1B 10 00 03 33 03 01 05 AE 15 AE 15 64 19 AE 15 D8 27 C0 12 70 17 28 23 54 24 4B</anyType>
+          <anyType xsi:type="xsd:string">1B 10 00 03 33 03 01 08 AE 15 64 19 64 19 AE 15 28 23 70 17 C0 12 D8 27 54 24 08</anyType>
+          <anyType xsi:type="xsd:string">1B 10 00 03 33 03 01 05 AE 15 AE 15 AE 15 AE 15 28 23 70 17 C0 12 D8 27 54 24 91</anyType>
+          <anyType xsi:type="xsd:string">09 07 82 50 03 00 00 04 E9</anyType>
+          <anyType xsi:type="xsd:string">07 0B A1 44 00 05 FC</anyType>
+          <anyType xsi:type="xsd:string">1B 10 00 03 33 03 01 05 64 19 AE 15 AE 15 64 19 28 23 4C 1D 4C 1D D8 27 54 24 7E</anyType>
+          <anyType xsi:type="xsd:string">1B 10 00 03 33 03 01 03 AE 15 AE 15 AE 15 AE 15 28 23 4C 1D 4C 1D D8 27 54 24 08</anyType>
+          <anyType xsi:type="xsd:string">1B 10 00 03 33 03 01 08 AE 15 64 19 64 19 AE 15 4C 1D 4C 1D 4C 1D 4C 1D 54 24 09</anyType>
+          <anyType xsi:type="xsd:string">1B 10 00 03 33 03 01 0A AE 15 AE 15 AE 15 AE 15 4C 1D 4C 1D 4C 1D 4C 1D 4C 1D 88</anyType>
+          <anyType xsi:type="xsd:string">03 0D 10</anyType>
+          <anyType xsi:type="xsd:string">1B 10 00 03 33 03 01 05 64 19 AE 15 AE 15 AE 15 28 23 70 17 C0 12 D8 27 54 24 4B</anyType>
+          <anyType xsi:type="xsd:string">1B 10 00 03 33 03 01 08 64 19 AE 15 AE 15 64 19 D8 27 C0 12 70 17 28 23 54 24 08</anyType>
+          <anyType xsi:type="xsd:string">1B 10 00 03 33 03 01 05 AE 15 AE 15 AE 15 AE 15 D8 27 C0 12 70 17 28 23 54 24 91</anyType>
+          <anyType xsi:type="xsd:string">09 07 82 50 03 00 00 04 E9</anyType>
+          <anyType xsi:type="xsd:string">07 0B D1 43 00 05 2B</anyType>
+          <anyType xsi:type="xsd:string">1B 10 00 03 33 03 01 05 AE 15 64 19 64 19 AE 15 4C 1D C0 12 70 17 4C 1D 54 24 8D</anyType>
+          <anyType xsi:type="xsd:string">1B 10 00 03 33 03 01 03 AE 15 AE 15 AE 15 AE 15 4C 1D C0 12 70 17 4C 1D 54 24 17</anyType>
+          <anyType xsi:type="xsd:string">1B 10 00 03 33 03 01 08 64 19 AE 15 AE 15 64 19 4C 1D 4C 1D 4C 1D 4C 1D 54 24 09</anyType>
+          <anyType xsi:type="xsd:string">07 0B 83 44 00 00 D9</anyType>
+          <anyType xsi:type="xsd:string">07 0B D1 43 00 00 26</anyType>
+          <anyType xsi:type="xsd:string">03 0D 10 FF</anyType>
+        </MotionData>
+        <Address>17280</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M009</Key>
+      <Value xsi:type="Motion">
+        <Number>8</Number>
+        <Name>XL4T_109_旋回左</Name>
+        <Date>2017-01-14T20:34:31.1264061+09:00</Date>
+        <ButtonData>1024</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData>
+          <anyType xsi:type="xsd:string">1B 10 00 03 33 03 01 0A AE 15 AE 15 AE 15 AE 15 4C 1D 06 18 06 18 4C 1D 44 16 E3</anyType>
+          <anyType xsi:type="xsd:string">1B 10 00 03 33 03 01 0A AE 15 64 19 64 19 AE 15 06 18 4C 1D 4C 1D 06 18 44 16 57</anyType>
+          <anyType xsi:type="xsd:string">09 07 82 50 03 00 04 00 E9</anyType>
+          <anyType xsi:type="xsd:string">07 0B E4 4B 00 05 46</anyType>
+          <anyType xsi:type="xsd:string">1B 10 00 03 33 03 01 1E AE 15 AE 15 AE 15 AE 15 4C 1D 4C 1D 4C 1D 4C 1D 4C 1D 9C</anyType>
+          <anyType xsi:type="xsd:string">03 0D 10</anyType>
+          <anyType xsi:type="xsd:string">1B 10 00 03 33 03 01 0A AE 15 AE 15 AE 15 AE 15 06 18 4C 1D 4C 1D 06 18 44 16 E3</anyType>
+          <anyType xsi:type="xsd:string">1B 10 00 03 33 03 01 0A 64 19 AE 15 AE 15 64 19 4C 1D 06 18 06 18 4C 1D 44 16 57</anyType>
+          <anyType xsi:type="xsd:string">09 07 82 50 03 00 04 00 E9</anyType>
+          <anyType xsi:type="xsd:string">07 0B 80 4B 00 05 E2</anyType>
+          <anyType xsi:type="xsd:string">07 0B C6 4B 00 00 23</anyType>
+          <anyType xsi:type="xsd:string">07 0B 80 4B 00 00 DD</anyType>
+          <anyType xsi:type="xsd:string">03 0D 10 FF</anyType>
+        </MotionData>
+        <Address>19328</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M010</Key>
+      <Value xsi:type="Motion">
+        <Number>9</Number>
+        <Name>XL4T_110_旋回右</Name>
+        <Date>2017-01-14T20:34:25.8847969+09:00</Date>
+        <ButtonData>4096</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData>
+          <anyType xsi:type="xsd:string">1B 10 00 03 33 03 01 0A AE 15 AE 15 AE 15 AE 15 4C 1D 92 22 92 22 4C 1D 54 24 2D</anyType>
+          <anyType xsi:type="xsd:string">1B 10 00 03 33 03 01 0A AE 15 64 19 64 19 AE 15 92 22 4C 1D 4C 1D 92 22 54 24 A1</anyType>
+          <anyType xsi:type="xsd:string">09 07 82 50 03 00 10 00 F5</anyType>
+          <anyType xsi:type="xsd:string">07 0B E4 53 00 05 4E</anyType>
+          <anyType xsi:type="xsd:string">1B 10 00 03 33 03 01 1E AE 15 AE 15 AE 15 AE 15 4C 1D 4C 1D 4C 1D 4C 1D 4C 1D 9C</anyType>
+          <anyType xsi:type="xsd:string">03 0D 10</anyType>
+          <anyType xsi:type="xsd:string">1B 10 00 03 33 03 01 0A AE 15 AE 15 AE 15 AE 15 92 22 4C 1D 4C 1D 92 22 54 24 2D</anyType>
+          <anyType xsi:type="xsd:string">1B 10 00 03 33 03 01 0A 64 19 AE 15 AE 15 64 19 4C 1D 4C 1D 4C 1D 4C 1D 54 24 0B</anyType>
+          <anyType xsi:type="xsd:string">09 07 82 50 03 00 10 00 F5</anyType>
+          <anyType xsi:type="xsd:string">07 0B 80 53 00 05 EA</anyType>
+          <anyType xsi:type="xsd:string">07 0B C6 53 00 00 2B</anyType>
+          <anyType xsi:type="xsd:string">07 0B 80 53 00 00 E5</anyType>
+          <anyType xsi:type="xsd:string">03 0D 10 FF</anyType>
+        </MotionData>
+        <Address>21376</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M011</Key>
+      <Value xsi:type="Motion">
+        <Number>10</Number>
+        <Name>XL4T_111_ゆっくり歩行前</Name>
+        <Date>2017-01-14T19:52:22.4169845+09:00</Date>
+        <ButtonData>513</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData>
+          <anyType xsi:type="xsd:string">1B 10 00 03 33 03 01 18 64 19 AE 15 AE 15 64 19 4C 1D 06 18 06 18 4C 1D FC 21 28</anyType>
+          <anyType xsi:type="xsd:string">1B 10 00 03 33 03 01 12 AE 15 AE 15 AE 15 64 19 92 22 4C 1D 06 18 4C 1D FC 21 FE</anyType>
+          <anyType xsi:type="xsd:string">1B 10 00 03 33 03 01 0F AE 15 AE 15 AE 15 AE 15 92 22 4C 1D 06 18 4C 1D FC 21 41</anyType>
+          <anyType xsi:type="xsd:string">1B 10 00 03 33 03 01 0F AE 15 64 19 AE 15 AE 15 92 22 4C 1D 06 18 4C 1D FC 21 FB</anyType>
+          <anyType xsi:type="xsd:string">09 07 82 50 03 00 02 01 E8</anyType>
+          <anyType xsi:type="xsd:string">07 0B 1A 5C 00 05 8D</anyType>
+          <anyType xsi:type="xsd:string">1B 10 00 03 33 03 01 1E AE 15 AE 15 AE 15 AE 15 4C 1D 4C 1D 4C 1D 4C 1D 4C 1D 9C</anyType>
+          <anyType xsi:type="xsd:string">03 0D 10</anyType>
+          <anyType xsi:type="xsd:string">1B 10 00 03 33 03 01 18 AE 15 64 19 64 19 AE 15 92 22 4C 1D 4C 1D 92 22 9C 18 EB</anyType>
+          <anyType xsi:type="xsd:string">1B 10 00 03 33 03 01 12 AE 15 AE 15 64 19 AE 15 4C 1D 06 18 4C 1D 92 22 9C 18 95</anyType>
+          <anyType xsi:type="xsd:string">1B 10 00 03 33 03 01 0F AE 15 AE 15 AE 15 AE 15 4C 1D 06 18 4C 1D 92 22 9C 18 D8</anyType>
+          <anyType xsi:type="xsd:string">1B 10 00 03 33 03 01 0F 64 19 AE 15 AE 15 AE 15 4C 1D 06 18 4C 1D 92 22 9C 18 92</anyType>
+          <anyType xsi:type="xsd:string">09 07 82 50 03 00 02 01 E8</anyType>
+          <anyType xsi:type="xsd:string">07 0B 80 5B 00 05 F2</anyType>
+          <anyType xsi:type="xsd:string">07 0B FC 5B 00 00 69</anyType>
+          <anyType xsi:type="xsd:string">07 0B 80 5B 00 00 ED</anyType>
+          <anyType xsi:type="xsd:string">03 0D 10 FF</anyType>
+        </MotionData>
+        <Address>23424</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M012</Key>
+      <Value xsi:type="Motion">
+        <Number>11</Number>
+        <Name>XL4T_112_ゆっくり歩行後</Name>
+        <Date>2017-01-14T19:53:42.8345841+09:00</Date>
+        <ButtonData>514</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData>
+          <anyType xsi:type="xsd:string">1B 10 00 03 33 03 01 0F 64 19 AE 15 AE 15 AE 15 4C 1D 06 18 4C 1D 92 22 9C 18 92</anyType>
+          <anyType xsi:type="xsd:string">1B 10 00 03 33 03 01 0F AE 15 AE 15 AE 15 AE 15 4C 1D 06 18 4C 1D 92 22 9C 18 D8</anyType>
+          <anyType xsi:type="xsd:string">1B 10 00 03 33 03 01 12 AE 15 AE 15 64 19 AE 15 4C 1D 06 18 4C 1D 92 22 9C 18 95</anyType>
+          <anyType xsi:type="xsd:string">1B 10 00 03 33 03 01 18 AE 15 64 19 64 19 AE 15 92 22 4C 1D 4C 1D 92 22 9C 18 EB</anyType>
+          <anyType xsi:type="xsd:string">09 07 82 50 03 00 02 02 E9</anyType>
+          <anyType xsi:type="xsd:string">07 0B 1A 64 00 05 95</anyType>
+          <anyType xsi:type="xsd:string">1B 10 00 03 33 03 01 1E AE 15 AE 15 AE 15 AE 15 4C 1D 4C 1D 4C 1D 4C 1D 4C 1D 9C</anyType>
+          <anyType xsi:type="xsd:string">03 0D 10</anyType>
+          <anyType xsi:type="xsd:string">1B 10 00 03 33 03 01 0F AE 15 64 19 AE 15 AE 15 92 22 4C 1D 06 18 4C 1D FC 21 FB</anyType>
+          <anyType xsi:type="xsd:string">1B 10 00 03 33 03 01 0F AE 15 AE 15 AE 15 AE 15 92 22 4C 1D 06 18 4C 1D FC 21 41</anyType>
+          <anyType xsi:type="xsd:string">1B 10 00 03 33 03 01 12 AE 15 AE 15 AE 15 64 19 92 22 4C 1D 06 18 4C 1D FC 21 FE</anyType>
+          <anyType xsi:type="xsd:string">1B 10 00 03 33 03 01 18 64 19 AE 15 AE 15 64 19 4C 1D 06 18 06 18 4C 1D FC 21 28</anyType>
+          <anyType xsi:type="xsd:string">09 07 82 50 03 00 02 02 E9</anyType>
+          <anyType xsi:type="xsd:string">07 0B 80 63 00 05 FA</anyType>
+          <anyType xsi:type="xsd:string">07 0B FC 63 00 00 71</anyType>
+          <anyType xsi:type="xsd:string">07 0B 80 63 00 00 F5</anyType>
+          <anyType xsi:type="xsd:string">03 0D 10 FF</anyType>
+        </MotionData>
+        <Address>25472</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M013</Key>
+      <Value xsi:type="Motion">
+        <Number>12</Number>
+        <Name>M013</Name>
+        <Date>2017-01-14T09:52:22.0837776+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData />
+        <Address>27520</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M014</Key>
+      <Value xsi:type="Motion">
+        <Number>13</Number>
+        <Name>M014</Name>
+        <Date>2017-01-14T09:52:22.0837776+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData />
+        <Address>29568</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M015</Key>
+      <Value xsi:type="Motion">
+        <Number>14</Number>
+        <Name>M015</Name>
+        <Date>2017-01-14T09:52:22.0837776+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData />
+        <Address>31616</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M016</Key>
+      <Value xsi:type="Motion">
+        <Number>15</Number>
+        <Name>M016</Name>
+        <Date>2017-01-14T09:52:22.0837776+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData />
+        <Address>33664</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M017</Key>
+      <Value xsi:type="Motion">
+        <Number>16</Number>
+        <Name>M017</Name>
+        <Date>2017-01-14T09:52:22.0837776+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData />
+        <Address>35712</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M018</Key>
+      <Value xsi:type="Motion">
+        <Number>17</Number>
+        <Name>M018</Name>
+        <Date>2017-01-14T09:52:22.0837776+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData />
+        <Address>37760</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M019</Key>
+      <Value xsi:type="Motion">
+        <Number>18</Number>
+        <Name>M019</Name>
+        <Date>2017-01-14T09:52:22.0837776+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData />
+        <Address>39808</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M020</Key>
+      <Value xsi:type="Motion">
+        <Number>19</Number>
+        <Name>M020</Name>
+        <Date>2017-01-14T09:52:22.0837776+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData />
+        <Address>41856</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M021</Key>
+      <Value xsi:type="Motion">
+        <Number>20</Number>
+        <Name>XL4T_201_手を振る</Name>
+        <Date>2017-01-17T22:37:59.0461302+09:00</Date>
+        <ButtonData>64</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData>
+          <anyType xsi:type="xsd:string">08 00 02 57 04 00 05 6A</anyType>
+          <anyType xsi:type="xsd:string">1B 10 00 03 33 03 01 1E AE 15 1C 25 AE 15 AE 15 4C 1D 4C 1D 4C 1D 28 23 A3 19 4F</anyType>
+          <anyType xsi:type="xsd:string">1B 10 00 03 33 03 01 1E AE 15 1C 25 AE 15 AE 15 4C 1D 4C 1D 4C 1D AC 26 A3 19 D6</anyType>
+          <anyType xsi:type="xsd:string">1B 10 00 03 33 03 01 1E AE 15 1C 25 AE 15 AE 15 4C 1D 4C 1D 4C 1D A4 1F A3 19 C7</anyType>
+          <anyType xsi:type="xsd:string">08 07 02 57 04 00 01 6D</anyType>
+          <anyType xsi:type="xsd:string">07 0B EF AB 00 05 B1</anyType>
+          <anyType xsi:type="xsd:string">07 0B A3 AB 00 00 60</anyType>
+          <anyType xsi:type="xsd:string">1B 10 00 03 33 03 01 1E AE 15 AE 15 AE 15 AE 15 4C 1D 4C 1D 4C 1D 4C 1D 4C 1D 9C</anyType>
+          <anyType xsi:type="xsd:string">03 0D 10</anyType>
+          <anyType xsi:type="xsd:string">03 0D 10 FF</anyType>
+        </MotionData>
+        <Address>43904</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M022</Key>
+      <Value xsi:type="Motion">
+        <Number>21</Number>
+        <Name>XL4T_202_バタバタする</Name>
+        <Date>2017-01-17T22:38:01.8406617+09:00</Date>
+        <ButtonData>256</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData>
+          <anyType xsi:type="xsd:string">08 00 02 57 04 00 05 6A</anyType>
+          <anyType xsi:type="xsd:string">1B 10 00 03 33 03 01 0F 28 23 AE 15 AE 15 28 23 4C 1D 4C 1D 4C 1D 4C 1D 4C 1D 9D</anyType>
+          <anyType xsi:type="xsd:string">1B 10 00 03 33 03 01 0F AE 15 28 23 28 23 AE 15 4C 1D 4C 1D 4C 1D 4C 1D 4C 1D 9D</anyType>
+          <anyType xsi:type="xsd:string">08 07 02 57 04 00 01 6D</anyType>
+          <anyType xsi:type="xsd:string">07 0B D4 B3 00 05 9E</anyType>
+          <anyType xsi:type="xsd:string">07 0B 88 B3 00 00 4D</anyType>
+          <anyType xsi:type="xsd:string">1B 10 00 03 33 03 01 1E AE 15 AE 15 AE 15 AE 15 4C 1D 4C 1D 4C 1D 4C 1D 4C 1D 9C</anyType>
+          <anyType xsi:type="xsd:string">03 0D 10</anyType>
+          <anyType xsi:type="xsd:string">03 0D 10 FF</anyType>
+        </MotionData>
+        <Address>45952</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M023</Key>
+      <Value xsi:type="Motion">
+        <Number>22</Number>
+        <Name>XL4T_203_首を振る</Name>
+        <Date>2017-01-17T22:38:04.4690425+09:00</Date>
+        <ButtonData>16</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData>
+          <anyType xsi:type="xsd:string">08 00 02 57 04 00 03 68</anyType>
+          <anyType xsi:type="xsd:string">1B 10 00 03 33 03 01 14 AE 15 AE 15 AE 15 AE 15 4C 1D 4C 1D 4C 1D 4C 1D 34 21 7E</anyType>
+          <anyType xsi:type="xsd:string">1B 10 00 03 33 03 01 14 AE 15 AE 15 AE 15 AE 15 4C 1D 4C 1D 4C 1D 4C 1D 64 19 A6</anyType>
+          <anyType xsi:type="xsd:string">08 07 02 57 04 00 01 6D</anyType>
+          <anyType xsi:type="xsd:string">07 0B D4 BB 00 05 A6</anyType>
+          <anyType xsi:type="xsd:string">07 0B 88 BB 00 00 55</anyType>
+          <anyType xsi:type="xsd:string">1B 10 00 03 33 03 01 1E AE 15 AE 15 AE 15 AE 15 4C 1D 4C 1D 4C 1D 4C 1D 4C 1D 9C</anyType>
+          <anyType xsi:type="xsd:string">03 0D 10</anyType>
+          <anyType xsi:type="xsd:string">03 0D 10 FF</anyType>
+        </MotionData>
+        <Address>48000</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M024</Key>
+      <Value xsi:type="Motion">
+        <Number>23</Number>
+        <Name>M024</Name>
+        <Date>2017-01-14T09:52:22.0837776+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData />
+        <Address>50048</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M025</Key>
+      <Value xsi:type="Motion">
+        <Number>24</Number>
+        <Name>M025</Name>
+        <Date>2017-01-14T09:52:22.0837776+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData />
+        <Address>52096</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M026</Key>
+      <Value xsi:type="Motion">
+        <Number>25</Number>
+        <Name>M026</Name>
+        <Date>2017-01-14T09:52:22.0837776+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData />
+        <Address>54144</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M027</Key>
+      <Value xsi:type="Motion">
+        <Number>26</Number>
+        <Name>M027</Name>
+        <Date>2017-01-14T09:52:22.0837776+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData />
+        <Address>56192</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M028</Key>
+      <Value xsi:type="Motion">
+        <Number>27</Number>
+        <Name>M028</Name>
+        <Date>2017-01-14T09:52:22.0837776+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData />
+        <Address>58240</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M029</Key>
+      <Value xsi:type="Motion">
+        <Number>28</Number>
+        <Name>M029</Name>
+        <Date>2017-01-14T09:52:22.0837776+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData />
+        <Address>60288</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M030</Key>
+      <Value xsi:type="Motion">
+        <Number>29</Number>
+        <Name>M030</Name>
+        <Date>2017-01-14T09:52:22.0837776+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData />
+        <Address>62336</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M031</Key>
+      <Value xsi:type="Motion">
+        <Number>30</Number>
+        <Name>XL4T_291_ホームポジション</Name>
+        <Date>2017-01-14T20:29:13.0334526+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData>
+          <anyType xsi:type="xsd:string">1B 10 01 03 33 03 00 1E 4C 1D AE 15 AE 15 AE 15 AE 15 4C 1D 4C 1D 4C 1D 4C 1D 9C</anyType>
+          <anyType xsi:type="xsd:string">03 0D 10</anyType>
+          <anyType xsi:type="xsd:string">03 0D 10 FF</anyType>
+        </MotionData>
+        <Address>64384</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M032</Key>
+      <Value xsi:type="Motion">
+        <Number>31</Number>
+        <Name>XL4T_292_電圧低下</Name>
+        <Date>2017-01-17T23:53:45.9803248+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData>
+          <anyType xsi:type="xsd:string">08 00 02 57 04 00 05 6A</anyType>
+          <anyType xsi:type="xsd:string">1B 10 00 03 33 03 01 32 70 17 70 17 7C 15 7C 15 70 17 28 23 7C 15 1C 25 4C 1D D4</anyType>
+          <anyType xsi:type="xsd:string">1B 10 00 03 33 03 01 32 34 21 34 21 7C 15 7C 15 70 17 28 23 7C 15 1C 25 4C 1D 70</anyType>
+          <anyType xsi:type="xsd:string">1B 10 00 03 33 03 01 64 34 21 34 21 7C 15 7C 15 70 17 28 23 7C 15 1C 25 34 21 8E</anyType>
+          <anyType xsi:type="xsd:string">08 07 02 57 04 00 01 6D</anyType>
+          <anyType xsi:type="xsd:string">07 0B 0A 04 01 05 26</anyType>
+          <anyType xsi:type="xsd:string">1B 10 00 03 33 03 01 64 34 21 34 21 7C 15 7C 15 70 17 28 23 7C 15 1C 25 64 19 B6</anyType>
+          <anyType xsi:type="xsd:string">07 0B BE 03 01 00 D4</anyType>
+          <anyType xsi:type="xsd:string">1B 10 00 03 33 03 01 64 34 21 34 21 7C 15 7C 15 70 17 28 23 7C 15 1C 25 4C 1D A2</anyType>
+          <anyType xsi:type="xsd:string">1B 10 00 03 33 03 01 01 00 80 00 80 00 80 00 80 00 80 00 80 00 80 00 80 00 80 E6</anyType>
+          <anyType xsi:type="xsd:string">03 0D 10</anyType>
+          <anyType xsi:type="xsd:string">03 0D 10 FF</anyType>
+        </MotionData>
+        <Address>66432</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M033</Key>
+      <Value xsi:type="Motion">
+        <Number>32</Number>
+        <Name>M033</Name>
+        <Date>2017-01-14T09:52:22.0837776+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData />
+        <Address>68480</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M034</Key>
+      <Value xsi:type="Motion">
+        <Number>33</Number>
+        <Name>M034</Name>
+        <Date>2017-01-14T09:52:22.0837776+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData />
+        <Address>70528</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M035</Key>
+      <Value xsi:type="Motion">
+        <Number>34</Number>
+        <Name>M035</Name>
+        <Date>2017-01-14T09:52:22.0837776+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData />
+        <Address>72576</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M036</Key>
+      <Value xsi:type="Motion">
+        <Number>35</Number>
+        <Name>M036</Name>
+        <Date>2017-01-14T09:52:22.0837776+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData />
+        <Address>74624</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M037</Key>
+      <Value xsi:type="Motion">
+        <Number>36</Number>
+        <Name>M037</Name>
+        <Date>2017-01-14T09:52:22.0837776+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData />
+        <Address>76672</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M038</Key>
+      <Value xsi:type="Motion">
+        <Number>37</Number>
+        <Name>M038</Name>
+        <Date>2017-01-14T09:52:22.0837776+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData />
+        <Address>78720</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M039</Key>
+      <Value xsi:type="Motion">
+        <Number>38</Number>
+        <Name>M039</Name>
+        <Date>2017-01-14T09:52:22.0837776+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData />
+        <Address>80768</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M040</Key>
+      <Value xsi:type="Motion">
+        <Number>39</Number>
+        <Name>M040</Name>
+        <Date>2017-01-14T09:52:22.0837776+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData />
+        <Address>82816</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M041</Key>
+      <Value xsi:type="Motion">
+        <Number>40</Number>
+        <Name>M041</Name>
+        <Date>2017-01-14T09:52:22.0837776+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData />
+        <Address>84864</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M042</Key>
+      <Value xsi:type="Motion">
+        <Number>41</Number>
+        <Name>M042</Name>
+        <Date>2017-01-14T09:52:22.0837776+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData />
+        <Address>86912</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M043</Key>
+      <Value xsi:type="Motion">
+        <Number>42</Number>
+        <Name>M043</Name>
+        <Date>2017-01-14T09:52:22.0837776+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData />
+        <Address>88960</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M044</Key>
+      <Value xsi:type="Motion">
+        <Number>43</Number>
+        <Name>M044</Name>
+        <Date>2017-01-14T09:52:22.0837776+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData />
+        <Address>91008</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M045</Key>
+      <Value xsi:type="Motion">
+        <Number>44</Number>
+        <Name>M045</Name>
+        <Date>2017-01-14T09:52:22.0837776+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData />
+        <Address>93056</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M046</Key>
+      <Value xsi:type="Motion">
+        <Number>45</Number>
+        <Name>M046</Name>
+        <Date>2017-01-14T09:52:22.0837776+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData />
+        <Address>95104</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M047</Key>
+      <Value xsi:type="Motion">
+        <Number>46</Number>
+        <Name>M047</Name>
+        <Date>2017-01-14T09:52:22.0837776+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData />
+        <Address>97152</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M048</Key>
+      <Value xsi:type="Motion">
+        <Number>47</Number>
+        <Name>M048</Name>
+        <Date>2017-01-14T09:52:22.0837776+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData />
+        <Address>99200</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M049</Key>
+      <Value xsi:type="Motion">
+        <Number>48</Number>
+        <Name>M049</Name>
+        <Date>2017-01-14T09:52:22.0837776+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData />
+        <Address>101248</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M050</Key>
+      <Value xsi:type="Motion">
+        <Number>49</Number>
+        <Name>M050</Name>
+        <Date>2017-01-14T09:52:22.0837776+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData />
+        <Address>103296</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M051</Key>
+      <Value xsi:type="Motion">
+        <Number>50</Number>
+        <Name>M051</Name>
+        <Date>2017-01-14T09:52:22.0837776+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData />
+        <Address>105344</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M052</Key>
+      <Value xsi:type="Motion">
+        <Number>51</Number>
+        <Name>M052</Name>
+        <Date>2017-01-14T09:52:22.0837776+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData />
+        <Address>107392</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M053</Key>
+      <Value xsi:type="Motion">
+        <Number>52</Number>
+        <Name>M053</Name>
+        <Date>2017-01-14T09:52:22.0837776+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData />
+        <Address>109440</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M054</Key>
+      <Value xsi:type="Motion">
+        <Number>53</Number>
+        <Name>M054</Name>
+        <Date>2017-01-14T09:52:22.0837776+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData />
+        <Address>111488</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M055</Key>
+      <Value xsi:type="Motion">
+        <Number>54</Number>
+        <Name>M055</Name>
+        <Date>2017-01-14T09:52:22.0837776+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData />
+        <Address>113536</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M056</Key>
+      <Value xsi:type="Motion">
+        <Number>55</Number>
+        <Name>M056</Name>
+        <Date>2017-01-14T09:52:22.0837776+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData />
+        <Address>115584</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M057</Key>
+      <Value xsi:type="Motion">
+        <Number>56</Number>
+        <Name>M057</Name>
+        <Date>2017-01-14T09:52:22.0837776+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData />
+        <Address>117632</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M058</Key>
+      <Value xsi:type="Motion">
+        <Number>57</Number>
+        <Name>M058</Name>
+        <Date>2017-01-14T09:52:22.0837776+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData />
+        <Address>119680</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M059</Key>
+      <Value xsi:type="Motion">
+        <Number>58</Number>
+        <Name>M059</Name>
+        <Date>2017-01-14T09:52:22.0837776+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData />
+        <Address>121728</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M060</Key>
+      <Value xsi:type="Motion">
+        <Number>59</Number>
+        <Name>M060</Name>
+        <Date>2017-01-14T09:52:22.0837776+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData />
+        <Address>123776</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M061</Key>
+      <Value xsi:type="Motion">
+        <Number>60</Number>
+        <Name>M061</Name>
+        <Date>2017-01-14T09:52:22.0837776+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData />
+        <Address>125824</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M062</Key>
+      <Value xsi:type="Motion">
+        <Number>61</Number>
+        <Name>M062</Name>
+        <Date>2017-01-14T09:52:22.0837776+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData />
+        <Address>127872</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M063</Key>
+      <Value xsi:type="Motion">
+        <Number>62</Number>
+        <Name>M063</Name>
+        <Date>2017-01-14T09:52:22.0837776+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData />
+        <Address>129920</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M064</Key>
+      <Value xsi:type="Motion">
+        <Number>63</Number>
+        <Name>M064</Name>
+        <Date>2017-01-14T09:52:22.0837776+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData />
+        <Address>131968</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M065</Key>
+      <Value xsi:type="Motion">
+        <Number>64</Number>
+        <Name>M065</Name>
+        <Date>2017-01-14T09:52:22.0837776+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData />
+        <Address>134016</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M066</Key>
+      <Value xsi:type="Motion">
+        <Number>65</Number>
+        <Name>M066</Name>
+        <Date>2017-01-14T09:52:22.0837776+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData />
+        <Address>136064</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M067</Key>
+      <Value xsi:type="Motion">
+        <Number>66</Number>
+        <Name>M067</Name>
+        <Date>2017-01-14T09:52:22.0837776+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData />
+        <Address>138112</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M068</Key>
+      <Value xsi:type="Motion">
+        <Number>67</Number>
+        <Name>M068</Name>
+        <Date>2017-01-14T09:52:22.0837776+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData />
+        <Address>140160</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M069</Key>
+      <Value xsi:type="Motion">
+        <Number>68</Number>
+        <Name>M069</Name>
+        <Date>2017-01-14T09:52:22.0837776+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData />
+        <Address>142208</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M070</Key>
+      <Value xsi:type="Motion">
+        <Number>69</Number>
+        <Name>M070</Name>
+        <Date>2017-01-14T09:52:22.0837776+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData />
+        <Address>144256</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M071</Key>
+      <Value xsi:type="Motion">
+        <Number>70</Number>
+        <Name>M071</Name>
+        <Date>2017-01-14T09:52:22.0837776+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData />
+        <Address>146304</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M072</Key>
+      <Value xsi:type="Motion">
+        <Number>71</Number>
+        <Name>M072</Name>
+        <Date>2017-01-14T09:52:22.0837776+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData />
+        <Address>148352</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M073</Key>
+      <Value xsi:type="Motion">
+        <Number>72</Number>
+        <Name>M073</Name>
+        <Date>2017-01-14T09:52:22.0837776+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData />
+        <Address>150400</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M074</Key>
+      <Value xsi:type="Motion">
+        <Number>73</Number>
+        <Name>M074</Name>
+        <Date>2017-01-14T09:52:22.0837776+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData />
+        <Address>152448</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M075</Key>
+      <Value xsi:type="Motion">
+        <Number>74</Number>
+        <Name>M075</Name>
+        <Date>2017-01-14T09:52:22.0837776+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData />
+        <Address>154496</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M076</Key>
+      <Value xsi:type="Motion">
+        <Number>75</Number>
+        <Name>M076</Name>
+        <Date>2017-01-14T09:52:22.0837776+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData />
+        <Address>156544</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M077</Key>
+      <Value xsi:type="Motion">
+        <Number>76</Number>
+        <Name>M077</Name>
+        <Date>2017-01-14T09:52:22.0837776+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData />
+        <Address>158592</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M078</Key>
+      <Value xsi:type="Motion">
+        <Number>77</Number>
+        <Name>M078</Name>
+        <Date>2017-01-14T09:52:22.0837776+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData />
+        <Address>160640</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M079</Key>
+      <Value xsi:type="Motion">
+        <Number>78</Number>
+        <Name>M079</Name>
+        <Date>2017-01-14T09:52:22.0837776+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData />
+        <Address>162688</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M080</Key>
+      <Value xsi:type="Motion">
+        <Number>79</Number>
+        <Name>M080</Name>
+        <Date>2017-01-14T09:52:22.0837776+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData />
+        <Address>164736</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M081</Key>
+      <Value xsi:type="Motion">
+        <Number>80</Number>
+        <Name>M081</Name>
+        <Date>2017-01-14T09:52:22.0837776+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData />
+        <Address>166784</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M082</Key>
+      <Value xsi:type="Motion">
+        <Number>81</Number>
+        <Name>M082</Name>
+        <Date>2017-01-14T09:52:22.0837776+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData />
+        <Address>168832</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M083</Key>
+      <Value xsi:type="Motion">
+        <Number>82</Number>
+        <Name>M083</Name>
+        <Date>2017-01-14T09:52:22.0837776+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData />
+        <Address>170880</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M084</Key>
+      <Value xsi:type="Motion">
+        <Number>83</Number>
+        <Name>M084</Name>
+        <Date>2017-01-14T09:52:22.0837776+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData />
+        <Address>172928</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M085</Key>
+      <Value xsi:type="Motion">
+        <Number>84</Number>
+        <Name>M085</Name>
+        <Date>2017-01-14T09:52:22.0837776+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData />
+        <Address>174976</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M086</Key>
+      <Value xsi:type="Motion">
+        <Number>85</Number>
+        <Name>M086</Name>
+        <Date>2017-01-14T09:52:22.0837776+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData />
+        <Address>177024</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M087</Key>
+      <Value xsi:type="Motion">
+        <Number>86</Number>
+        <Name>M087</Name>
+        <Date>2017-01-14T09:52:22.0837776+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData />
+        <Address>179072</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M088</Key>
+      <Value xsi:type="Motion">
+        <Number>87</Number>
+        <Name>M088</Name>
+        <Date>2017-01-14T09:52:22.0837776+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData />
+        <Address>181120</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M089</Key>
+      <Value xsi:type="Motion">
+        <Number>88</Number>
+        <Name>M089</Name>
+        <Date>2017-01-14T09:52:22.0837776+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData />
+        <Address>183168</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M090</Key>
+      <Value xsi:type="Motion">
+        <Number>89</Number>
+        <Name>M090</Name>
+        <Date>2017-01-14T09:52:22.0837776+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData />
+        <Address>185216</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M091</Key>
+      <Value xsi:type="Motion">
+        <Number>90</Number>
+        <Name>M091</Name>
+        <Date>2017-01-14T09:52:22.0837776+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData />
+        <Address>187264</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M092</Key>
+      <Value xsi:type="Motion">
+        <Number>91</Number>
+        <Name>M092</Name>
+        <Date>2017-01-14T09:52:22.0837776+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData />
+        <Address>189312</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M093</Key>
+      <Value xsi:type="Motion">
+        <Number>92</Number>
+        <Name>M093</Name>
+        <Date>2017-01-14T09:52:22.0837776+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData />
+        <Address>191360</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M094</Key>
+      <Value xsi:type="Motion">
+        <Number>93</Number>
+        <Name>M094</Name>
+        <Date>2017-01-14T09:52:22.0837776+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData />
+        <Address>193408</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M095</Key>
+      <Value xsi:type="Motion">
+        <Number>94</Number>
+        <Name>M095</Name>
+        <Date>2017-01-14T09:52:22.0837776+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData />
+        <Address>195456</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M096</Key>
+      <Value xsi:type="Motion">
+        <Number>95</Number>
+        <Name>M096</Name>
+        <Date>2017-01-14T09:52:22.0837776+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData />
+        <Address>197504</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M097</Key>
+      <Value xsi:type="Motion">
+        <Number>96</Number>
+        <Name>M097</Name>
+        <Date>2017-01-14T09:52:22.0837776+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData />
+        <Address>199552</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M098</Key>
+      <Value xsi:type="Motion">
+        <Number>97</Number>
+        <Name>M098</Name>
+        <Date>2017-01-14T09:52:22.0837776+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData />
+        <Address>201600</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M099</Key>
+      <Value xsi:type="Motion">
+        <Number>98</Number>
+        <Name>M099</Name>
+        <Date>2017-01-14T09:52:22.0837776+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData />
+        <Address>203648</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M100</Key>
+      <Value xsi:type="Motion">
+        <Number>99</Number>
+        <Name>M100</Name>
+        <Date>2017-01-14T09:52:22.0837776+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData />
+        <Address>205696</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M101</Key>
+      <Value xsi:type="Motion">
+        <Number>100</Number>
+        <Name>M101</Name>
+        <Date>2017-01-14T09:52:22.0837776+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData />
+        <Address>207744</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M102</Key>
+      <Value xsi:type="Motion">
+        <Number>101</Number>
+        <Name>M102</Name>
+        <Date>2017-01-14T09:52:22.0837776+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData />
+        <Address>209792</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M103</Key>
+      <Value xsi:type="Motion">
+        <Number>102</Number>
+        <Name>M103</Name>
+        <Date>2017-01-14T09:52:22.0837776+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData />
+        <Address>211840</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M104</Key>
+      <Value xsi:type="Motion">
+        <Number>103</Number>
+        <Name>M104</Name>
+        <Date>2017-01-14T09:52:22.0837776+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData />
+        <Address>213888</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M105</Key>
+      <Value xsi:type="Motion">
+        <Number>104</Number>
+        <Name>M105</Name>
+        <Date>2017-01-14T09:52:22.0837776+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData />
+        <Address>215936</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M106</Key>
+      <Value xsi:type="Motion">
+        <Number>105</Number>
+        <Name>M106</Name>
+        <Date>2017-01-14T09:52:22.0837776+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData />
+        <Address>217984</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M107</Key>
+      <Value xsi:type="Motion">
+        <Number>106</Number>
+        <Name>M107</Name>
+        <Date>2017-01-14T09:52:22.0837776+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData />
+        <Address>220032</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M108</Key>
+      <Value xsi:type="Motion">
+        <Number>107</Number>
+        <Name>M108</Name>
+        <Date>2017-01-14T09:52:22.0837776+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData />
+        <Address>222080</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M109</Key>
+      <Value xsi:type="Motion">
+        <Number>108</Number>
+        <Name>M109</Name>
+        <Date>2017-01-14T09:52:22.0837776+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData />
+        <Address>224128</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M110</Key>
+      <Value xsi:type="Motion">
+        <Number>109</Number>
+        <Name>M110</Name>
+        <Date>2017-01-14T09:52:22.0837776+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData />
+        <Address>226176</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M111</Key>
+      <Value xsi:type="Motion">
+        <Number>110</Number>
+        <Name>M111</Name>
+        <Date>2017-01-14T09:52:22.0837776+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData />
+        <Address>228224</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M112</Key>
+      <Value xsi:type="Motion">
+        <Number>111</Number>
+        <Name>M112</Name>
+        <Date>2017-01-14T09:52:22.0837776+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData />
+        <Address>230272</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M113</Key>
+      <Value xsi:type="Motion">
+        <Number>112</Number>
+        <Name>M113</Name>
+        <Date>2017-01-14T09:52:22.0837776+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData />
+        <Address>232320</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M114</Key>
+      <Value xsi:type="Motion">
+        <Number>113</Number>
+        <Name>M114</Name>
+        <Date>2017-01-14T09:52:22.0837776+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData />
+        <Address>234368</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M115</Key>
+      <Value xsi:type="Motion">
+        <Number>114</Number>
+        <Name>M115</Name>
+        <Date>2017-01-14T09:52:22.0837776+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData />
+        <Address>236416</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M116</Key>
+      <Value xsi:type="Motion">
+        <Number>115</Number>
+        <Name>M116</Name>
+        <Date>2017-01-14T09:52:22.0837776+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData />
+        <Address>238464</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M117</Key>
+      <Value xsi:type="Motion">
+        <Number>116</Number>
+        <Name>M117</Name>
+        <Date>2017-01-14T09:52:22.0837776+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData />
+        <Address>240512</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M118</Key>
+      <Value xsi:type="Motion">
+        <Number>117</Number>
+        <Name>M118</Name>
+        <Date>2017-01-14T09:52:22.0837776+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData />
+        <Address>242560</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M119</Key>
+      <Value xsi:type="Motion">
+        <Number>118</Number>
+        <Name>M119</Name>
+        <Date>2017-01-14T09:52:22.0837776+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData />
+        <Address>244608</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">M120</Key>
+      <Value xsi:type="Motion">
+        <Number>119</Number>
+        <Name>M120</Name>
+        <Date>2017-01-14T09:52:22.0837776+09:00</Date>
+        <ButtonData>0</ButtonData>
+        <CompareType>Equals</CompareType>
+        <MotionData />
+        <Address>246656</Address>
+        <KeyCode>None</KeyCode>
+      </Value>
+    </DictionaryEntry>
+  </MotionDataCollection>
+  <ServoConfigParams>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">左拡張0</Key>
+      <Value xsi:type="ServoItem">
+        <Name>R0</Name>
+        <Count>20</Count>
+        <RomAddress>1574</RomAddress>
+        <RamAddress>144</RamAddress>
+        <Mode>None</Mode>
+        <Port>SIO1</Port>
+        <DeviceNumber>0</DeviceNumber>
+        <Code>0</Code>
+        <ID>0</ID>
+        <Trim>0</Trim>
+        <Position>7500</Position>
+        <Mixing1Address>65535</Mixing1Address>
+        <Mixing1Rate>1</Mixing1Rate>
+        <Mixing2Address>65535</Mixing2Address>
+        <Mixing2Rate>1</Mixing2Rate>
+        <DisplayRate>1.0</DisplayRate>
+        <Location>
+          <X>0</X>
+          <Y>0</Y>
+        </Location>
+        <Group>Body</Group>
+        <ForeColor>Black</ForeColor>
+        <BackColor>buttonface</BackColor>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">頭</Key>
+      <Value xsi:type="ServoItem">
+        <Name>L0</Name>
+        <Count>20</Count>
+        <RomAddress>1594</RomAddress>
+        <RamAddress>164</RamAddress>
+        <Mode>None</Mode>
+        <Port>SIO2</Port>
+        <DeviceNumber>1</DeviceNumber>
+        <Code>0</Code>
+        <ID>0</ID>
+        <Trim>0</Trim>
+        <Position>7500</Position>
+        <Mixing1Address>65535</Mixing1Address>
+        <Mixing1Rate>1</Mixing1Rate>
+        <Mixing2Address>65535</Mixing2Address>
+        <Mixing2Rate>1</Mixing2Rate>
+        <DisplayRate>1.0</DisplayRate>
+        <Location>
+          <X>200</X>
+          <Y>56</Y>
+        </Location>
+        <Group>Body</Group>
+        <ForeColor>Black</ForeColor>
+        <BackColor>buttonface</BackColor>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">左前足　元</Key>
+      <Value xsi:type="ServoItem">
+        <Name>R1</Name>
+        <Count>20</Count>
+        <RomAddress>1614</RomAddress>
+        <RamAddress>184</RamAddress>
+        <Mode>None</Mode>
+        <Port>SIO1</Port>
+        <DeviceNumber>2</DeviceNumber>
+        <Code>0</Code>
+        <ID>1</ID>
+        <Trim>0</Trim>
+        <Position>7500</Position>
+        <Mixing1Address>65535</Mixing1Address>
+        <Mixing1Rate>1</Mixing1Rate>
+        <Mixing2Address>65535</Mixing2Address>
+        <Mixing2Rate>1</Mixing2Rate>
+        <DisplayRate>1.0</DisplayRate>
+        <Location>
+          <X>304</X>
+          <Y>136</Y>
+        </Location>
+        <Group>Arm</Group>
+        <ForeColor>Black</ForeColor>
+        <BackColor>buttonface</BackColor>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">右前足　元</Key>
+      <Value xsi:type="ServoItem">
+        <Name>L1</Name>
+        <Count>20</Count>
+        <RomAddress>1634</RomAddress>
+        <RamAddress>204</RamAddress>
+        <Mode>None</Mode>
+        <Port>SIO2</Port>
+        <DeviceNumber>3</DeviceNumber>
+        <Code>0</Code>
+        <ID>1</ID>
+        <Trim>0</Trim>
+        <Position>7500</Position>
+        <Mixing1Address>65535</Mixing1Address>
+        <Mixing1Rate>1</Mixing1Rate>
+        <Mixing2Address>65535</Mixing2Address>
+        <Mixing2Rate>1</Mixing2Rate>
+        <DisplayRate>1.0</DisplayRate>
+        <Location>
+          <X>96</X>
+          <Y>136</Y>
+        </Location>
+        <Group>Arm</Group>
+        <ForeColor>Black</ForeColor>
+        <BackColor>buttonface</BackColor>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">左前足　先</Key>
+      <Value xsi:type="ServoItem">
+        <Name>R2</Name>
+        <Count>20</Count>
+        <RomAddress>1654</RomAddress>
+        <RamAddress>224</RamAddress>
+        <Mode>None</Mode>
+        <Port>SIO1</Port>
+        <DeviceNumber>4</DeviceNumber>
+        <Code>0</Code>
+        <ID>2</ID>
+        <Trim>0</Trim>
+        <Position>7500</Position>
+        <Mixing1Address>65535</Mixing1Address>
+        <Mixing1Rate>1</Mixing1Rate>
+        <Mixing2Address>65535</Mixing2Address>
+        <Mixing2Rate>1</Mixing2Rate>
+        <DisplayRate>1.0</DisplayRate>
+        <Location>
+          <X>376</X>
+          <Y>88</Y>
+        </Location>
+        <Group>Arm</Group>
+        <ForeColor>Black</ForeColor>
+        <BackColor>buttonface</BackColor>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">右前足　先</Key>
+      <Value xsi:type="ServoItem">
+        <Name>L2</Name>
+        <Count>20</Count>
+        <RomAddress>1674</RomAddress>
+        <RamAddress>244</RamAddress>
+        <Mode>None</Mode>
+        <Port>SIO2</Port>
+        <DeviceNumber>5</DeviceNumber>
+        <Code>0</Code>
+        <ID>2</ID>
+        <Trim>0</Trim>
+        <Position>7500</Position>
+        <Mixing1Address>65535</Mixing1Address>
+        <Mixing1Rate>1</Mixing1Rate>
+        <Mixing2Address>65535</Mixing2Address>
+        <Mixing2Rate>1</Mixing2Rate>
+        <DisplayRate>1.0</DisplayRate>
+        <Location>
+          <X>24</X>
+          <Y>88</Y>
+        </Location>
+        <Group>Arm</Group>
+        <ForeColor>Black</ForeColor>
+        <BackColor>buttonface</BackColor>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">左後脚　元</Key>
+      <Value xsi:type="ServoItem">
+        <Name>R3</Name>
+        <Count>20</Count>
+        <RomAddress>1694</RomAddress>
+        <RamAddress>264</RamAddress>
+        <Mode>None</Mode>
+        <Port>SIO1</Port>
+        <DeviceNumber>6</DeviceNumber>
+        <Code>0</Code>
+        <ID>3</ID>
+        <Trim>0</Trim>
+        <Position>7500</Position>
+        <Mixing1Address>65535</Mixing1Address>
+        <Mixing1Rate>1</Mixing1Rate>
+        <Mixing2Address>65535</Mixing2Address>
+        <Mixing2Rate>1</Mixing2Rate>
+        <DisplayRate>1.0</DisplayRate>
+        <Location>
+          <X>304</X>
+          <Y>216</Y>
+        </Location>
+        <Group>Arm</Group>
+        <ForeColor>Black</ForeColor>
+        <BackColor>buttonface</BackColor>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">右後足　元</Key>
+      <Value xsi:type="ServoItem">
+        <Name>L3</Name>
+        <Count>20</Count>
+        <RomAddress>1714</RomAddress>
+        <RamAddress>284</RamAddress>
+        <Mode>None</Mode>
+        <Port>SIO2</Port>
+        <DeviceNumber>7</DeviceNumber>
+        <Code>0</Code>
+        <ID>3</ID>
+        <Trim>0</Trim>
+        <Position>7500</Position>
+        <Mixing1Address>65535</Mixing1Address>
+        <Mixing1Rate>1</Mixing1Rate>
+        <Mixing2Address>65535</Mixing2Address>
+        <Mixing2Rate>1</Mixing2Rate>
+        <DisplayRate>1.0</DisplayRate>
+        <Location>
+          <X>96</X>
+          <Y>216</Y>
+        </Location>
+        <Group>Arm</Group>
+        <ForeColor>Black</ForeColor>
+        <BackColor>buttonface</BackColor>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">左後脚　先</Key>
+      <Value xsi:type="ServoItem">
+        <Name>R4</Name>
+        <Count>20</Count>
+        <RomAddress>1734</RomAddress>
+        <RamAddress>304</RamAddress>
+        <Mode>Normal</Mode>
+        <Port>SIO1</Port>
+        <DeviceNumber>8</DeviceNumber>
+        <Code>0</Code>
+        <ID>4</ID>
+        <Trim>0</Trim>
+        <Position>7500</Position>
+        <Mixing1Address>65535</Mixing1Address>
+        <Mixing1Rate>1</Mixing1Rate>
+        <Mixing2Address>65535</Mixing2Address>
+        <Mixing2Rate>1</Mixing2Rate>
+        <DisplayRate>1.0</DisplayRate>
+        <Location>
+          <X>384</X>
+          <Y>264</Y>
+        </Location>
+        <Group>Arm</Group>
+        <ForeColor>Black</ForeColor>
+        <BackColor>buttonface</BackColor>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">右後足　先</Key>
+      <Value xsi:type="ServoItem">
+        <Name>L4</Name>
+        <Count>20</Count>
+        <RomAddress>1754</RomAddress>
+        <RamAddress>324</RamAddress>
+        <Mode>Normal</Mode>
+        <Port>SIO2</Port>
+        <DeviceNumber>9</DeviceNumber>
+        <Code>0</Code>
+        <ID>4</ID>
+        <Trim>0</Trim>
+        <Position>7500</Position>
+        <Mixing1Address>65535</Mixing1Address>
+        <Mixing1Rate>1</Mixing1Rate>
+        <Mixing2Address>65535</Mixing2Address>
+        <Mixing2Rate>1</Mixing2Rate>
+        <DisplayRate>1.0</DisplayRate>
+        <Location>
+          <X>24</X>
+          <Y>264</Y>
+        </Location>
+        <Group>Arm</Group>
+        <ForeColor>Black</ForeColor>
+        <BackColor>buttonface</BackColor>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">左拡張1</Key>
+      <Value xsi:type="ServoItem">
+        <Name>R5</Name>
+        <Count>20</Count>
+        <RomAddress>1774</RomAddress>
+        <RamAddress>344</RamAddress>
+        <Mode>None</Mode>
+        <Port>SIO1</Port>
+        <DeviceNumber>10</DeviceNumber>
+        <Code>0</Code>
+        <ID>5</ID>
+        <Trim>0</Trim>
+        <Position>7500</Position>
+        <Mixing1Address>65535</Mixing1Address>
+        <Mixing1Rate>1</Mixing1Rate>
+        <Mixing2Address>65535</Mixing2Address>
+        <Mixing2Rate>1</Mixing2Rate>
+        <DisplayRate>1.0</DisplayRate>
+        <Location>
+          <X>0</X>
+          <Y>0</Y>
+        </Location>
+        <Group>Leg</Group>
+        <ForeColor>Black</ForeColor>
+        <BackColor>buttonface</BackColor>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">右拡張2</Key>
+      <Value xsi:type="ServoItem">
+        <Name>L5</Name>
+        <Count>20</Count>
+        <RomAddress>1794</RomAddress>
+        <RamAddress>364</RamAddress>
+        <Mode>None</Mode>
+        <Port>SIO2</Port>
+        <DeviceNumber>11</DeviceNumber>
+        <Code>0</Code>
+        <ID>5</ID>
+        <Trim>0</Trim>
+        <Position>7500</Position>
+        <Mixing1Address>65535</Mixing1Address>
+        <Mixing1Rate>1</Mixing1Rate>
+        <Mixing2Address>65535</Mixing2Address>
+        <Mixing2Rate>1</Mixing2Rate>
+        <DisplayRate>1.0</DisplayRate>
+        <Location>
+          <X>0</X>
+          <Y>0</Y>
+        </Location>
+        <Group>Leg</Group>
+        <ForeColor>Black</ForeColor>
+        <BackColor>buttonface</BackColor>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">左拡張2</Key>
+      <Value xsi:type="ServoItem">
+        <Name>R6</Name>
+        <Count>20</Count>
+        <RomAddress>1814</RomAddress>
+        <RamAddress>384</RamAddress>
+        <Mode>None</Mode>
+        <Port>SIO1</Port>
+        <DeviceNumber>12</DeviceNumber>
+        <Code>0</Code>
+        <ID>6</ID>
+        <Trim>0</Trim>
+        <Position>7500</Position>
+        <Mixing1Address>65535</Mixing1Address>
+        <Mixing1Rate>1</Mixing1Rate>
+        <Mixing2Address>65535</Mixing2Address>
+        <Mixing2Rate>1</Mixing2Rate>
+        <DisplayRate>1.0</DisplayRate>
+        <Location>
+          <X>0</X>
+          <Y>0</Y>
+        </Location>
+        <Group>Leg</Group>
+        <ForeColor>Black</ForeColor>
+        <BackColor>buttonface</BackColor>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">右拡張3</Key>
+      <Value xsi:type="ServoItem">
+        <Name>L6</Name>
+        <Count>20</Count>
+        <RomAddress>1834</RomAddress>
+        <RamAddress>404</RamAddress>
+        <Mode>None</Mode>
+        <Port>SIO2</Port>
+        <DeviceNumber>13</DeviceNumber>
+        <Code>0</Code>
+        <ID>6</ID>
+        <Trim>0</Trim>
+        <Position>7500</Position>
+        <Mixing1Address>65535</Mixing1Address>
+        <Mixing1Rate>1</Mixing1Rate>
+        <Mixing2Address>65535</Mixing2Address>
+        <Mixing2Rate>1</Mixing2Rate>
+        <DisplayRate>1.0</DisplayRate>
+        <Location>
+          <X>0</X>
+          <Y>0</Y>
+        </Location>
+        <Group>Leg</Group>
+        <ForeColor>Black</ForeColor>
+        <BackColor>buttonface</BackColor>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">左拡張3</Key>
+      <Value xsi:type="ServoItem">
+        <Name>R7</Name>
+        <Count>20</Count>
+        <RomAddress>1854</RomAddress>
+        <RamAddress>424</RamAddress>
+        <Mode>None</Mode>
+        <Port>SIO1</Port>
+        <DeviceNumber>14</DeviceNumber>
+        <Code>0</Code>
+        <ID>7</ID>
+        <Trim>0</Trim>
+        <Position>7500</Position>
+        <Mixing1Address>65535</Mixing1Address>
+        <Mixing1Rate>1</Mixing1Rate>
+        <Mixing2Address>65535</Mixing2Address>
+        <Mixing2Rate>1</Mixing2Rate>
+        <DisplayRate>1.0</DisplayRate>
+        <Location>
+          <X>0</X>
+          <Y>0</Y>
+        </Location>
+        <Group>Leg</Group>
+        <ForeColor>Black</ForeColor>
+        <BackColor>buttonface</BackColor>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">右拡張4</Key>
+      <Value xsi:type="ServoItem">
+        <Name>L7</Name>
+        <Count>20</Count>
+        <RomAddress>1874</RomAddress>
+        <RamAddress>444</RamAddress>
+        <Mode>None</Mode>
+        <Port>SIO2</Port>
+        <DeviceNumber>15</DeviceNumber>
+        <Code>0</Code>
+        <ID>7</ID>
+        <Trim>0</Trim>
+        <Position>7500</Position>
+        <Mixing1Address>65535</Mixing1Address>
+        <Mixing1Rate>1</Mixing1Rate>
+        <Mixing2Address>65535</Mixing2Address>
+        <Mixing2Rate>1</Mixing2Rate>
+        <DisplayRate>1.0</DisplayRate>
+        <Location>
+          <X>0</X>
+          <Y>0</Y>
+        </Location>
+        <Group>Leg</Group>
+        <ForeColor>Black</ForeColor>
+        <BackColor>buttonface</BackColor>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">左拡張4</Key>
+      <Value xsi:type="ServoItem">
+        <Name>R8</Name>
+        <Count>20</Count>
+        <RomAddress>1894</RomAddress>
+        <RamAddress>464</RamAddress>
+        <Mode>Normal</Mode>
+        <Port>SIO1</Port>
+        <DeviceNumber>16</DeviceNumber>
+        <Code>0</Code>
+        <ID>8</ID>
+        <Trim>0</Trim>
+        <Position>7500</Position>
+        <Mixing1Address>65535</Mixing1Address>
+        <Mixing1Rate>1</Mixing1Rate>
+        <Mixing2Address>65535</Mixing2Address>
+        <Mixing2Rate>1</Mixing2Rate>
+        <DisplayRate>1.0</DisplayRate>
+        <Location>
+          <X>0</X>
+          <Y>0</Y>
+        </Location>
+        <Group>Leg</Group>
+        <ForeColor>Black</ForeColor>
+        <BackColor>buttonface</BackColor>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">右拡張5</Key>
+      <Value xsi:type="ServoItem">
+        <Name>L8</Name>
+        <Count>20</Count>
+        <RomAddress>1914</RomAddress>
+        <RamAddress>484</RamAddress>
+        <Mode>Normal</Mode>
+        <Port>SIO2</Port>
+        <DeviceNumber>17</DeviceNumber>
+        <Code>0</Code>
+        <ID>8</ID>
+        <Trim>0</Trim>
+        <Position>7500</Position>
+        <Mixing1Address>65535</Mixing1Address>
+        <Mixing1Rate>1</Mixing1Rate>
+        <Mixing2Address>65535</Mixing2Address>
+        <Mixing2Rate>1</Mixing2Rate>
+        <DisplayRate>1.0</DisplayRate>
+        <Location>
+          <X>0</X>
+          <Y>0</Y>
+        </Location>
+        <Group>Leg</Group>
+        <ForeColor>Black</ForeColor>
+        <BackColor>buttonface</BackColor>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">左拡張5</Key>
+      <Value xsi:type="ServoItem">
+        <Name>R9</Name>
+        <Count>20</Count>
+        <RomAddress>1934</RomAddress>
+        <RamAddress>504</RamAddress>
+        <Mode>None</Mode>
+        <Port>SIO1</Port>
+        <DeviceNumber>18</DeviceNumber>
+        <Code>0</Code>
+        <ID>9</ID>
+        <Trim>0</Trim>
+        <Position>7500</Position>
+        <Mixing1Address>65535</Mixing1Address>
+        <Mixing1Rate>1</Mixing1Rate>
+        <Mixing2Address>65535</Mixing2Address>
+        <Mixing2Rate>1</Mixing2Rate>
+        <DisplayRate>1.0</DisplayRate>
+        <Location>
+          <X>0</X>
+          <Y>0</Y>
+        </Location>
+        <Group>Leg</Group>
+        <ForeColor>Black</ForeColor>
+        <BackColor>buttonface</BackColor>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">右拡張6</Key>
+      <Value xsi:type="ServoItem">
+        <Name>L9</Name>
+        <Count>20</Count>
+        <RomAddress>1954</RomAddress>
+        <RamAddress>524</RamAddress>
+        <Mode>None</Mode>
+        <Port>SIO2</Port>
+        <DeviceNumber>19</DeviceNumber>
+        <Code>0</Code>
+        <ID>9</ID>
+        <Trim>0</Trim>
+        <Position>7500</Position>
+        <Mixing1Address>65535</Mixing1Address>
+        <Mixing1Rate>1</Mixing1Rate>
+        <Mixing2Address>65535</Mixing2Address>
+        <Mixing2Rate>1</Mixing2Rate>
+        <DisplayRate>1.0</DisplayRate>
+        <Location>
+          <X>0</X>
+          <Y>0</Y>
+        </Location>
+        <Group>Leg</Group>
+        <ForeColor>Black</ForeColor>
+        <BackColor>buttonface</BackColor>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">左拡張6</Key>
+      <Value xsi:type="ServoItem">
+        <Name>R10</Name>
+        <Count>20</Count>
+        <RomAddress>1974</RomAddress>
+        <RamAddress>544</RamAddress>
+        <Mode>Normal</Mode>
+        <Port>SIO1</Port>
+        <DeviceNumber>20</DeviceNumber>
+        <Code>0</Code>
+        <ID>10</ID>
+        <Trim>0</Trim>
+        <Position>7500</Position>
+        <Mixing1Address>65535</Mixing1Address>
+        <Mixing1Rate>1</Mixing1Rate>
+        <Mixing2Address>65535</Mixing2Address>
+        <Mixing2Rate>1</Mixing2Rate>
+        <DisplayRate>1.0</DisplayRate>
+        <Location>
+          <X>0</X>
+          <Y>0</Y>
+        </Location>
+        <Group>Leg</Group>
+        <ForeColor>Black</ForeColor>
+        <BackColor>buttonface</BackColor>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">右拡張7</Key>
+      <Value xsi:type="ServoItem">
+        <Name>L10</Name>
+        <Count>20</Count>
+        <RomAddress>1994</RomAddress>
+        <RamAddress>564</RamAddress>
+        <Mode>Normal</Mode>
+        <Port>SIO2</Port>
+        <DeviceNumber>21</DeviceNumber>
+        <Code>0</Code>
+        <ID>10</ID>
+        <Trim>0</Trim>
+        <Position>7500</Position>
+        <Mixing1Address>65535</Mixing1Address>
+        <Mixing1Rate>1</Mixing1Rate>
+        <Mixing2Address>65535</Mixing2Address>
+        <Mixing2Rate>1</Mixing2Rate>
+        <DisplayRate>1.0</DisplayRate>
+        <Location>
+          <X>0</X>
+          <Y>0</Y>
+        </Location>
+        <Group>Leg</Group>
+        <ForeColor>Black</ForeColor>
+        <BackColor>buttonface</BackColor>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">左拡張7</Key>
+      <Value xsi:type="ServoItem">
+        <Name>R11</Name>
+        <Count>20</Count>
+        <RomAddress>2014</RomAddress>
+        <RamAddress>584</RamAddress>
+        <Mode>None</Mode>
+        <Port>SIO1</Port>
+        <DeviceNumber>22</DeviceNumber>
+        <Code>0</Code>
+        <ID>11</ID>
+        <Trim>0</Trim>
+        <Position>7500</Position>
+        <Mixing1Address>65535</Mixing1Address>
+        <Mixing1Rate>1</Mixing1Rate>
+        <Mixing2Address>65535</Mixing2Address>
+        <Mixing2Rate>1</Mixing2Rate>
+        <DisplayRate>1.0</DisplayRate>
+        <Location>
+          <X>0</X>
+          <Y>0</Y>
+        </Location>
+        <Group>Ext</Group>
+        <ForeColor>Black</ForeColor>
+        <BackColor>buttonface</BackColor>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">右拡張8</Key>
+      <Value xsi:type="ServoItem">
+        <Name>L11</Name>
+        <Count>20</Count>
+        <RomAddress>2034</RomAddress>
+        <RamAddress>604</RamAddress>
+        <Mode>None</Mode>
+        <Port>SIO2</Port>
+        <DeviceNumber>23</DeviceNumber>
+        <Code>0</Code>
+        <ID>11</ID>
+        <Trim>0</Trim>
+        <Position>7500</Position>
+        <Mixing1Address>65535</Mixing1Address>
+        <Mixing1Rate>1</Mixing1Rate>
+        <Mixing2Address>65535</Mixing2Address>
+        <Mixing2Rate>1</Mixing2Rate>
+        <DisplayRate>1.0</DisplayRate>
+        <Location>
+          <X>0</X>
+          <Y>0</Y>
+        </Location>
+        <Group>Ext</Group>
+        <ForeColor>Black</ForeColor>
+        <BackColor>buttonface</BackColor>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">左拡張8</Key>
+      <Value xsi:type="ServoItem">
+        <Name>R12</Name>
+        <Count>20</Count>
+        <RomAddress>2054</RomAddress>
+        <RamAddress>624</RamAddress>
+        <Mode>Normal</Mode>
+        <Port>SIO1</Port>
+        <DeviceNumber>24</DeviceNumber>
+        <Code>0</Code>
+        <ID>12</ID>
+        <Trim>0</Trim>
+        <Position>7500</Position>
+        <Mixing1Address>65535</Mixing1Address>
+        <Mixing1Rate>1</Mixing1Rate>
+        <Mixing2Address>65535</Mixing2Address>
+        <Mixing2Rate>1</Mixing2Rate>
+        <DisplayRate>1.0</DisplayRate>
+        <Location>
+          <X>0</X>
+          <Y>0</Y>
+        </Location>
+        <Group>Ext</Group>
+        <ForeColor>Black</ForeColor>
+        <BackColor>buttonface</BackColor>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">右拡張9</Key>
+      <Value xsi:type="ServoItem">
+        <Name>L12</Name>
+        <Count>20</Count>
+        <RomAddress>2074</RomAddress>
+        <RamAddress>644</RamAddress>
+        <Mode>Normal</Mode>
+        <Port>SIO2</Port>
+        <DeviceNumber>25</DeviceNumber>
+        <Code>0</Code>
+        <ID>12</ID>
+        <Trim>0</Trim>
+        <Position>7500</Position>
+        <Mixing1Address>65535</Mixing1Address>
+        <Mixing1Rate>1</Mixing1Rate>
+        <Mixing2Address>65535</Mixing2Address>
+        <Mixing2Rate>1</Mixing2Rate>
+        <DisplayRate>1.0</DisplayRate>
+        <Location>
+          <X>0</X>
+          <Y>0</Y>
+        </Location>
+        <Group>Ext</Group>
+        <ForeColor>Black</ForeColor>
+        <BackColor>buttonface</BackColor>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">左拡張9</Key>
+      <Value xsi:type="ServoItem">
+        <Name>R13</Name>
+        <Count>20</Count>
+        <RomAddress>2094</RomAddress>
+        <RamAddress>664</RamAddress>
+        <Mode>None</Mode>
+        <Port>SIO1</Port>
+        <DeviceNumber>26</DeviceNumber>
+        <Code>0</Code>
+        <ID>13</ID>
+        <Trim>0</Trim>
+        <Position>7500</Position>
+        <Mixing1Address>65535</Mixing1Address>
+        <Mixing1Rate>1</Mixing1Rate>
+        <Mixing2Address>65535</Mixing2Address>
+        <Mixing2Rate>1</Mixing2Rate>
+        <DisplayRate>1.0</DisplayRate>
+        <Location>
+          <X>0</X>
+          <Y>0</Y>
+        </Location>
+        <Group>Ext</Group>
+        <ForeColor>Black</ForeColor>
+        <BackColor>buttonface</BackColor>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">右拡張10</Key>
+      <Value xsi:type="ServoItem">
+        <Name>L13</Name>
+        <Count>20</Count>
+        <RomAddress>2114</RomAddress>
+        <RamAddress>684</RamAddress>
+        <Mode>None</Mode>
+        <Port>SIO2</Port>
+        <DeviceNumber>27</DeviceNumber>
+        <Code>0</Code>
+        <ID>13</ID>
+        <Trim>0</Trim>
+        <Position>7500</Position>
+        <Mixing1Address>65535</Mixing1Address>
+        <Mixing1Rate>1</Mixing1Rate>
+        <Mixing2Address>65535</Mixing2Address>
+        <Mixing2Rate>1</Mixing2Rate>
+        <DisplayRate>1.0</DisplayRate>
+        <Location>
+          <X>0</X>
+          <Y>0</Y>
+        </Location>
+        <Group>Ext</Group>
+        <ForeColor>Black</ForeColor>
+        <BackColor>buttonface</BackColor>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">左拡張10</Key>
+      <Value xsi:type="ServoItem">
+        <Name>R14</Name>
+        <Count>20</Count>
+        <RomAddress>2134</RomAddress>
+        <RamAddress>704</RamAddress>
+        <Mode>None</Mode>
+        <Port>SIO1</Port>
+        <DeviceNumber>28</DeviceNumber>
+        <Code>0</Code>
+        <ID>14</ID>
+        <Trim>0</Trim>
+        <Position>7500</Position>
+        <Mixing1Address>65535</Mixing1Address>
+        <Mixing1Rate>1</Mixing1Rate>
+        <Mixing2Address>65535</Mixing2Address>
+        <Mixing2Rate>1</Mixing2Rate>
+        <DisplayRate>1.0</DisplayRate>
+        <Location>
+          <X>0</X>
+          <Y>0</Y>
+        </Location>
+        <Group>Ext</Group>
+        <ForeColor>Black</ForeColor>
+        <BackColor>buttonface</BackColor>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">右拡張11</Key>
+      <Value xsi:type="ServoItem">
+        <Name>L14</Name>
+        <Count>20</Count>
+        <RomAddress>2154</RomAddress>
+        <RamAddress>724</RamAddress>
+        <Mode>None</Mode>
+        <Port>SIO2</Port>
+        <DeviceNumber>29</DeviceNumber>
+        <Code>0</Code>
+        <ID>14</ID>
+        <Trim>0</Trim>
+        <Position>7500</Position>
+        <Mixing1Address>65535</Mixing1Address>
+        <Mixing1Rate>1</Mixing1Rate>
+        <Mixing2Address>65535</Mixing2Address>
+        <Mixing2Rate>1</Mixing2Rate>
+        <DisplayRate>1.0</DisplayRate>
+        <Location>
+          <X>0</X>
+          <Y>0</Y>
+        </Location>
+        <Group>Ext</Group>
+        <ForeColor>Black</ForeColor>
+        <BackColor>buttonface</BackColor>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">左拡張11</Key>
+      <Value xsi:type="ServoItem">
+        <Name>R15</Name>
+        <Count>20</Count>
+        <RomAddress>2174</RomAddress>
+        <RamAddress>744</RamAddress>
+        <Mode>None</Mode>
+        <Port>SIO1</Port>
+        <DeviceNumber>30</DeviceNumber>
+        <Code>0</Code>
+        <ID>15</ID>
+        <Trim>0</Trim>
+        <Position>7500</Position>
+        <Mixing1Address>65535</Mixing1Address>
+        <Mixing1Rate>1</Mixing1Rate>
+        <Mixing2Address>65535</Mixing2Address>
+        <Mixing2Rate>1</Mixing2Rate>
+        <DisplayRate>1.0</DisplayRate>
+        <Location>
+          <X>0</X>
+          <Y>0</Y>
+        </Location>
+        <Group>Ext</Group>
+        <ForeColor>Black</ForeColor>
+        <BackColor>buttonface</BackColor>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">右拡張12</Key>
+      <Value xsi:type="ServoItem">
+        <Name>L15</Name>
+        <Count>20</Count>
+        <RomAddress>2194</RomAddress>
+        <RamAddress>764</RamAddress>
+        <Mode>None</Mode>
+        <Port>SIO2</Port>
+        <DeviceNumber>31</DeviceNumber>
+        <Code>0</Code>
+        <ID>15</ID>
+        <Trim>0</Trim>
+        <Position>7500</Position>
+        <Mixing1Address>65535</Mixing1Address>
+        <Mixing1Rate>1</Mixing1Rate>
+        <Mixing2Address>65535</Mixing2Address>
+        <Mixing2Rate>1</Mixing2Rate>
+        <DisplayRate>1.0</DisplayRate>
+        <Location>
+          <X>0</X>
+          <Y>0</Y>
+        </Location>
+        <Group>Ext</Group>
+        <ForeColor>Black</ForeColor>
+        <BackColor>buttonface</BackColor>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">左拡張12</Key>
+      <Value xsi:type="ServoItem">
+        <Name>R16</Name>
+        <Count>20</Count>
+        <RomAddress>2214</RomAddress>
+        <RamAddress>784</RamAddress>
+        <Mode>Normal</Mode>
+        <Port>SIO1</Port>
+        <DeviceNumber>32</DeviceNumber>
+        <Code>0</Code>
+        <ID>16</ID>
+        <Trim>0</Trim>
+        <Position>7500</Position>
+        <Mixing1Address>65535</Mixing1Address>
+        <Mixing1Rate>1</Mixing1Rate>
+        <Mixing2Address>65535</Mixing2Address>
+        <Mixing2Rate>1</Mixing2Rate>
+        <DisplayRate>1.0</DisplayRate>
+        <Location>
+          <X>0</X>
+          <Y>0</Y>
+        </Location>
+        <Group>Ext</Group>
+        <ForeColor>Black</ForeColor>
+        <BackColor>buttonface</BackColor>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">右拡張13</Key>
+      <Value xsi:type="ServoItem">
+        <Name>L16</Name>
+        <Count>20</Count>
+        <RomAddress>2234</RomAddress>
+        <RamAddress>804</RamAddress>
+        <Mode>None</Mode>
+        <Port>SIO2</Port>
+        <DeviceNumber>33</DeviceNumber>
+        <Code>0</Code>
+        <ID>16</ID>
+        <Trim>0</Trim>
+        <Position>7500</Position>
+        <Mixing1Address>65535</Mixing1Address>
+        <Mixing1Rate>1</Mixing1Rate>
+        <Mixing2Address>65535</Mixing2Address>
+        <Mixing2Rate>1</Mixing2Rate>
+        <DisplayRate>1.0</DisplayRate>
+        <Location>
+          <X>0</X>
+          <Y>0</Y>
+        </Location>
+        <Group>Ext</Group>
+        <ForeColor>Black</ForeColor>
+        <BackColor>buttonface</BackColor>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">左拡張13</Key>
+      <Value xsi:type="ServoItem">
+        <Name>R17</Name>
+        <Count>20</Count>
+        <RomAddress>2254</RomAddress>
+        <RamAddress>824</RamAddress>
+        <Mode>None</Mode>
+        <Port>SIO1</Port>
+        <DeviceNumber>34</DeviceNumber>
+        <Code>0</Code>
+        <ID>17</ID>
+        <Trim>0</Trim>
+        <Position>7500</Position>
+        <Mixing1Address>65535</Mixing1Address>
+        <Mixing1Rate>1</Mixing1Rate>
+        <Mixing2Address>65535</Mixing2Address>
+        <Mixing2Rate>1</Mixing2Rate>
+        <DisplayRate>1.0</DisplayRate>
+        <Location>
+          <X>0</X>
+          <Y>0</Y>
+        </Location>
+        <Group>Ext</Group>
+        <ForeColor>Black</ForeColor>
+        <BackColor>buttonface</BackColor>
+      </Value>
+    </DictionaryEntry>
+  </ServoConfigParams>
+  <StartupMotionAddress>64384</StartupMotionAddress>
+  <LowPowerMotionAddress>-1</LowPowerMotionAddress>
+  <LowPowerValue>0</LowPowerValue>
+  <PriorityMotionCollection>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">0</Key>
+      <Value xsi:type="PriorityMotion">
+        <Name>XL4T_292_電圧低下</Name>
+        <Port>Battery</Port>
+        <CompareType>LessThanOrEqualTo</CompareType>
+        <Value>250</Value>
+        <Address>66432</Address>
+      </Value>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">1</Key>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">2</Key>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">3</Key>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">4</Key>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">5</Key>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">6</Key>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">7</Key>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">8</Key>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">9</Key>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">10</Key>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">11</Key>
+    </DictionaryEntry>
+    <DictionaryEntry>
+      <Key xsi:type="xsd:string">12</Key>
+    </DictionaryEntry>
+  </PriorityMotionCollection>
+  <PictureFileName />
+  <LinkFileList />
+  <ConvertFileList />
+  <ProjectTitle>Hello_KXR-L4T(V1.1)</ProjectTitle>
+  <FileName>C:\Users\inaba\Documents\HeartToHeart4\Projects\Hello_KXR-L4T(V1.1)\Hello_KXR-L4T(V1.1).h4p</FileName>
+  <Path>C:\Users\inaba\Documents\HeartToHeart4\Projects\Hello_KXR-L4T(V1.1)</Path>
+  <Name>Hello_KXR-L4T(V1.1)</Name>
+  <Anchors />
+  <SoundDeviceNumber>-1</SoundDeviceNumber>
+</Rcb4>
