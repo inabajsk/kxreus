@@ -356,7 +356,7 @@
   (:board nil control-board)
   (:setup-cboard
    (&optional board)  ;; bd : :rcb4, :armh7
-   (if (and board (member board '(:armh7 :max10 :rcb4)))
+   (if (and board (member board '(:armh7 :max10 :rcb4 :rcb4-acc-reverse)))
        (setq control-board board))
    (when (find-method robot :setup-cboard)
      (unless (send robot :imu-sensors)
@@ -392,80 +392,14 @@
      :radius (* size (abs rtorque)) :arrow t :arc (deg2rad 330))
      |#
      (send self :draw-torque :flush nil :size 1.0)
-     (when
-  	 (eq control-board :armh7)
-       (send self :draw-sensors :flush nil)
-       )
+     (send self :draw-sensors :flush nil)
      (send self :draw-end-coords :flush nil)
      (send self :draw-zmp-coords :flush nil)
      (send self :viewer :viewer :flush)
      ;;(unix::usleep 100000)
      )
    )
-  (:viewer-update-sensor
-   nil
-   ;;(send *irtviewer* :draw-objects :flush t)
-   (let (count-time count timeout acc id adc gyro ps sw)
-     (when
-	 com-port
-       (send self :set-sysreg-bits '((:rom-on . 0) (:response-on . 0)))
-       (send self :real-orientation)
-       (send self :read-sensors)
-       (inc *sensor-count*)
-       (when (= *sensor-count* 15)
-	 (setq *sensor-count* 0)
-	 (setq count 0)
-	 (setq timeout (send self :timeout-vector))
-	 (setq sw (send self :switch-vector))
-	 (setq adc (send self :adc-vector))
-	 (setq ps (send self :ps-vector))
-	 (setq acc (send self :acc-vector))
-	 (setq gyro (send self :gyro-vector))
-	 (setq id (send self :id-vector))
-	 (setq count-time (calc-sec *start-time* (unix:localtime)))
-	 (while (< count *sensor-num*)
-	   (setf (elt *timeout-sum* count) (+ (elt *timeout-sum* count) (elt timeout (- (elt id count) 19))))
-	   (cond ((> (elt timeout (- (elt id count) 19)) 100)
-		  (format t "~%")
-		  (format t "================================================~%")
-		  (format t "timeout ~A~%" timeout)
-		  (format t "id ~A~%" id)
-		  (format t "sw ~A~%" sw)
-		  (format t "adc ~A~%" adc)
-		  (format t "ps ~A~%" ps)
-		  (format t "gyro ~A~%" gyro)
-		  (format t "acc ~A~%" acc)
-		  (cond ((= (elt *measure-flag* count) 1)
-			 (setf (elt *result-vector* count) count-time)
-			 (setq *measure-count* (- *measure-count* 1))
-			 )
-			)
-		  (setf (elt *measure-flag* count) 0)
-		  (format t "sensor ~A timeout: count-time ~A~%" (elt id count) count-time)
-		  (format t "tmp result-vector ~A: count-time ~A: sum of timeout ~A~%" *result-vector* count-time *timeout-sum*)
-		  )
-		 )
-	   (inc count)
-	   )
-	 ;;
-	 )
-       (send robot :angle-vector (send self :read-angle-vector))
-       (send self :set-sysreg-bits '((:rom-on . 1)))
-       )
-     (when (send self :viewer)
-       (send self :viewer :viewer :draw-objects :flush nil)
-       (send self :draw-torque :flush nil :size 1.0)
-       (when
-	   (eq control-board :armh7)
-	 (send self :draw-sensors :flush nil)
-	 )
-       (send self :draw-end-coords :flush nil)
-       (send self :draw-zmp-coords :flush nil)
-       (send self :viewer :viewer :flush)
-       ;;(unix::usleep 100000)
-       )
-     )
-   )
+  (:draw-sensors (&rest args) nil)
   (:draw-end-coords
    (&key (flush t))
    (send robot :draw-end-coords :viewer (send self :viewer :viewer) :flush flush))
@@ -488,101 +422,6 @@
        ;;(send self :viewer :viewer :draw-axis (send re :transform rzmp) 50)
        ;;(send self :viewer :viewer :draw-axis (send le :transform lzmp) 50)
        (if flush (send self :viewer :viewer :flush))))
-   )
-  (:viewer-update-simple
-   nil
-   (when
-       com-port
-     (send self :set-sysreg-bits '((:rom-on . 0) (:response-on . 0)))
-     (send self :real-orientation)
-     (send robot :angle-vector (send self :read-angle-vector)))
-   (send self :viewer :viewer :draw-objects :flush nil)
-   (when com-port
-     (when (eq control-board :armh7)
-       (send self :read-sensors)
-       (send self :draw-sensors :flush nil)
-       )
-     (send self :set-sysreg-bits '((:rom-on . 1))))
-   ;; (send (send robot :rarm-end-coords) :draw-on
-   ;; 	 :viewer (send self :viewer :viewer)
-   ;; 	 :flush nil :size 20 :color #f(1 1 0) :width 2)
-   ;; (send (send robot :larm-end-coords) :draw-on
-   ;; 	 :viewer (send self :viewer :viewer)
-   ;; 	 :flush nil :size 20 :color #f(1 1 0) :width 2)
-   ;; (let ((rzmp (make-coords :pos (send self :rfoot-zmp)))
-   ;; 	 (re (send robot :rleg :end-coords :copy-worldcoords))
-   ;; 	 (lzmp (make-coords :pos (send self :lfoot-zmp)))
-   ;; 	 (le (send robot :lleg :end-coords :copy-worldcoords)))
-   ;;   (send (send re :transform rzmp) :draw-on 
-   ;; 	   :viewer (send self :viewer :viewer)
-   ;; 	   :flush nil :size 40 :color #f(1 1 0) :width 2)
-   ;;   (send (send le :transform lzmp) :draw-on 
-   ;; 	   :viewer (send self :viewer :viewer)
-   ;; 	   :flush nil :size 40 :color #f(1 1 0) :width 2))
-   (send self :viewer :viewer :flush)
-   )
-  (:viewer-update-state
-   (&key (draw nil) (raw nil) (sensor nil))
-   (let (ri-v quat m (rpy (make-array 3 :initial-element 0 :element-type :float)))
-     (when
-	 com-port
-       ;;(send self :set-sysreg-bits '((:rom-on . 0) (:response-on . 0)))
-       ;;robot-quat
-       (setq quat (send self :read-quaternion))
-       (setq *ri-quat* quat)
-       (when raw
-	 (send *ri-acc* (send *ri* :read-acc))
-	 (send *ri-gyro* (send *ri* :read-gyro))
-	 (send *ri-mag* (send *ri* :read-mag))
-	 )
-       (setq m (quaternion2matrix quat))
-       (cond ((substringp "auv" (send *robot* :name))
-	      (setq m (m* m (rotation-matrix -pi/2 :y)))
-	      (setq m (m* m (rotation-matrix -pi/2 :z)))
-	      )
-	     ((substringp "makaberev2" (send *robot* :name))
-	      (setq m (m* m (rotation-matrix -pi/2 :x)));;need to check
-	      (setq m (m* m (rotation-matrix pi :z)))
-	      )
-	     (t
-	      (setq m (m* m (rotation-matrix pi/2 :x)))
-	      (setq m (m* m (rotation-matrix pi/2 :z)))
-	      )
-	     )
-       ;;robot-rpy
-       (setf (elt rpy 0) (rad2deg (nth 1 (nth 0 (send (make-coords :rot m) :rpy-angle)))))
-       (setf (elt rpy 1) (- (rad2deg (nth 2 (nth 0 (send (make-coords :rot m) :rpy-angle))))))
-       (setf (elt rpy 2) (rad2deg (nth 0 (nth 0 (send (make-coords :rot m) :rpy-angle)))))
-       (setq *ri-rpy* rpy)
-       
-       ;;robot-angle
-       (setq ri-v (send self :read-angle-vector))
-       (send robot :angle-vector ri-v)
-       (setq *ri-v* ri-v)
-       
-       ;;robot-effort
-       ;;(setq *ri-effort* (scale 387.89 (v- (send *robot* :angle-vector) ri-v)));;todo 3302/3304 [Nmm]
-       (setq *ri-effort* (send *ri* :read-torque-vector-estimate 387.89));;todo 3302/3304 [Nmm]
-       ;;
-       )
-     (when draw
-       (send self :viewer :viewer :draw-objects :flush nil)
-       )
-     (when com-port
-       (when (eq control-board :armh7)
-	 (when sensor
-	   (send self :read-sensors)
-	   )
-	 (when draw
-	   (send self :draw-sensors :flush nil)
-	   )
-	 )
-       ;;(send self :set-sysreg-bits '((:rom-on . 1)))
-       )
-     (when draw
-       (send self :viewer :viewer :flush)
-       )
-     )
    )
   (:rfoot-zmp () (float-vector 0 0 0))
   (:lfoot-zmp () (float-vector 0 0 0))
@@ -1039,7 +878,7 @@
      (if (< (elt analog-neutral 5) 4)
 	 (setq gravity-method :read-gravity2)
        (setq gravity-method :read-gravity)))))
-  (:read-gravity nil (send self gravity-method))
+;;  (:read-gravity nil (send self gravity-method))
   (:read-gravity2
    nil
    (let ((a (send self :read-analog)))
@@ -1089,6 +928,13 @@
 				 (- (elt a 5) (elt analog-neutral 5))))
 	 (send c :rotate pi/2 :y)
 	 (send c :rotate (- pi/2) :x))
+	((eq control-board :rcb4-acc-reverse)
+	 (setq v (float-vector (- (elt a 3) (elt analog-neutral 3))
+			       (- (elt a 4) 375)
+			       (- (elt a 5) (elt analog-neutral 5))))
+	 (send c :rotate (- pi/2) :y)
+	 (send c :rotate pi/2 :z)
+	 (send c :rotate pi :x))
 	(t
 	 (setq v (float-vector (- (elt a 3) (elt analog-neutral 3))
 			       (- (elt a 4) 375)
@@ -2532,7 +2378,7 @@
    (&rest args &key exec &allow-other-keys)
    (when (or (null com-port) exec) (send* self :com-open args))
    (when com-port
-     (setq control-board :rcb4)
+     (unless control-board (setq control-board :rcb4))
      (send self :get-options ":com-init")
      (setq free-vector (make-sequence vector av-length :initial-element nil))
      (send self :init-analog)
