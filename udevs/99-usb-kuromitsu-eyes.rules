@@ -1,0 +1,6 @@
+# left eye
+SUBSYSTEM=="tty", ATTRS{idVendor}=="1a86", ATTRS{idProduct}=="55d4", ATTRS{serial}=="537A037363", SYMLINK+="ttyACM-lefteye", GROUP="dialout"
+
+
+# right eye
+SUBSYSTEM=="tty", ATTRS{idVendor}=="1a86", ATTRS{idProduct}=="55d4", ATTRS{serial}=="537A022685", SYMLINK+="ttyACM-righteye", GROUP="dialout"

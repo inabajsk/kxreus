@@ -1,0 +1,2 @@
+# cheekled
+SUBSYSTEM=="tty", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6001", ATTRS{serial}=="A15242E045", SYMLINK+="ttyUSB-cheekled", GROUP="dialout"
