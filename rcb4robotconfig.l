@@ -7375,6 +7375,50 @@ nil
      (52 rarm-wrist-p-KJS-03)    (53 larm-wrist-p-KJS-03)    ;; sensor-board 26
      (54 rarm-elbow-p-KJS-03)    (55 larm-elbow-p-KJS-03)    ;; sensor-board 27
      )
+    (("kxra6g") 		;; rubik cube finger
+     (
+      :body :l2l6m :type :l2
+      :project-file "kxra6g"
+      :head :d405echos ;; :d405eyes ;;:head :d405echos
+      :board :rcb4-acc-reverse
+      :neck-jf :b-back
+      :3eye-front t :head-length 20
+      :shoulder :pry-cross :shoulder-front t :shoulder-low t :flat-shoulder nil ;;:shoulder :ly-p-rb
+      :elbow :angle :wrist :wcross-pr :upper-arm-length 38 
+      :shoulder-p-sensor :horn-mag-
+      ;; :elbow-p-sensor :mag-7
+      :wrist-sensor :horn-mag-
+      ;; :crotch-r-sensor :mag-7 :crotch-y-sensor :rev-a
+      :crotch-p t :crotch-low t :crotch-front t :flat-crotch t
+      :leg :j2-pr :sole t 
+      :attachment :down
+      :gripper t :gripper-straight t :gripper-axis (:y :p)
+      :reset-pose-alist ((:larm-shoulder-p 0) (:rarm-shoulder-p 0)
+			 (:larm-shoulder-r 0) (:rarm-shoulder-r 0)
+			 (:lleg-crotch-r 0) (:rleg-crotch-r 0)
+			 (:larm-elbow-p 0) (:rarm-elbow-p 0)
+			 (:larm-wrist-p 0) (:rarm-wrist-p 0)
+			 (:larm-wrist-r 0) (:rarm-wrist-r  0)
+			 )
+      ;;      :init-form (print (list 'self= self 'args= args))
+      )
+     (2 :rarm-shoulder-p 1)     (3 :larm-shoulder-p -1)
+     (4 :rarm-shoulder-r 1)     (5 :larm-shoulder-r 1)
+     (6 :rarm-elbow-p 1)        (7 :larm-elbow-p 1)
+     (16 :rleg-crotch-r -1)     (17 :lleg-crotch-r -1)
+
+     (18 :rarm-gripper-r 1/2)    (19 :larm-gripper-r 1/2)
+     (18 :rarm-gripper2-r 1/2)   (19 :larm-gripper2-r 1/2)
+
+     (22 :rarm-shoulder-y 1)   (23 :larm-shoulder-y 1)
+     (24 :rleg-crotch-y 1)      (25 :lleg-crotch-y 1)
+     (26 :rarm-wrist-p 1)       (27 :larm-wrist-p -1)
+     (28 :rarm-wrist-r -1)       (29 :larm-wrist-r -1)
+     (32 :head-neck-y -1)       (34 :head-neck-p -1)
+     
+     ;;(42 rleg-ankle-r-KJS-03)   (43 lleg-ankle-r-KJS-03)   ;; sensor-board 21 
+     ;;(44 rarm-wrist-r-KJS-03)   (45 larm-wrist-r-KJS-03)    ;; sensor-board 22
+     )
     ("kxrl2inabafull"
      (
       ;;:file "models/kxrl2inaba.l" :form (kxrl2inaba)
