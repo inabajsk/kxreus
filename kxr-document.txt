@@ -1,0 +1,5337 @@
+2018.4.20,2018.10.08 M.I
+2018.11.15 : add 22,23,24
+2018.12.15 : update 26
+2020.4.3 : update
+2021.3.19 : rename lmarm mrarm to lmarm rmarm
+2022.6.1 : :devname :serial keys for :com-init
+2024.1.8 : :robotset
+
+-----------------------------------------------------------------
+*** lispでの使い方
+-----------------------------------------------------------------
+
+近藤科学のKXRセットを組立マニュアルに従って自分の好きな
+ロボットを組み立て，HeartToHeartで動かす方法を試した後，
+Lispで動かす際に使えるコマンドの例を順に説明してゆく．
+
+Windows上にVmware Workstation Playerを入れて，Ubuntu環境をVmwareの
+中に入れて使うのが便利．
+RCB4用のUSBケーブルをWindowsとUbuntuの両方に切り替えるのは
+VmwareのUbuntu画面の左上隅のPlayerメニューから取り外し可能デバイスの
+メニューの中のKondo Kagaku Dual USB ADAPTER HSのチェックを操作する
+ことで可能．
+
+まだeuslispをインストールしていない場合,本ドキュメントの
+"3. euslispのインストール"を参照してaptでroseusを入れるか(ROS環境が必要),
+jsk_roseusなどをソースからインストールする.
+
+また、ホームディレクトリに.eusrcが存在しない場合、
+"echo >> ~/.eusrc"
+などで空の.eusrcを作る
+
+mkdir ~/prog
+cd prog
+git clone http://gitlab.jsk.imi.i.u-tokyo.ac.jp/rcb4eus/rcb4eus
+cd prog/rcb4eus
+
+make libs
+make
+
+irteusgl rcb4robots.l
+
+(make-kxr-robot "kxrl2w2l5a4h2")
+	;;   *ri* と *robot*が生成される．
+	;;   prog/rcb4eus/projects/Hello_kxrl2w2l5a4h2/*.h4p
+	;;　 にあるとして読み込んで*ri*のスロット変数に蓄えられる．
+
+*robot* ;; 緑を背景にして表示されるロボット．
+
+(send *ri* :robot) ;; 紫を背景にして表示されているロボット
+
+
+実機をシリアルケーブルでPCに接続してあることを確認．
+
+(send *ri* :com-init)
+         ;; rcb4ボード用付属DUAL USB ADAPTER  HSのシリアルモード側(LEDは緑)
+
+(send *ri* :timer-on)  ;; *ri*のロボットが実機の状態を表示
+       ;; 加速度センサがついているとそれに合わせて絵も傾く．
+
+(send *ri* :servo-sorted-ids) ;; このロボットが使うサーボのIDのリスト
+
+(send *ri* :servo-state 3) ;; サーボID 3の状態(20バイト領域の設定)を返す．
+
+(send *ri* :servo-mixing 3) ;; サーボID 3のミキシング関連設定のみを返す．
+
+
+
+(send *ri* :servo-vector) ;; lisp上で保持されている角度
+      ;; サーボベクタは36個の要素をもつサーボの値を使われてなくても返す．
+
+(send *ri* :read-servo-vector) ;;実機のサーボベクタを実機から読む．
+
+(send *ri* :send-servo-vector sv cnt) ;;サーボベクタを実機へ送る．
+
+(send *ri* :read-ref-servo-error) ;; 実機へ指定されている目標角度サーボベクタを実機から読む
+
+(send *ri* :read-servo-error) ;; 実機の目標角度と現在角度との差のベクタを実機から読む
+
+;;;
+
+(send *ri* :angle-vector) ;; lisp上で保持されているアングルベクタを返す．
+
+(send *ri* :angle-vector av cnt) ;; アングルベクタavでフレーム数 cntで動かす．
+
+(send *ri* :read-angle-vector) ;; 実機のサーボベクタを読んで，アングルベクタを返す．
+
+;;;
+
+(send *ri* :read-analog) ;; AD変換のベクトル（１１要素）を返す．
+      ;; 最初からバッテリ，ジャイロ２軸，加速度３軸の６要素が有効．
+
+(wait-key (send *ri* :read-analog))
+      ;; AD変換ベクトルを表示し続ける．キー入力を入れると終わる．
+
+
+;;; 関節のサーボON/OFF
+
+(send *ri* :free :larm)  ;; 左腕のサーボOFF．手で左腕を動かすとviewer
+			 ;; の絵が動く．
+
+(send *ri* :hold :larm) ;; 左腕のサーボON
+
+(send *ri* :free) ;; 全身のサーボOFF
+(send *ri* :free-all) ;; 全身のサーボOFF
+
+(send *ri* :hold) ;; 全身のサーボON
+(send *ri* :hold-all) ;; 全身のサーボON
+
+(send *ri* :timer-off) ;; 表示を止める．通信コマンドを送る時には止めておく．
+
+
+;;; モーションプログラムの表示・実行
+
+(send *ri* :draw-project-file)
+      ;; projectファイルのモーションテーブルを順に表示する．キー入力で
+      ;; 止まる．
+
+(send *ri* :draw-project-file 10) ;; モーションテーブル 10番の動作を表示
+
+(send *ri* :call-motion 10)
+      ;; 実機のROMのモーションテーブルの10番を実行する．
+
+
+
+;;; モーションプログラムのアセンブル・逆アセンブル
+
+(setq m0 (send *ri* :project-file :mcodes 0))
+      ;; プロジェクトファイルのモーションテーブルの0番目のプログラム
+      ;; を返す．	
+
+(setq b (send m0 :bcodes)) ;; ROMのモーション数値列をリストで返す．
+
+(setq a (send m0 :acodes)) ;; ROMのモーション数値列を逆アセンブルする．
+
+(equal a (rcb4-disassemble b 0)) -> t
+       ;; 0番のモーションコードであるbを逆アセンブルする．
+
+(equal b (rcb4-assemble a 0)) -> t
+       ;; 0番のモーションコードとしてaをアセンブルする．
+       ;; 
+
+;;; ROMのモーションテーブルの読み込み
+
+(send *ri* :read-rom-table)
+      ;; ROMの中のモーションテーブル(120モーション)を読み出す．
+      ;; rcb4ボード，kondoh7のボードの両方に対応．
+
+(send *ri* :write-project-to-rom-table)
+      ;; プロジェクトファイルのモーションテーブルをROMへ書き込む
+      ;; KondoH7ボードの場合には，これでROMに書き込む．
+      ;; RCB4ボードではHeartToHeartで書き込んだものが入っている．
+
+(send *ri* :reset-rom-table)
+      ;; ROMの120個のモーションテーブルに:returnコマンドだけを書き込む．
+
+(send *ri* :rom-table) ;; ROMのモーションテーブル配列を返す．
+
+
+;;; ROMのモーションプログラムのアセンブル・逆アセンブル
+
+(setq m10 (send *ri* :rom-table 10))
+      ;; ROMのモーションテーブルの10番のモーションコードを返す．
+
+(setq b (send m10 :bcodes)) ;; ROMのモーション数値列をリストで返す．
+
+(setq a (send m10 :acodes)) ;; ROMのモーション数値列を逆アセンブルする．
+
+(equal a (rcb4-disassemble b 10)) -> t
+       ;; 10番のモーションコードであるbを逆アセンブルする．
+
+(equal b (rcb4-assemble a 10)) -> t
+       ;; 10番のモーションコードとしてaをアセンブルする．
+
+
+(send *ri* :write-motion-lst b 10)
+      ;; 10番用のモーションコードリストをROMの10番へ書き込む
+
+
+(send *ri* :write-convert-motion 10 100)
+      ;; 10番目のモーションコードを100番目へ書き込む．
+
+(send *ri* :write-motion-code mc i)
+      ;; モーションコードmcを ROMのモーションテーブルのi番へ整形して書
+      ;; き込む
+
+(send *ri* :write-project-to-rom-table)
+      ;; プロジェクトファイルのモーションテーブルをROMへ書き込む
+
+;;;
+
+(send *ri* :read-jump-vectors)
+      ;; リモコンボタンの組み合わせと対応する動作のリストを返す．
+      ;; ３１個まで登録可能となっている．
+
+
+(send *ri* :write-jump-vectors)
+      ;; プロジェクトファイルの中に書かれているリモコンのマップを書き
+      ;; 込む
+
+(test-gripper3)
+	;; グリッパーの開閉を繰り返す．
+
+;;;
+
+(send *ri* :check-project-file)
+      ;; 新しいロボットのプロジェクトファイルの内容が*ri*のロボットと
+      ;; 合致しているかをチェックする．servo-sorted-idsが使っているサー
+      ;; ボのindexになっているが，:servo命令などの引数でそれ以外の
+      ;; サーボIDを指定している命令がある場合にメッセージを表示する．
+      ;; :jump/:call命令の飛び先番地が，命令の境界になっているかどうか．
+      ;; 一つの命令バイト列の途中を指している場合にはメッセージを出す．
+
+(send *ri* :reform-project-file)
+      ;; チェックでメッセージがでていた場合に，その部分を修正する．
+      ;; :servo命令ではservo-sorted-ids（すべてのサーボID)の命令に変更
+      ;; し, :stretch, :speedは，実際には搭載していないIDだけを除く．
+
+(send *ri* :save-project-file)
+      ;; prog/rcb4eusに，(send *ri* :robot :name)のファイル名.h4pの
+      ;; プロジェクトファイルを生成する．
+
+
+-----------------------------------------------------------------
+以下， 補足説明
+-----------------------------------------------------------------
+
+*** 1. Windowsでの操作実行
+*** 2. Ubuntuでの環境設定
+*** 3. euslispの環境設定
+*** 4. euslispの立ち上げ
+*** 5. ロボットモデルの生成
+*** 6. ロボット生成時のプロジェクトファイルの指定方法
+*** 7. euscollada-robot モデルの生成
+*** 8. ロボットへの通信ポートを初期化する．
+*** 9. ロボット実機状態の読み込み，自動表示
+*** 10. 実ロボットを操作デバイスとして使う例
+*** 11. 動作テーブルの動作の実行
+*** 12. 動作プログラムのエミュレート
+*** 13. プロジェクトファイル内の動作プログラムの確認
+*** 14. アセンブリプログラムの例
+*** 15. angle-vectorの列から動作プログラムを生成する
+*** 16. ROMの動作表の読み出し
+*** 17. 動作のROMモーションテーブルへの書込み
+*** 18. Jump vector表とRemocon の機構　
+*** 19. Jump表への書込み
+*** 20. USBシリアルを使えるようにするために
+*** 21. ftdi.lについて
+*** 22. swigについて
+*** 23. リモコンのエミュレータ kxrviewer.l  2018.11.15
+*** 24. irtviewerの中への文字・画像表示
+*** 25. irtviewerの中の表示モデルの面のマウス選択の方法
+*** 26. assemble, disassemble, conversion, deconversion
+*** 27. メモリマップ
+*** 28. RCB-4 プログラムのエミュレーションEmulation
+*** 29. euslispプログラムのコンパイル
+*** 30. ROS を用いて通信を行う方法
+*** 31. C言語でのエミュレーション
+*** 32. rcb4interface.l の実装メモ
+*** 33. euslispによるロボットの姿勢・動作生成方法
+*** 34. emulaterに送る動作プログラムの例
+*** 35. rcb4lisp rcb4へのコンパイラ
+*** 36. kxrmodels.l モデルの作り方
+*** 37. nn.l ニューラルネットモデル生成，計算
+*** 38. BVHアニメーション　kxranimate.l
+*** 39. odedyna.l, kxrdyna.l 動力学シミュレーション環境
+*** 42. /dev/tty*** としてのopen/read/write方法 2022.5.22
+*** 43. meshの削減方法
+*** 48. rcb4robotconfig.lのロボットモデル記述  2023.7.12
+*** 49. kxr-robotset クラスとモジュールロボットを統合　2024.1.8
+-----------------------------------------------------------------
+-----------------------------------------------------------------
+
+
+近藤科学のKHR3, KXRは背中にRCB4/RCB4-miniという制御ボードが入って
+おり，HeartToHeart4というWindows上アプリでロボットの通信，関節構成，
+動作プログラムを作って，RCB4ボード上のROMに焼き込むことで，リモコン
+で書き込まれている動作を呼び出すことができるようになっている．
+ボードにはA/Dポートがあり，KHR3では，ジャイロ2軸，加速度２軸，
+KXRでは，ジャイロ2軸，加速度３軸を動作プログラム中で取得することが
+できる．
+
+
+-----------------------------------------------------------------
+*** 1. Windowsでの操作実行
+-----------------------------------------------------------------
+
+
+WindowsでのUSBシリアルに対応するドライバーは，
+近藤科学のダウンロードサイト
+http://kondo-robot.com/archives/faq_category/software_sapmple
+の2015.06.30 KO Driver 2015をダウンロードしてインストールする．
+
+HeartToHeart4のプログラムは，同じページの
+2014.05.01 HeartToHeart4 Ver.2.3.0.0
+をインストールする．Ubuntuで使う前にこのHeartToHeart4で
+ロボットを動かすプログラムを作ってみておくとRCB4がどのように
+利用される商品となっているかがわかってゆく．
+
+HeartToHeart4での動作プログラムは，サーボの通信速度，ロボットが持って
+いるサーボのid番号と関節の対応の登録，動作プログラムをGUIで登録できる
+ようになっている．動作プログラムでは，ロボットの登録されたサーボの角度, 
+条件判断，A/Dデータの計算，繰返し制御などを表すコマンドブロックをGUIで
+線をつないで作り，それを全体で１２０個までROM内の表に登録するようになっ
+ている．各動作プログラムは，サブルーチンとして別の動作プログラムから呼
+び出すことができる．ROMの動作テーブルに書き込む際に，各動作コマンドブ
+ロックの意味が近藤科学が定めている動作コマンド命令列にコンパイルされる．
+
+
+動作コマンド命令は，近藤科学のホームページ，サポート情報，RCB開発資料
+のページ
+http://kondo-robot.com/archives/faq_category/rcb-dep
+から調べてゆく．
+
+RCB-4リファレンスセット　RCB4RefSetV220R20140507.zip
+の中の
+RCB-4コマンドリファレンス20130805.pdf
+に示されている．命令には，
+MOV，AND,OR,XOR,NOT,SHIFT,四則(+,-,x,div,mod),JUMP,CALL
+RETURN,ICS,単独サーボ動作，複数サーボ動作，複数サーボの個別動作，
+サーボのストレッチ変更，サーボのスピード変更，バージョン確認，通信確認
+がある．
+
+KHR3はヒューマノイド型になっているが，
+KXRのロボットは，2脚2腕だけでなく，4脚，6脚，アーム型，車輪型など
+を自由に作ってゆくことができる製品となっているところに特色がある．
+
+KXR製品アドバンストセットAでは，18個のサーボが入っており，
+2脚ロボットは，脚が5軸，腕が3軸，グリッパ2個で首が動かない
+人型ロボットか，グリッパの代わりに，首を2軸動かすものを作ることが
+できる．6脚ロボットでは，各足が3軸で18個を使い，
+4脚首長ロボットは4軸の脚が4脚，首と口で2個のサーボを使っている
+4脚カメロボットは，2軸脚が４つと首，4脚車輪型は，車輪を脚の先に
+付けたロボットを創ることができる．
+
+製品は，これらのパーツが組み立てられた状態ではなく，各サーボにidを
+付けて，ロボットを順に作ってゆく作業が必要なキット製品となっている．
+ネジ，電動ドライバを用いて，
+http://kondo-robot.com/archives/faq_category/products-manual
+などの作成マニュアルに沿って組み立てて
+各ロボットは数時間から1日ほどの作業がかかる．
+
+組みたったロボットをまず動かすには，WindowsでHeartToHeart4を
+使ってニュートラル姿勢，サンプルプログラムのROMへの書き込みなど
+を行ってゆく必要がある．
+
+足を6軸とし，腕を4軸にしたヒューマノイドでの動作例が
+http://kondo-robot.com/archives/14245
+に公開されている．
+
+KXRの各部品の寸法図，データが
+http://kondo-robot.com/archives/faq_category/dimension
+に公開されている．
+
+
+
+-----------------------------------------------------------------
+*** 2. Ubuntuでの環境設定
+-----------------------------------------------------------------
+
+ソフトウェアで自由にその身体をモデル化し，制御するプログラムを
+その身体モデルに合わせて管理してゆく環境がほしくなる．
+ubuntuで，euslispを使ってそれを行ってゆく環境を作り，
+prog/rcb4eusを
+https://gitlab.jsk.imi.i.u-tokyo.ac.jp/rcb4eus/rcb4eus
+で利用できるようになっている．
+
+ftdiのライブラリを使えるように
+
+;;sudo apt-get install libftdi-dev
+;;USBシリアルを認識させるために
+;;sudo bash -c 'echo SUBSYSTEMS==\"usb\", ATTRS{idVendor}==\"165c\", ATTRS{idProduct}==\"0008\", MODE=\"0666\" > /etc/udev/rules.d/99-my-khr.rules'
+
+
+USB-serialケーブルにはスイッチがついていて
+serialに設定してつなぐ．
+このスイッチのICS側は，個々のサーボのidを焼き込む時に使う．
+
+
+cd ~/prog
+
+git clone https://gitlab.jsk.imi.i.u-tokyo.ac.jp/rcb4eus/rcb4eus
+
+;;svn up bvh
+;;svn up models
+;;cd $EUSDIR
+;;ln -s ~/prog/bvh .
+;;mv models models.org
+;;ln -s ~/prog/models .
+
+cd ~/prog/rcb4eus
+
+まず，
+make libs
+とし，必要なライブラリをインストールする．
+libftdi-dev
+libopenblas-dev
+gifsicle
+などをapt-get installしている．
+
+cd ~/prog/rcb4eus/MATPROD
+
+make
+する
+
+次に，
+;;euslispをインストールした後 
+
+~/prog/rcb4eus
+において
+make
+するとlispのプログラムがコンパイルされる．
+
+コンパイルは，compile-all.lのcompile-all関数で行っている．
+コンパイルされるファイルは，
+    "utils.l"		;; 共通に使うもの
+    "tiny-xml.l"	;; xml パーザ
+    "odedyna.l"		;; 動力学ライブラリODEをbindする環境
+    "eus2wrl.l"		;; kxr-robotモデルをcollada-robotを生成する
+    "nn.l"		;; ニューラルネットライブラリ
+    "cblaslib.l"	;; 行列計算ライブラリopenblasをbindする環境
+    "mnist.l"		;; ニューラルネットMNISTのサンプル
+    "kxrdyna.l"		;; kxr-dyna "robot"による行動シミュレータ
+    "kxranimate.l"	;; bvhアニメーション,GIFアニメーション生成
+    "kxrbody.l"		;; kxrパーツ立体定義
+    "kxrbodyset.l"	;; kxrパーツからbodyset集合定義
+    "kxrlinks.l"	;; kxr用bodysetからbodyset-linkを作る
+    "kxrmodels.l"	;; kxr-robot全身モデルを生成する
+    "kxrviewer.l"	;; kxr用xwindow GUI，トップレベル
+    "rcb4robots.l"	;; 実機とモデル用ファイルをロードするトップレベル
+    "rcb4interface.l"	;; 実機とのシリアルI/Oを行う
+    "rcb4asm.l"		;; RCB4用命令セットのアセンブラ
+    "rcb4file.l"	;; RCB4用HeartToHeart用ファイルの入出力
+    "rcb4lisp.l"	;; RCB4用lispコンパイラ
+    "rcb4machine.l"	;; RCB4用命令セットのエミュレーション
+    "rcb4sample.l"	;; RCB4用命令で実機を動かすサンプルプログラム
+となっている(2020.4.5現在)
+
+euslispのコンパイルは，compile-fileで行われる．
+ソースファイルとオブジェクトファイルの日付を比べて
+ソースが変更されていた場合にコンパイルするものとして
+(comp::compile-file-if-src-newer "file-name" "objdir")
+で行われている．
+
+euslispのコンパイラは，euslispのプログラムをC言語の
+プログラムに変換する．生成される.c, .hファイルは
+ソースファイルの.lと同じディレクトリに作られるが
+compile-allの関数は"work"サブディレクトリにそれらを
+移動している．
+ただし，同じディレクトリにxx.lと同じxx.c,xx.hファイルは
+書き換えられてしまうため，euslispの.lファイルと同じ名前の
+.c,.hファイルを同じディレクトリに置いてはいけない．
+
+
+-----------------------------------------------------------------
+*** 3. euslispのインストール
+-----------------------------------------------------------------
+
+Ubuntu14.04では，
+
+sudo apt-get install ros-indigo-roseus
+
+Ubuntu16.04では，
+
+sudo apt-get install ros-kinetic-roseus
+
+Ubuntu18.04では，
+
+sudo apt-get install ros-melodic-roseus
+
+でroseusを使えるようになる．
+
+roseusは，オリジナルのeuslispに，JSKのロボットモデル，
+ロボットプログラミング環境であるirteus環境を載せた
+irteusglに，rosの通信機能を追加したものとなっている．
+
+rosを搭載していない
+irteusglは，ソースから自分でbuildすることは，以下のようにすれば
+可能である．
+
+cd prog
+git clone https://github.com/euslisp/jskeus.git
+cd jskeus
+make
+最後に表示される
+
+export EUSDIR=~/prog/jskeus/eus
+export ARCHDIR=Linux64
+export LD_LIBRARY_PATH=$EUSDIR/$ARCHDIR/bin:$LD_LIBRARY_PATH
+export PATH=$EUSDIR/$ARCHDIR/bin:$EUSDIR/$ARCHDIR/lib:$PATH
+
+を.bashrcなどに書き込むことでここに自分でインストールしたirteusglを
+利用できるようになる．
+
+ubuntu14.04では，https://github.com/euslisp/jskeus
+のドキュメントにどのライブラリが必要かの説明がなされているが，
+ubuntu16.04では，
+libjpeg-dev
+libgl11-mesa-dev
+libglu1-mesa-dev
+libpq-dev
+libpng12-dev
+xfonts-100dpi
+xfonts-75dpi
+をapt-get installしておけばirteusglをbuild可能となる．
+
+X11のフォント登録を行うので，一度logoutかrebootを
+しなおすとxwindowのサンプルプログラムを走らせる
+ことができるようになる．
+
+Xwindowを使うロボットのアニメーションサンプルの実行は，
+irteusgl
+(load "irteus/demo/demo.l")
+
+configuring by "/home/inaba/prog/jskeus/eus/lib/eusrt.l"
+
+;; readmacro ;; object ;; packsym ;; common ;; constants ;; stream ;;
+   string ;; loader ;; pprint ;; process ;; hashtab ;; array ;;
+   mathtran ;; eusdebug ;; eusforeign ;; coordinates ;; tty ;; history
+   ;; toplevel ;; trans ;; comp ;; builtins ;; par ;; intersection ;;
+   geoclasses ;; geopack ;; geobody ;; primt ;; compose ;; polygon ;;
+   viewing ;; viewport ;; viewsurface ;; hid ;; shadow ;; bodyrel ;;
+   dda ;; helpsub ;; eushelp ;; xforeign ;; Xdecl ;; Xgraphics ;;
+   Xcolor ;; Xeus ;; Xevent ;; Xpanel ;; Xitem ;; Xtext ;; Xmenu ;;
+   Xscroll ;; Xcanvas ;; Xtop ;; Xapplwin
+
+connected to Xserver DISPLAY=:0
+X events are being asynchronously monitored.
+
+;; pixword ;; RGBHLS ;; convolve ;; piximage ;; pbmfile ;;
+;; image_correlation ;; oglforeign ;; gldecl ;; glconst ;; glforeign
+;; ;; gluconst ;; gluforeign ;; glxconst ;; glxforeign ;; eglforeign
+;; ;; eglfunc ;; glutil ;; gltexture ;; glprim ;; gleus ;; glview ;;
+;; toiv-undefined ;; fstringdouble irtmath irtutil irtc irtgeoc
+;; irtgraph ___time ___pgsql irtgeo euspqp pqp irtscene irtmodel
+;; extending gcstack 0x6669420[16374] --> 0x6b18b30[32748] top=3f2a
+;; irtdyna irtrobot irtsensor irtbvh irtcollada irtpointcloud irtx
+;; eusjpeg euspng png irtimage irtglrgb irtgl irtglc irtviewer
+
+EusLisp 9.25(be5bb75 0d3d979) for Linux64 created on ubuntu(Thu Nov 15 08:42:37 PST 2018)
+
+(full-body-ik) ;; for humanoid
+(shake-cocktail) ;; generate shaking cocktail motion using functional target-coords.
+(null-space-ik) ;; for humanoid
+(dual-arm-ik) ;; for tool usage
+(hand-grasp) ;; for hand model
+(dual-manip-ik) ;; for dual-armed object manipulation
+(crank-motion) ;; for fullbody motion
+(walk-motion-for-sample-robot) ;; for walking motion
+(walk-motion-single-support-for-sample-robot) ;; for walking motion
+(walk-motion-stair-climb-for-sample-robot) ;; for walking motion
+(trot-walk-motion-for-sample-robot) ;; for walking motion
+(crawl-walk-motion-for-sample-robot) ;; for walking motion
+(walk-motion-for-robots) ;; for walking motion for several robot models
+(test-preview-control-0) ;; Example for preview controller in walking ZMP input.
+(test-preview-control-1) ;; Example for preview controller in linear ZMP transition.
+(test-preview-control-2) ;; Example for preview controller to keep balance against for impulsive external force.
+(test-preview-control-3) ;; Example for preview controller in long walking ZMP input.
+(test-preview-control-dynamics-filter-for-sample-robot) ;; Example for dynamics filter using preview controller
+(hanoi-arm) ;; for arm solving hanoi tower
+(particle) ;; for particle simulation
+(test-sample-1dof-closed-link-robot) ;; Example for 1dof closed-link robot.
+(test-sample-2dof-closed-link-robot) ;; Example for 2dof closed-link robot.
+(test-interlocking-joint-arm) ;; Example for arm with interlocking joints
+(test-sample-legged-robot-with-interlocking-joints) ;; Example for legged robots with interlocking joints
+(test-virtual-joint-for-rotation-axis) ;; test for virtual joint
+(test-virtual-joint-for-rotation-axis-all) ;; test for virtual joint for several situations
+(head-look-at-ik) ;; ik to look target by directing head camera
+(hand-look-at-ik) ;; ik to look target by directing hand camera
+(look-at-hand-object-ik) ;; ik to look object in hand by head camera
+(look-at-ik-all) ;; all ik to look target
+
+というような表示がなされ，ここに表示されている
+(hand-grasp)などの
+デモプログラムを走らせることでeuslispに用意されている
+ロボットモデルでの動作サンプルを調べることができる．
+
+
+apt-get installで先にroseusを入れて使うのではなく，
+roseusをbuildするには，
+
+まず，
+http://wiki.ros.org/indigo/Installation/Ubuntu
+や
+http://wiki.ros.org/kinetic/Installation/Ubuntu
+を参照して，ROSを入れて
+
+mkdir -p catkin_ws/src
+cd catkin_ws
+wstool init src
+
+sudo apt-get install ros-indigo-mongodb-store
+or
+sudo apt-get install ros-kinetic-mongodb-store
+
+cd src
+git clone https://github.com/jsk-ros-pkg/jsk_roseus.git jsk-ros-pkg/jsk_roseus
+git clone https://github.com/jsk-ros-pkg/geneus.git jsk-ros-pkg/geneus
+git clone https://github.com/euslisp/Euslisp.git euslisp/Euslisp
+git clone https://github.com/euslisp/jskeus.git euslisp/jskeus
+cd ..
+./src/jsk-ros-pkg/jsk_roseus/setup_upstream.sh -w . -p jsk-ros-pkg/jsk_roseus
+catkin build
+source devel/setup.bash
+roseus # roseusが立ち上がって,
+$ irteusglのインタプリタが上がるか確認する．
+
+/optでなく,~/catkin_ws以下のものが呼ばれていることを確認する．
+
+printenv EUSDIR
+として
+~/catkin_wsの下のeusのあるディレクトリになっていれば
+ここでbuildしたroseusを使うことができるようになる．
+
+
+
+-----------------------------------------------------------------
+*** 4. euslispの立ち上げ
+-----------------------------------------------------------------
+
+irteusgl rcb4robots.l
+または
+roseus rcb4robots.l
+
+によって，
+rcb4robots.l ;; Toplevel make-kxr-robot, サンプルプログラム
+kxrmodels.l  ;; ロボットモデル生成
+rcb4robotconfig.l ;; ロボットの骨格とサーボのidとの対応付け
+rcb4interface.l　;; rcb4と通信するrcb4-interfaceクラスの実装
+rcb4machine.l　　;; rcb4を仮想ボディでエミュレートするrcb4-machineクラス
+ftdi.l       ;; libftdi.so内の構造体・関数を宣言するファイル
+rcb4asm.l    ;; rcb4の命令のアセンブラ，逆アセンブラ
+rcb4file.l   ;; rcb4-file, project-file, motion-file クラスの実装
+tiny-xml.l   ;; xmlファイルを読み込むファイル．創造情報の千葉先生作
+
+などがロードされる．
+これらの中のクラスは，
+
+rcb4interface.l:(defclass rcb4-interface :super propertied-object
+rcb4file.l:(defclass rcb4-jump-vectors :super vector)
+rcb4file.l:(defclass rcb4-motion-table :super vector)
+rcb4file.l:(defclass rcb4-file :super object
+rcb4file.l:(defclass rcb4-project-file :super rcb4-file
+rcb4file.l:(defclass rcb4-servo-config :super object
+rcb4file.l:(defclass rcb4-motion-file :super rcb4-file
+rcb4file.l:(defclass rcb4-motion-code :super object
+rcb4lisp.l:(defclass array-list :super object
+rcb4lisp.l:(defclass stack-variables :super object
+rcb4lisp.l:(defclass eval-env :super object
+rcb4machine.l:(defclass rcb4-motion-table :super vector)
+rcb4machine.l:(defclass rcb4-jump-vectors :super vector)
+rcb4machine.l:(defclass rcb4-machine
+が定義されている．
+
+ロボット身体のモデル生成のためには，
+
+kxrmodels.l  ;; kxr-robotクラス，kxr-robot 生成関数
+kxrlinks.l   ;; kxr-robotを構成するbodyset-linkを作る数十の関数
+kxrbodyset.l ;; bodyset-linkを作る際の要素となるbodysetを作る関数
+kxrbody.l    ;; bodysetを作るための基本形状要素bodyを作る関数
+
+があり，
+
+utils.l:(defclass kxr-body  :super gl::glbody
+kxrmodels.l:(defclass kxr-robot :super robot-model
+kxrviewer.l:(defclass robot-control-panel :super panel
+kxrviewer.l:(defclass kxrviewer :super x::irtviewer
+kxrviewer.l:(defclass kxr-model-panel :super panel
+
+のクラスが定義されている．
+
+<other files>
+eus2wrl.l    ;; eus modelか
+らwrlを作る．
+rosrcb4.l    ;; ROS sample
+rosishiguro.l    ;; ROS sample
+kxrviewer.l  ;; 近藤科学リモコン模擬GUI，ロボットモデル生成GUI
+kxrmotions.l ;;
+bvh/bvh-demo.l　;; モーションキャプチャデータ形式bvhを扱い表示するサンプル
+nn.l    ;; ニューラルネットモデルの生成．MNISTサンプルの実行関数
+mnist.l ;; MNISTサンプルをテストする．
+rcb4lisp.l ;; lisp形式のrcb4命令へのコンパイラ
+makabe.l ;; 真壁トランスフォーマkxrl2makabe用サンプル
+
+~/prog/bvhが
+$EUSDIR/bvh
+にsymbolic linkされていることを想定している．
+
+同様に, ~/prog/modelsが
+$EUSDIR/models
+にsymbolic linkされていることを想定している．
+
+
+-----------------------------------------------------------------
+*** 5. ロボットモデルの生成
+-----------------------------------------------------------------
+
+(make-kxr-robot "kxrl2l5a3h2")
+
+で，２脚，５軸脚，３軸腕，２軸首のロボットモデル
+が*robot*に入り，２つのviewerが
+２つのviewerのうち，ロボットの名前がタイトルに
+表示されるviewerは，*ri*がもっているrobotの
+状態を表示し，他方は*robot*を表示している．
+(send *ri* :timer-on)
+とした場合に実機の状態が表示されるのは*ri*が
+もっているrobotへ実機の状態を反映させるために
+ロボットのタイトルが出ているviewerとなる．
+他方の*robot*は，通常の(objects xxxx)で
+ロボットの姿勢を確認するためのviewerとして
+用いる．
+kxrviewer.lをロードして環境で
+(make-kxr-robot "kxrl2l5a3h2")
+とすると，２つのviewerに加えて，
+ロボットのモデルを操作するGUIと近藤科学の
+リモコンにマップされた動作を選ぶことができるGUI
+の両方が生成される．
+
+make-kxr-robotの内部でロボットモデルを作る
+関数として
+(kxr-make-robot "kxrl2l5a3h2")
+(kxr-create-robot "kxrl2l5a3h2")
+などがある．
+
+(kxr-create-robot "kxrl2l5a3h2")
+は，モデルだけが生成され，
+
+(objects (list (kxr-create-robot "kxrl2l5a3h2")))
+
+とするとviewerにそのロボットのモデルが生成される．
+大域変数*robot*も変更はしない．内部ではrcb4-interfaceの
+インスタンスも生成し，サーボとジョイント名との対応付けと
+モデル構造とが対応しているかの検査を行っている．
+
+
+(kxr-make-robot "kxrl2l5a3h2")
+は，モデルだけを作り，サーボとジョイント名との対応付けと
+モデル構造とが対応しているかの検査は行わない．
+大域変数*kxrl2l5a3h2*を作りその値にモデルが代入される．
+*robot*は変更しない．
+
+
+(make-kxr-robot ロボット名）
+(kxr-create-robot ロボット名）
+(kxr-make-robot ロボット名）
+
+で指定できるロボット名は
+
+(kxr-all-robot-names)
+
+で知ることができ，
+
+"khr3" "khr3sl5a3h2" "kxrl4t" "kxrl4th" "kxrl4d" "kxrl2" "kxrl2l5a3"
+"kxrl2l5a3g" "kxrl2l5a3h2" "kxrl2w2l5a3h2" "kxrl2l6a3"
+"kxrl2l6a4" "kxrl2l6a4h2" "kxrl2w2l6a4h2" "kxrl2l6a5h2"
+"kxrl2w2l6a5h2" "kxrl2l6a6" "kxrl2l6a6h2" "kxrl2l6a6h2n"
+"kxrl2w2l6a6h2n" "kxrl2l6a7" "kxrl2l6a7h2" "kxrl2l6a7h2n"
+"kxrl2l6a7h2w" "kxrl2w2l6a7h2w"
+....
+
+などがある．
+これらは名前を付けて，各関節のサーボ番号が何番かの記述が
+なされているもので，これら以外にも
+軸数は同じでも足の取り付け幅や軸の向きの順が
+異なる形態など，数は数万を越えるものとなる．
+
+kxrmodels.lの中には，ロボットを生成する関数kxr-robotがある．当初は，
+kxr-l2-robot kxr-l4-robot, kxr-l6-robotなどと２脚，４脚，６脚型のロボッ
+トごとにサブクラスを設けて，それぞれのlimbの定義をそれぞれの標準的な
+arm/leg 用に作ってきていたが，２脚，４脚，６脚でも同じ脚関節構造の脚を
+作ることも可能なものであり，サブクラス構造で行うのではなく，kxr-robot
+のみとして，腕と脚で本数は自由に設定できるように2020年3月に改造を行っ
+た．
+脚の本数を指定するのではなく，脚腕を伸ばしてゆく土台をkxr-robot
+生成関数に:body :l4dのように指定するようにした．
+:bodyには，
+:l4d		;; ４脚にpitch軸を出す胴体
+:dyp		;; 真壁ロボットの２脚pitch軸，torso用差動台
+:dyp-z		;; 真壁ロボットの２脚pitch軸，torso用Yaw軸
+:lyp-low	;; ２脚pitch軸が下でtorso用Yaw軸の腰
+:lyp-high	;; ２脚pitch軸が上でtorso用Yaw軸の腰
+:l2l6		;; ２脚Yaw軸２腕Pitch軸の胴体
+:l2l6w		;; ２脚Yaw軸の間隔が広い２腕Pitch軸の胴体
+:l2l6r		;; ２脚Yaw軸サーボが横を向いている２腕Pitch軸の胴体
+:l2l6c		;; ２脚Yaw軸とtorso用Yaw軸の腰
+:l2l5		;; ２脚Roll軸接続２腕Pitch軸の胴体
+:l4t		;; ４脚Yaw軸の胴体
+:l6		;; ６脚Yaw軸の胴体
+
+４，６脚では，:arm/:legで腕と脚を指定していたが，２脚でも:arm/:leg
+を指定してあれば４脚，６脚用のarmやlegを付けることができ，
+:armがなければ，:shoulder, :wristなどを指定する腕
+:legがなければ，:crotch, :ankleなどを指定する脚を
+
+肩:shoulderについて
+肩:shoulderでは、:cross, :y, nilの３種類
+肘は:elbow-pで一種類、手首:wristは、:cross,:cross-y,:y-r,:rの４種類
+手:gripperは、:wheel, t, nilの３種類
+脚について、関節数:l6が :rotate, :wide, tの３種類と:l6を指定しない５軸がある．
+
+(kxr-robot :body :l2l5 :head :e :gripper t)
+(脚５軸x2、腕３軸x2、把持１軸x2、首２軸)  ;; 20関節
+
+(kxr-robot :body :l2l5 :l6 :wide :head :e :gripper t)
+(脚６軸x2、腕３軸x2、把持１軸x2、首２軸)　 ;; 22関節
+
+(kxr-robot :body :l2l5 :ankle :w :head :e :gripper :wheel) ;; 22関節
+(脚５軸x2、足首車輪１軸x2、腕３軸x2、把持１軸x2、手受動車輪１軸x2、首２軸)
+
+(kxr-robot :body :l2l6r :ankle :w :head :e :gripper :wheel) ;; 24関節
+(脚６軸x2、足首車輪１軸x2、腕３軸x2、把持１軸x2、手受動車輪１軸x2、首２軸)
+
+(kxr-robot :body :l2l6r :shoulder :cross :ankle :w :head :e :gripper :wheel)
+(脚６軸x2、足首車輪１軸x2、腕４軸x2、把持１軸x2、手受動車輪１軸x2、首２軸) ;; 26関節
+
+(kxr-robot :body :l2l6r :shoulder :y :ankle :w :head :e :gripper :wheel) 
+(脚６軸x2、足首車輪１軸x2、腕４軸x2、把持１軸x2、手受動車輪１軸x2、首２軸);; 26関節
+
+(kxr-robot :body :l2l6 :shoulder :y :wrist :y :ankle :w :head :e :gripper :wheel)
+(脚６軸x2、足首車輪１軸x2、腕５軸x2、把持１軸x2、手受動車輪１軸x2、首２軸) ;; 28関節
+
+(kxr-robot :body :l2l6 :shoulder :y :wrist :y-r 
+    :ankle :w :head :e :gripper :wheel) ;; 30関節
+(脚６軸x2、足首車輪１軸x2、腕６軸x2、把持１軸x2、手受動車輪１軸x2、首２軸)
+
+(kxr-robot :body :l2l6 :shoulder :y :wrist :cross 
+  :ankle :w :head :e :gripper :wheel) ;; 30関節
+(脚６軸x2、足首車輪１軸x2、腕６軸x2、把持１軸x2、手受動車輪１軸x2、首２軸)
+
+(kxr-robot :body :l2l6 :shoulder :cross :wrist :cross
+    :ankle :w :head :e :gripper :wheel) ;; 30関節
+(脚６軸x2、足首車輪１軸x2、腕６軸x2、把持１軸x2、手受動車輪１軸x2、首２軸)
+
+(kxr-robot :body :l2l6 :shoulder :cross
+  :wrist :cross-y :ankle :w :head :e :gripper :wheel) ;; 32関節
+(脚６軸x2、足首車輪１軸x2、腕７軸x2、把持１軸x2、手受動車輪１軸x2、首２軸)
+
+(kxr-l2 :shoulder :cross :wrist :cross-y
+ :crotch :w :ankle :w :head :e :gripper :wheel)
+(脚６軸x2、脚元車輪１軸x2、 足首車輪１軸x2、腕７軸x2、
+   	     把持１軸x2、手受動車輪１軸x2、首２軸) ;; 34関節 
+
+
+*kxr-l2s-options*	;; よく使う名前でrcb4robotconfig.lの実機の呼び名と指定引数
+
+*kxr-forearm-options*   7
+*kxr-arm-options* 	63(7 x 3 x 3(gripper,wheel))
+*kxr-head-options* 	4
+*kxr-armhead-options* 	252(4 x 7 x 3 x 3)
+*kxr-l2l5all-options* 	1008(4 x 252)
+*kxr-l2l6all-options* 	1008(4 x 252)
+*kxr-l2nl6all-options*	1008(4 x 252)
+*kxr-l2wl6all-options*	1008(4 x 252)
+*kxr-l4all-options*	9
+*kxr-l6all-options*	3
+*kxr-all-options*	4044 = (+ 1008 1008 1008 1008 9 3)
+*kxr-all-names*	 	list of function names
+
+
+(send *robot* :init-limb :head :head :e)
+(send *robot* :init-limb :larm :shoulder :cross :wrist :cross)
+
+とすると，後から変更も可能となっている．
+これにより左右非対称な腕、脚のものも生成可能．
+
+rcb4robotconfig.l
+の中には、実機ですでに製作したものや，作ってはいないが
+オプション指定に何があるのかがわかるようにサンプルが書いてある．
+２脚ロボットで最後にnがついているのは，２脚の幅が狭いもので，
+wは２脚の幅が広いものになっている例や，
+２脚で足首の後ろに車輪がついているものはl2w2となっている．
+
+近藤科学の基本セットの２脚ロボットは，
+kxrl2l5a3やkxrl2l5a3h2などで，４脚亀形はkxrl4t，
+４脚車輪輪形はkxrl4r，
+４脚恐竜型はkxrl4d，６脚型はkxrl6でモデル生成，
+実機制御が可能となっている．
+
+
+kxrl2w2l5a4h2は，足首に能動車輪が付き，グリッパの外に受動車輪を付けた
+ロボットとなっており，足首車輪での倒立バランス制御，転倒状態からバラン
+ス姿勢への形態遷移，バランス制御起動姿勢の学習などに用いられている．
+
+(make-kxr-robot "kxrl2w2l5a4h2")
+
+    (("kxrl2w2l5a4h2" "kxrl2w2l5a4h2rw" "kxrl2kimura2" "kxrl2sato")
+     (:body :l2l5 :type :l2 :head :e :active-wheel :ankle :wrist :r
+      :gripper t :passive-wheel :gripper :neck :a :sole t) ;; 24
+     (2 :rarm-shoulder-p 1)   (3 :larm-shoulder-p -1)
+     (4 :rarm-shoulder-r -1)  (5 :larm-shoulder-r 1)
+     (6 :rarm-elbow-p 1)     (7 :larm-elbow-p 1)
+     (8 :rleg-crotch-r 1)     (9 :lleg-crotch-r 1)
+     (10 :rleg-crotch-p -1)   (11 :lleg-crotch-p -1)
+     (12 :rleg-knee-p 1)      (13 :lleg-knee-p 1)
+     (14 :rleg-ankle-p -1)    (15 :lleg-ankle-p -1)
+     (16 :rleg-ankle-r -1)    (17 :lleg-ankle-r -1)
+     (18 :rarm-gripper-r 1/2)   (19 :larm-gripper-r 1/2)
+     (18 :rarm-gripper2-r 1/2)  (19 :larm-gripper2-r 1/2)
+     (20 :rleg-ankle-w 1)     (21 :lleg-ankle-w -1)
+     (22 :rarm-wrist-r -1)    (23 :larm-wrist-r -1)
+     (30 :head-neck-y -1)     (32 :head-neck-p 1)
+     )
+
+
+2019年7月より真壁ロボットの実機ができてきたので，kxrl2makabe
+という名前でモデル生成が可能となるようにし，KXRパーツでは
+無いパーツもすべてではないが主要なリンクを作ってある．
+
+(make-kxr-robot "kxrl2makabe")
+
+    (("kxrl2makabe" "kxrl2w2t2l6a7h1")		;; 33
+     (:body :dyp :type :l2 :active-wheel :knee
+      :shoulder :y-p-r :wrist :r :passive-wheel :wrist
+      :wrist-sensor t  :gripper-inner t :gripper-sensor :finger1 :sole t
+      :sole-sensor t :torso :dy-p :neck-axis :p :head :m5s :head-length 20)
+     (2 :rarm-shoulder-p 1)     (3 :larm-shoulder-p -1)
+     (4 :rarm-shoulder-r -1)    (5 :larm-shoulder-r -1)
+     (6 :rarm-elbow-p 1)        (7 :larm-elbow-p -1)
+     
+     (8 :rleg-crotch-r -1)      (9 :lleg-crotch-r -1)
+     (10 :rleg-crotch-p -3/2)   (11 :lleg-crotch-p 3/2)
+     (12 :rleg-knee-p -1)       (13 :lleg-knee-p -1)
+     (14 :rleg-ankle-p -1)      (15 :lleg-ankle-p -1)
+     (16 :rleg-ankle-r -1)      (17 :lleg-ankle-r -1)
+
+     (18 :rarm-gripper-r -1/2)    (19 :larm-gripper-r -1/2)
+     (18 :rarm-gripper2-r -1/2)   (19 :larm-gripper2-r -1/2)
+     (20 :rleg-knee-w 1)        (21 :lleg-knee-w -1)
+     (22 :rarm-shoulder-y -1)   (23 :larm-shoulder-y -1)
+     (24 :rleg-crotch-y 1)      (25 :lleg-crotch-y 1)
+
+     (26 :rarm-elbow-y 1)       (27 :larm-elbow-y  1)
+     (28 :rarm-wrist-r 1)       (29 :larm-wrist-r -1)
+     (30 :rarm-wrist-y 1)       (31 :larm-wrist-y 1)
+     (32 :torso-chest-y -3/4)    (33 :torso-chest-y  -3/4)
+     (32 :torso-chest-p 3/2)    (33 :torso-chest-p -3/2)
+     (34 :head-neck-p   1)
+     ;;
+     (42 ("rarm" "palm" "gripper-")) ;; sensor-board 21
+     (50 ("larm" "palm" "gripper-")) ;; sensor-board 25
+     (38 ("rarm" "joint" "wrist")) ;; sensor-board 19
+     (46 ("larm" "joint" "wrist")) ;; sensor-board 23
+     (44 ("rleg" "sole")) ;; sensor-board 22
+     (52 ("lleg" "sole")) ;; sensor-board 26
+     )
+
+KXRパーツをできるだけ再利用した真壁ロボットとして，
+
+(make-kxr-robot "kxrl2makabel")
+
+というのも作ってあり，両脚の間隔が広くなるが車の形態も可能だが，
+肩の前輪のステアリングの可動範囲が限定されてしまっている．
+膝車輪の直交軸のパーツは少し削る必要がある．
+
+    ("kxrl2makabel" ;; 34 makabe low cost structure
+     (:body :lyp-low :type :l2 :knee-type :lp :active-wheel :knee 
+      :shoulder :uy-p-r :wrist :r :passive-wheel :wrist
+      :gripper-inner t :torso :ly-p :sole-sensor t
+      :neck-axis :p :head :m5 :head-length 20 :sole t)
+     (2 :rarm-shoulder-p 1)     (3 :larm-shoulder-p -1)
+     (4 :rarm-shoulder-r -1)    (5 :larm-shoulder-r -1)
+     (6 :rarm-elbow-p 1)        (7 :larm-elbow-p -1)
+     
+     (8 :rleg-crotch-r -1)      (9 :lleg-crotch-r -1)
+     (10 :rleg-crotch-p -3/2)   (11 :lleg-crotch-p 3/2)
+     (12 :rleg-knee-p -1)       (13 :lleg-knee-p -1)
+     (14 :rleg-ankle-p -1)      (15 :lleg-ankle-p -1)
+     (16 :rleg-ankle-r -1)      (17 :lleg-ankle-r -1)
+
+     (18 :rarm-gripper-r -1/2)    (19 :larm-gripper-r -1/2)
+     (18 :rarm-gripper2-r -1/2)   (19 :larm-gripper2-r -1/2)
+     (20 :rleg-knee-w 1)        (21 :lleg-knee-w -1)
+     (22 :rarm-shoulder-y -1)   (23 :larm-shoulder-y -1)
+     (24 :rleg-crotch-y 1)      (25 :lleg-crotch-y 1)
+
+     (26 :rarm-elbow-y 1)       (27 :larm-elbow-y  1)
+     (28 :rarm-wrist-r 1)       (29 :larm-wrist-r -1)
+     (30 :rarm-wrist-y 1)       (31 :larm-wrist-y 1)
+     (32 :torso-chest-y -3/4)    (33 :torso-chest-y  -3/4)
+     (32 :torso-chest-p 3/2)    (33 :torso-chest-p -3/2)
+     (34 :head-neck-p   1)
+     )
+
+
+(make-kxr-robot "kxrl2t2l6a7h2yprb")
+は，torsoにyaw,pitch軸をもち，脚６軸，腕７軸グリッパにセンサボード
+を搭載したロボットの例．動作教示，テレオペのための例．
+
+    (("kxrl2t2l6a7h2yprb" )	;; 32 from kxrl2l6a7h2w's arm 2020.1.8
+     (:body :l2l6c :type :l2 :torso :y-p :shoulder :cross :wrist :y-cross
+      :gripper t :head :e :neck :b :gripper-sensor :finger1 :sole t)
+     (2 :rarm-shoulder-p 1 30) (3 :larm-shoulder-p -1 -30)
+     (4 :rarm-shoulder-r 1)     (5 :larm-shoulder-r -1)
+     (6 :rarm-elbow-p 1 90)     (7 :larm-elbow-p 1 90)
+     (8 :rleg-crotch-r 1)       (9 :lleg-crotch-r 1)
+     (10 :rleg-crotch-p -1)     (11 :lleg-crotch-p -1)
+     (12 :rleg-knee-p 1 -45)    (13 :lleg-knee-p 1 -45)
+     (14 :rleg-ankle-p -1 45)   (15 :lleg-ankle-p -1 45)
+     (16 :rleg-ankle-r -1)      (17 :lleg-ankle-r -1)
+     (18 :rarm-gripper-r 1/2)    (19 :larm-gripper-r 1/2)
+     (18 :rarm-gripper2-r 1/2)   (19 :larm-gripper2-r 1/2)
+     (22 :rarm-shoulder-y -1)   (23 :larm-shoulder-y -1)
+     (24 :rleg-crotch-y 1)      (25 :lleg-crotch-y 1)
+     (26 :rarm-wrist-p -1)      (27 :larm-wrist-p -1)
+     (28 :rarm-wrist-r -1)      (29 :larm-wrist-r -1)
+     (20 :rarm-wrist-y 1)       (21 :larm-wrist-y 1)
+     (30 :torso-chest-y -1)
+     (32 :head-neck-y -1)       (33 :head-neck-p -1)
+     (34 :torso-chest-p 1)
+     ;;
+     (38 ("larm" "palm" "gripper-")) ;; sensor-board 19
+     (40 ("rarm" "palm" "gripper-")) ;; sensor-board 20
+     )
+
+
+実機は作って試してはいないが，ケンタウロス型のロボットも
+作ることができ，
+(make-kxr-robot "kxrl4ch")
+では，４脚のそれぞれがkxrl4dの脚と同じ４軸の脚:j4で，
+胴体から上半身はkxrl2makabelの上半身をもったものが
+現れる．
+
+    (("kxrl4ch")
+     (:body :l4d :type :l4 :marm :j4 :leg :j4 :head :h0 :torso :ly-p
+      :shoulder :ly-p-r :wrist :r :gripper-inner t)
+     ;;(0 :head-neck-y 1)
+     (2 :rarm-shoulder-p -1)  (3 :larm-shoulder-p -1)
+     (6 :rarm-shoulder-r -1)  (7 :larm-shoulder-r -1)
+     (8 :rarm-shoulder-y -1)  (9 :larm-shoulder-y -1)
+     (10 :rarm-elbow-p -1)    (11 :larm-elbow-p -1)
+     (12 :rarm-wrist-r -1)    (13 :larm-wrist-r -1)
+     (14 :rarm-gripper-r  1/2) (15 :larm-gripper-r 1/2)
+     (16 :rarm-gripper2-r 1/2) (17 :larm-gripper2-r 1/2)
+
+     (4 :rmarm-shoulder-p 1)   (5 :lmarm-shoulder-p -1)
+     (18 :rmarm-shoulder-r -1)  (19 :lmarm-shoulder-r 1)
+     (20 :rmarm-elbow-p 1)      (21 :lmarm-elbow-p 1)
+     (22 :rmarm-wrist-p 1)      (23 :lmarm-wrist-p 1)
+
+     (24 :rleg-crotch-p 1)    (25 :lleg-crotch-p -1)
+     (26 :rleg-crotch-r -1)   (27 :lleg-crotch-r 1)
+     (28 :rleg-knee-p -1)     (29 :lleg-knee-p -1)
+     (30 :rleg-ankle-p -1)    (31 :lleg-ankle-p -1)
+     )
+
+
+kxrl4ct2a7h2
+というので作ることができる．４つの:j1w脚車輪と２軸のトルソに
+７軸の腕とグリッパ，２軸の首にM5StickVが２個ついた頭部が
+ついたモデルとなっている．
+
+    (("kxrl4ct2a7h2")
+     (:body :l4t :type :l4 :marm :j1w :leg :j1w 
+      :torso :y-p :shoulder :cross :wrist :y-cross
+      :head :m5s :neck :b :gripper-inner t)
+     (0 :head-neck-y 1)      (1 :head-neck-p 1)
+     (2 :rarm-shoulder-p -1)  (3 :larm-shoulder-p -1)
+     (4 :rarm-shoulder-r -1)  (5 :larm-shoulder-r -1)
+     (6 :rarm-elbow-p -1)    (7 :larm-elbow-p -1)
+     (8 :rarm-wrist-p -1)    (9 :larm-wrist-p -1)
+     (10 :rarm-wrist-r -1)    (11 :larm-wrist-r -1)
+     (12 :rarm-wrist-r -1)    (13 :larm-wrist-r -1)
+     (14 :rmarm-shoulder-y -1) (15 :lmarm-shoulder-y -1)
+     (16 :rmarm-shoulder-w -1) (17 :lmarm-shoulder-w -1)
+     (18 :rleg-crotch-y -1)    (19 :lleg-crotch-y -1)
+     (20 :rleg-crotch-w -1)    (21 :lleg-crotch-w 1)
+     )
+
+
+<robot-model option>
+:board	- :rcb4 :armh7
+:project-file	- <string of subname for file name>
+:com-init-method - <method to com init>
+:interface-class - rcb4-interface armh7-interface
+
+:body	-  :l2l5 :l2l6 :l2l6w :l2l6r :l2l6c  ;; biped type
+	-  :dyp :dyp-z :dyp-zf :lyp-low :lyp-high ;; makabe type
+	-  :l4d  :l4t   ;; quad type
+	-  :l4m  :l4m2  ;; mamoru type
+	-  :l6          ;; hexapod type
+:type	-  :l2 :l4 :l6
+
+:shoulder
+	- :cross :p-y-r
+	- :p :y :p-r-y :p-r-yr
+	- :ly-p-r :uy-p-r	;; makabe type
+	- :y-p-r
+	- :r :p-r
+
+:wrist	- :cross :cross-y
+	- :y-r :y-p :y-p-y :y-cross :y
+	- :yb-cross
+	- :yw-cross
+	- :r :p :-p
+
+:wrist-sensor - t :larm :rarm
+
+:head	- :d :d1 :d2		;; dinosaurus type neck
+	- :e  			;; euclid intel camera sensor module
+	- :ir			;; infra red module
+	- :realsense :realsense-y	;; realsense type
+	- :m5 :m5s :m5h :m5i		;; m5 single
+	- :h0 :h1 :h2 :h2-auv :h3 :h3-new  ;; normal neck
+	- :h2s :h2sn :h2sl :h2sh :h2sv :h2svo :h2svi  ;; m5 stereo 2D neck
+	- :h3s :h3sn :h3sl :h3sh :h3sv :h3svo :h3svi  ;; m5 stereo 3D neck
+:head-length - 20
+:head-sensor - t
+
+:torso	- :ly-p :dy-p :dy-p2 :dy-p3 :ly-p-high :y-r-p :y-p
+
+:arm/:marm/:leg  ;; for quad/hexapod type robots
+	- :r :r2
+	- :j2 :j3 :j4
+	- :j1w :j2w :j3w
+	- :j6w
+
+
+:neck		- :a :b ;; using frame a b-a and b-b
+:neck-axis	- :p
+
+:backpack - :m5
+:backpack-function - lisp-function-name ;; model generation function
+
+:gripper	- t :finger1 :finger2 ;; finger1:outside, finger2:inside
+		- (:rarm :rleg) (:larm :rleg) (:rarm :lleg) (:larm :lleg)
+:gripper-axis	- :p
+:gripper-inner	- t nil
+:gripper-sensor - t :finger1 :finger2 :larm :rarm
+		- list of :larm or :rarm and :finger1 :finger2
+
+:active-wheel	- :crotch :knee :ankle
+:passive-wheel	- :wrist :shoulder :gripper
+
+:knee-type	- t :lp
+
+:ankle-sensor	- t 
+
+:sole		- t 
+:sole-sensor	- t
+
+
+-----------------------------------------------------------------
+*** 6. ロボット生成時のプロジェクトファイルの指定方法
+-----------------------------------------------------------------
+
+(make-kxr-robot "kxrl2l5a3h2")
+の内部では、projects/Hello_kxrl2l5a3h2以下にプロジェクトファイルがあることを
+想定してプロジェクトファイルの読込み、逆アセンブルを行っている．
+
+(send *robot* :ri :draw-project-file)
+
+でそのプロジェクトファイル内の動作を表示する．
+
+
+同じ構造で異なる動作テーブルをもつロボットの場合には，
+その動作テーブルを書き込んであるプロジェクトファイルを
+Hello_ロボット名の下に置いておき，
+
+(make-kxr-robot "kxrl2l5a3h2" "battle")
+
+などのように，battleという文字列をもつプロジェクトファイル名
+を選んでプロジェクトファイルをロードしてロボットモデルを
+作ることになっている．
+
+
+
+
+
+-----------------------------------------------------------------
+*** 7. euscollada-robot モデルの生成
+-----------------------------------------------------------------
+
+JSKや産総研のhrpsys-baseなどではVRML形式でロボットモデルを定義して
+いる．JSKでは、そのVRML形式ロボットモデルからcollada形式へ変換し
+euslispでeuscollada-robotクラスを設けてeuslisp内部でロボットモデルを
+生成して各種研究実験を行っている．
+
+kxr-robotで生成されたロボットモデルはeuscollada-robot
+クラスを継承しているわけではないので、euscollada-robotクラスの
+ロボットモデルを生成するためのものが
+eus2wrl2.l
+として作ってある．
+
+この中では、VRMLファイルを生成した後、
+export-collada, collada2eus
+でファイル変換を行うので、これらがPATHに通っている必要がある．
+export-colladaは、hrpsys-baseの中で提供されている.
+
+collada2eusは，
+https://github.com/jsk-ros-pkg/jsk_model_tools
+にあるeuscolladaパッケージの中のもので
+
+rosrun euscollada collada2eus
+として，ROS環境を実装してeuscolladaパッケージを入れてあれば
+利用可能である．
+ホームのcatkin_wsでeuscolladaをbuildしていれば，
+$HOME/catkin_ws/devel/lib/euscollada/collada2eus
+などに置かれている.
+
+colladaからeusモデルを生成する際には，yamlファイルが
+必要となり，それもkxr-robotのインスタンスから
+生成しており, 通常robot_vrmlフォルダの下のmodelや
+modelsディレクトリ
+
+
+irteusgl eus2wrl.l
+または
+irteusgl
+(load "eus2wrl.l")
+として、
+
+(eus2collada-robot "kxrl2l5a3h2")
+とすると、models/kxrl2l5a3h2.lが生成され、この中に
+euscollada-robotクラスを継承するkxrl2l5a3h2-robotクラスが定義され、
+関数(kxrl2l5a3h2)が定義される．
+
+
+(eus2collada-robot *robot* :fname "roboname")
+とすると*robot*の身体構造をもって
+models/roboname.l
+が生成され、roboname-robotクラスとroboname関数が定義される．
+
+
+kxrmodels.lやeus2collada-robotを作る前には、
+jskのjaxonやhrp2などのようにCADから形状を得て人が手で
+XXXmain.wrlを書いて、外部のexport-collada, collada2eusで
+XXX.lを生成する方式であり、
+~/progで
+svn up kxr
+とするとそれらをダウンロードでき、catkin buildしてロボット名.lを作ることが
+できる．そこでできた.lを~/prog/modelsに置くと使うことができるようになっている．
+
+
+-----------------------------------------------------------------
+*** 8. ロボットへの通信ポートを初期化する．
+-----------------------------------------------------------------
+
+(send *robot* :ri :com-init)
+
+で通信が可能となる．通信スピードなどがどうなっているかが
+リターン値でわかる．
+
+この初期化では，USBシリアルの通信速度は1.25Mbpsを想定している．
+商品を購入した時点でのデフォルトの通信速度は115.2Kbpsになっている
+ので1.25Mbpsに変更していない場合には，
+
+(send *robot* :ri :com-init :baud 115200)
+または
+(send *robot* :ri :com-init :baud :low)
+または
+(send *robot* :ri :com-init :slow t)
+などとする．
+この定義は，rcb4interface.lにある．
+
+
+-----------------------------------------------------------------
+*** 9. ロボット実機状態の読み込み，自動表示
+-----------------------------------------------------------------
+
+(send *robot* :ri :timer-on)
+
+で，現在のロボットの状態がロボットの名前がタイトルとなって
+いるビューワーに自動的に反映される．ロボットを傾けると
+その傾けた方向にロボットが動くことを確認する．
+腕や頭部や足などの関節には，負荷トルクの方向と大きさが
+円で表示されているので，関節に負荷をかけるとその円の
+大きさが変わることを確認する．
+
+(send *robot* :ri :timer-off)
+
+でシリアル通信での問い合わせをitimerで行っていた自動表示を止める
+ことができる．
+この実装は，euslispには，もともと，unixのitimerシステムコールを
+用いて，引数無しのコールバック関数のシンボルを大域変数の*timer-job*の
+リストへ追加しておくと，その関数をitimerで実行する仕組みがある．
+その実行インターバルは*top-selector-interval*に0.1(秒)などと
+書いておくとその周期で実行される．
+キーボードからの入力があったりキーボードから入力した関数が
+実行中にはこのitimerに登録の関数は実行されない．
+キーボード入力待ちの時だけ実行されるものになっている．
+デフォルトで*timer-job*には，lisp::count-up-timer関数が
+リストとして入っている．
+
+
+-----------------------------------------------------------------
+*** 10. 実ロボットを操作デバイスとして使う例
+-----------------------------------------------------------------
+
+腕の関節を自由にするには，
+
+(send *robot* :ri :free :arms)
+または
+(send *robot* :ri :arm-free)
+
+とすると，両腕のサーボがフリーとなるので，ロボットの腕を持って
+動かすことができ，そのロボットの状態がビューワに反映される．
+(send *robot* :ri :free :larm)
+(send *robot* :ri :free :rarm)
+(send *robot* :ri :free :legs)
+(send *robot* :ri :free :lleg)
+(send *robot* :ri :free :rleg)
+(send *robot* :ri :free :head)
+
+なども利用でき，:freeを:holdにするとその姿勢を保持して
+関節をプログラムで動かすことができる状態に戻る．
+
+近藤科学のサーボは，中央の位置が7500（16進数では#x1d4c)の値となって
+おり，#x8000を指令すると，サーボがフリーとなり，
+#x7fffを送るとフリー状態が解除され，現在の角度でサーボが再開する
+仕様となっている．
+
+angle A(deg)とservo値 Sとの変換は，
+
+S = 7500 + A * 30.0
+
+となっている．
+
+A = (S - 7500) / 30.0
+
+で求められる．
+
+#x7fff(10進で32767), #x8000(10進で32768)
+
+を角度に変換しないように，
+:servo-vector-to-anglke-vector
+メソッドでは，#x7fff, #x8000以上の値は
+角度に変換しないようにし，
+free-vectorに#x7fff/#x8000/nilを記憶している．
+
+free-vectorの要素の値がnilであればservo-vectorとangle-vector
+の間の相互変換をしてよいことになる．
+
+
+-----------------------------------------------------------------
+*** 11. 動作テーブルの動作の実行
+-----------------------------------------------------------------
+
+RCB-4の制御ボードのROMには，120個の動作プログラムが記録
+可能となっていて，その動作プログラムを番号で実行することが
+できる．
+
+(send *robot* :ri :call-motion 10)
+
+でROMの１０番目の動作を実行する．
+
+各番号の動作がプロジェクトファイルではどのような動作名となっているかは，
+
+(send *robot* :ri :project-file :mcode 10)
+
+で
+
+#<rcb4-motion-code #X2320cd10 10 ("10" "XL2GH_11_高速歩行左")>
+
+と返ってくるので，高速に左へ歩行する動作とわかる．
+
+プロジェクトファイルの動作全体の名前を知るには
+
+(send *robot* :ri :project-file :mcodes :pprint)
+
+で知ることができる．たとえば，ゼミで使用したkxrl2w2l5a3h2では，
+
+irteusgl$ (send *robot* :ri :project-file :mcodes :pprint)
+
+(#<rcb4-motion-code #Xd7fd658 0 ("0" "XL2GH_101_微細歩行前")>
+ #<rcb4-motion-code #X15e277c0 1 ("1" "XL2GH_102_微細歩行後")>
+ #<rcb4-motion-code #X20472428 2 ("2" "XL2GH_103_微細歩行左")>
+ #<rcb4-motion-code #X2116f990 3 ("3" "XL2GH_04_微細歩行右")>
+ #<rcb4-motion-code #X21429590 4 ("4" "XL2GH_05_ゆっくり歩行前（5回）")>
+ #<rcb4-motion-code #X21869718 5 ("5" "XL2GH_06_ゆっくり歩行後（5回）")>
+ #<rcb4-motion-code #X21dab968 6 ("6" "XL2GH_07_ゆっくり歩行左（5回）")>
+ #<rcb4-motion-code #X22240890 7 ("7" "XL2GH_08_ゆっくり歩行右（5回）")>
+ #<rcb4-motion-code #X226e1aa0 8 ("8" "XL2GH_09_高速歩行前")>
+ #<rcb4-motion-code #X22bff258 9 ("9" "XL2GH_10_高速歩行後")>
+ #<rcb4-motion-code #X2320cd10 10 ("10" "XL2GH_11_高速歩行左")>
+ #<rcb4-motion-code #X23635c78 11 ("11" "XL2GH_12_高速歩行右")>
+ #<rcb4-motion-code #X23904938 12 ("12" "XL2GH_13_高速歩行左旋回")>
+ #<rcb4-motion-code #X23b3ba58 13 ("13" "XL2GH_14_高速歩行右旋回")>
+ #<rcb4-motion-code #X23daa918 14 ("14" "XL2GH_15_起き上がり（仰向け）")>
+ #<rcb4-motion-code #X24066600 15 ("15" "XL2GH_16_起き上がり（うつ伏せ）")>
+ #<rcb4-motion-code #X244cacd0 16 ("16" "XL2GH_17_起き上がり（方向判別）")>
+ #<rcb4-motion-code #X2494fb48 17 ("17" "XL2GH_118_仰向けになる")>
+ #<rcb4-motion-code #X24cd11d0 18 ("18" "XL2GH_19_うつ伏せになる")>
+ #<rcb4-motion-code #X250f5ed0 19 ("19" "XL2GH_20_腕立て姿勢になる")>
+ #<rcb4-motion-code #X2534b508 20 ("20" "XL2GH_01_挨拶")>
+ #<rcb4-motion-code #X2556e190 21 ("21" "XL2GH_02_手を振る")>
+ #<rcb4-motion-code #X257ce358 22 ("22" "XL2GH_03_腕立伏せ")>
+ #<rcb4-motion-code #X25ce1680 23 ("23" "XL2GH_04_喜ぶ")>
+ #<rcb4-motion-code #X26202610 24 ("24" "XL2GH_05_がっかり")>
+ #<rcb4-motion-code #X2666b840 25 ("25" "XL2GH_06_シュート左")>
+ #<rcb4-motion-code #X26b5b990 26 ("26" "XL2GH_07_シュート右")>
+ #<rcb4-motion-code #X26fafba0 27 ("27" "XL2GH_08_パス（左）")>
+ #<rcb4-motion-code #X27307ca0 28 ("28" "XL2GH_09_パス（右）")>
+ #<rcb4-motion-code #X274dbcc8 29 ("29" "XL2GH_10_ゴールキーパー")>
+ #<rcb4-motion-code #X277aa790 30 ("30" "XL2GH_11_パンチ前左")>
+ #<rcb4-motion-code #X279dc828 31 ("31" "XL2GH_12_パンチ前右")>
+ #<rcb4-motion-code #X27b6bb88 32 ("32" "XL2GH_13_パンチ左")>
+ #<rcb4-motion-code #X27ce0068 33 ("33" "XL2GH_14_パンチ右")>
+ #<rcb4-motion-code #X27ebdc10 34 ("34" "XL2GH_15_防御")>
+ #<rcb4-motion-code #X28187ef0 35 ("35" "XL2GH_6_逆立ち")>
+ #<rcb4-motion-code #X28773e68 36 ("36" "XL2GH_16_逆立ち")>
+ #<rcb4-motion-code #X28f3c0c8 37 ("37" "XL2GH_38_腕立て姿勢から立ち上がる")>
+ #<rcb4-motion-code #X2948b998 38 ("38" "XL2GH_1_ホームポジション")>
+ #<rcb4-motion-code #X296850e8 39 ("39" "XL2GH_92_電圧低下")>
+ #<rcb4-motion-code #X2976b7a8 40 ("40" "XL2GH_01_ものを掴む→放す左")>
+ #<rcb4-motion-code #X29da0770 41 ("41" "XL2GH_02_左掴み歩行前")>
+ #<rcb4-motion-code #X2a51ccf0 42 ("42" "XL2GH_03_左掴み歩行後")>
+ #<rcb4-motion-code #X2aa7a098 43 ("43" "XL2GH_04_左掴み歩行左")>
+ #<rcb4-motion-code #X2aed3cc0 44 ("44" "XL2GH_05_左掴み歩行右")>
+ #<rcb4-motion-code #X2b13f468 45 ("45" "XL2GH_06_左掴み歩行左旋回")>
+ #<rcb4-motion-code #X2b38ddc0 46 ("46" "XL2GH_07_左掴み歩行右旋回")>
+ #<rcb4-motion-code #X2b5baa50 47 ("47" "XL2GH_08_左放り投げる")>
+ #<rcb4-motion-code #X2b76ad40 48 ("48" "XL2GH_01_ものを掴む→放す左")>
+ #<rcb4-motion-code #X2bd58ba8 49 ("49" "XL2GH_10_右掴み歩行前")>
+ #<rcb4-motion-code #X129474e8 50 ("50" "XL2GH_11_右掴み歩行後")>
+ #<rcb4-motion-code #X12f52ea8 51 ("51" "XL2GH_12_右掴み歩行左")>
+ #<rcb4-motion-code #X132c1c68 52 ("52" "XL2GH_13_右掴み歩行右")>
+ #<rcb4-motion-code #X13507b60 53 ("53" "XL2GH_14_右掴み歩行左旋回")>
+ #<rcb4-motion-code #X137b1118 54 ("54" "XL2GH_15_右掴み歩行右旋回")>
+ #<rcb4-motion-code #X13919d40 55 ("55" "XL2GH_16_右放り投げる")>
+ #<rcb4-motion-code #X13b55b90 57 ("57" "XL2GH_59_turnRightxml")>
+ #<rcb4-motion-code #X13d63c00 58 ("58" "XL2GH_59_turnLeftxml")>
+ #<rcb4-motion-code #X13f438f0 59 ("59" "XL2GH_60_ジャイロ利用バランス")>
+ #<rcb4-motion-code #X142a2020 60 ("60" "XL2GH_61_加速度のみ利用バランス")>
+ #<rcb4-motion-code #X145e5330 61 ("61" "XL2GH_62_加速度，ジャイロミックス，バランス")>
+ #<rcb4-motion-code #X1484ce28 64 ("64" "XL2GH_65_直立Remixバランス")>
+ #<rcb4-motion-code #X14a73e70 65 ("65" "XL2GH_66_加速度判断Remix利用バランス")>
+ #<rcb4-motion-code #X14bbba68 66 ("66" "XL2GH_67_車輪判断Remix利用バランス")>
+ #<rcb4-motion-code #X14f3d130 67 ("67" "XL2GH_68_両車輪前")>
+ #<rcb4-motion-code #X1514a798 68 ("68" "XL2GH_69_両車輪後")>
+ #<rcb4-motion-code #X152166c8 69 ("69" "XL2GH_70_腕立て姿勢車輪前")>
+ #<rcb4-motion-code #X1524a1d0 70 ("70" "XL2GH_71_腕立て姿勢車輪後")>
+ #<rcb4-motion-code #X152c8f48 71 ("71" "XL2GH_72_車輪左後")>
+ #<rcb4-motion-code #X15313c70 72 ("72" "XL2GH_73_右車輪後")>
+ #<rcb4-motion-code #X153e2d38 79 ("79" "XL2GH_80_うつ伏せトグル")>
+ #<rcb4-motion-code #X15876a90 80 ("80" "XL2GH_81_前傾両手接地トグル")>
+ #<rcb4-motion-code #X159417d8 89 ("89" "XL2GH_90_中速歩行前")>
+ #<rcb4-motion-code #X16049760 91 ("91" "XL2GH_92_バランスホームポジション")>
+ #<rcb4-motion-code #X17291118 109 ("109" "XL2GH_110_挨拶握手")>)
+
+となっている．120のうち使われていない番号があることもわかる．
+使われていない番号に，lispでプログラムを作って書き込むこともできる．
+
+-----------------------------------------------------------------
+*** 12. 動作プログラムのエミュレート
+-----------------------------------------------------------------
+
+実機を動かさずに，動作プログラムの内容をアニメーションする方法として
+
+(send *robot* :ri :draw-project-file 10)
+
+とすると，10番の動作プログラムがエミュレート実行され
+サーボコマンドがあると，ビューワ内のロボットがそのサーボ指令の
+通りの姿勢を表示する．
+
+(send *robot* :ri :draw-project-file 20)
+
+とすると，お辞儀をする挨拶動作がエミュレートされる．番号だけでなく
+文字列の一部を与えると，その文字列を名前に含んだ動作がエミュレート
+される．
+
+(send *robot* :ri :draw-project-file "右放")
+
+-> ("55" "XL2GH_16_右放り投げる")
+
+が表示される．
+
+(send *robot* :ri :draw-project-file)
+
+とすると，0番から全ての動作プログラムを順に表示する．
+途中で，リターンキーを押すと，途中の動作プログラムの表示で
+終了する．
+
+
+-----------------------------------------------------------------
+*** 13. プロジェクトファイル内の動作プログラムの確認
+-----------------------------------------------------------------
+
+Windows上で作られたプロジェクトファイルは，拡張子が.h4pで
+prog/rcb4eus/Hello_ロボット名に置かれている．
+商品の標準のロボットの構成だとHello_KXR-L2GH(V1.0).h4pなどの
+ファイル名となっている．
+
+(make-kxr-robot robot-name file-string)では，prog/rcb4eusの下の
+ディレクトリ　Hello_robot-name
+にある，h4pの拡張子をもつファイルの中で，file-stringをファイル名に
+もっているファイルの最初のものを選んでロードされる．
+
+プロジェクトファイルはxmlファイルとなっており，
+120個の動作プログラムが16進数の機械語命令を内部にもっており，
+このファイルを読み込む際に，この機械語の動作プログラムを
+逆アセンブルして*robot*用のriインタフェースに保管されている
+ロボット用インタフェースに保管される．インタフェースには
+プロジェクトファイル，モーションファイル群，ROMの動作テーブル
+が保管されており，動作プログラムは，rcb4-motion-codeの
+インスタンスとして作られ，このインスタンスには，
+name    動作名
+bcodes　機械語
+acodes　機械語を逆アセンブルした命令表記
+ccodes　acodes内の:servo命令を:angle-vector命令に変えたプログラム
+などのスロット変数があり，動作プログラムがどのようなプログラムかが
+わかるようになっている．
+
+モーションコードは，
+(send *robot* :ri :project-file :mcode 10)
+で
+#<rcb4-motion-code #X2320cd10 10 ("10" "XL2GH_11_高速歩行左")>
+
+というように得ることができ，それをdescribeするには，
+
+(send *robot* :ri :project-file :mcode 10 :describe)
+
+とすると下のように表示される．
+
+
+(send *robot* :ri :project-file :mcode 10 :describe)
+->
+name=("10" "XL2GH_11_高速歩行左")
+number=10
+bcodes=((53 16 252 255 63 64 1 4  220 30 188 27 76 29 ... 76 29 248)
+        (53 16 252 255 63 64 1 10 220 30 188 27 76 29 ... 76 29 156)
+        (53 16 252 255 63 64 1 3  220 30 188 27 76 29 ... 76 29 224)
+        (53 16 252 255 63 64 1 6  220 30 188 27 76 29 ... 76 29  81)
+        (53 16 252 255 63 64 1 10 220 30 188 27 76 29 ... 76 29  52)
+        (9 7 130 80 3 0 0 8 237)
+        (7 11 128 91 0 5 242)
+        (53 16 252 255 63 64 1 10 220 30 188 27 76 29 ... 76 29 253)
+        (3 13 16)
+        (7 11 128 91 0 0 237)
+        (3 13 16))
+labels=((|L#X5CD8| . 23768)
+        (|L#X5CD1| . 23761)
+        (|L#X5CCE| . 23758)
+        (|L#X5C99| . 23705)
+        (|L#X5C92| . 23698)
+        (|L#X5C89| . 23689)
+        (|L#X5C54| . 23636)
+        (|L#X5C1F| . 23583)
+        (|L#X5BEA| . 23530)
+        (|L#X5BB5| . 23477)
+        (|L#X5B80| . 23424))
+acodes=(|L#X5B80|
+        (:servo
+         (2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 30 32)
+         4
+         #f(7500.0 7500.0 7900.0 7100.0 7500.0 7500.0 6300.0 6300.0
+            7500.0 7500.0 7650.0 7500.0 7800.0 7500.0 7650.0 7500.0
+            7700.0 7900.0 6850.0 6850.0 7500.0 7500.0 7500.0 7500.0
+            7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0
+            7500.0 7500.0 7500.0 ))
+        |L#X5BB5|
+        (:servo
+         (2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 30 32)
+         10
+         #f(7500.0 7500.0 7900.0 7100.0 7500.0 7500.0 6300.0 6300.0
+            7500.0 7500.0 7500.0 8000.0 7450.0 8500.0 7500.0 8000.0
+            7900.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0
+            7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0
+            7500.0 7500.0 7500.0 ))
+        |L#X5BEA|
+        (:servo
+         (2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 30 32)
+         3
+         #f(7500.0 7500.0 7900.0 7100.0 7500.0 7500.0 6300.0 6300.0
+            7200.0 8000.0 7500.0 8000.0 7450.0 8500.0 7500.0 8000.0
+            7500.0 7800.0 6850.0 6850.0 7500.0 7500.0 7500.0 7500.0
+            7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0
+            7500.0 7500.0 7500.0 ))
+        |L#X5C1F|
+        (:servo
+         (2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 30 32)
+         6
+         #f(7500.0 7500.0 7900.0 7100.0 7500.0 7500.0 6300.0 6300.0
+            7000.0 8000.0 7500.0 8000.0 7450.0 8500.0 7500.0 8000.0
+            7300.0 7800.0 6850.0 6850.0 7500.0 7500.0 7500.0 7500.0
+            7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0
+            7500.0 7500.0 7500.0 ))
+        |L#X5C54|
+        (:servo
+         (2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 30 32)
+         10
+         #f(7500.0 7500.0 7900.0 7100.0 7500.0 7500.0 6300.0 6300.0
+            7500.0 7500.0 7650.0 7650.0 7800.0 7800.0 7650.0 7650.0
+            7500.0 7300.0 6850.0 6850.0 7500.0 7500.0 7500.0 7500.0
+            7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0
+            7500.0 7500.0 7500.0 ))
+        |L#X5C89|
+        (:sub (:lit 0 8) (:ram :button) t)
+        |L#X5C92|
+        (:jump (:z :z=) (:motiontable 10 0 |L#X5B80|))
+        |L#X5C99|
+        (:servo
+         (2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 30 32)
+         10
+         #f(7500.0 7500.0 7900.0 7100.0 7500.0 7500.0 6300.0 6300.0
+            7500.0 7500.0 7650.0 7650.0 7800.0 7800.0 7650.0 7650.0
+            7500.0 7500.0 6850.0 6850.0 7500.0 7500.0 7500.0 7500.0
+            7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0
+            7500.0 7500.0 7500.0 ))
+        |L#X5CCE|
+        (:return)
+        |L#X5CD1|
+        (:jump nil (:motiontable 10 0 |L#X5B80|))
+        |L#X5CD8|
+        (:return))
+ccodes=nil
+ac=nil
+bc=nil
+used-insts=(:sub :servo :jump :return)
+servo-vectors=(22 22 22 22 22 22)
+
+acodesを見ると，姿勢を指定する単独サーボ命令:servoを５つ行い，
+リモコンボタンが格納されるRAMと直値指定の:litの2byteの0x800と
+比較(:sub)をして，そのボタン番号が押されていると，５つのサーボ
+姿勢を送る先頭のラベルへ:jumpし，ボタンが押されていなければ
+１つのサーボ命令を実行してリターンする．
+というプログラムとなっていることがわかる．
+リモコンのボタン番号の2バイトの数値は，リモコンの製品KRC-5FH
+のサポート情報のところから，コマンドリファレンスページ
+http://kondo-robot.com/faq/krr-5fhcommandreference1
+の
+KRR-5FHCommandReference1.pdf
+で調べる必要がある．
+
+-----------------------------------------------------------------
+*** 14. アセンブリプログラムの例
+-----------------------------------------------------------------
+
+さらに，
+(test-gripper)
+とすると，右手のグリッパーをオープン，クローズするサンプルに
+なっている．
+このサンプルは，オープン，クローズの命令をlispから毎回
+シリアルポートから送って，数回lispのdotimes で繰り返す．
+
+(defun test-gripper (&optional (vel 10) (v 40) (j :gripper-r))
+  (send *robot* :read-from-ri)
+  (if (find-method *robot* :rleg-ankle-w)
+      (send *robot* :legs :ankle-w :joint-angle 0))
+  (dotimes (i 4)
+    (send *robot* :rarm j :joint-angle v)
+    (send *robot* :send-to-ri vel)
+    (ri-viewer-update)
+    (send *robot* :rarm j :joint-angle (- v))
+    (send *robot* :send-to-ri vel)
+    (ri-viewer-update)
+    )
+  )
+
+
+
+(test-gripper3)
+は，オープン，クローズと繰り返すアセンブルプログラムソースとして
+  (setq
+   cc
+   `(
+     (:move (:lit 5) (:ram (:counter 0)))
+     labloop
+     (:servo ,svids ,v ,sv0)
+     (:servo ,svids ,v ,sv1)
+     (:sub (:lit 1) (:ram (:counter 0)))
+     (:jump (:z :z=) labend)
+     (:jump nil labloop)
+     labend
+     (:servo ,svids ,v ,sv2)
+     (:return)
+     ))
+を作って，それをrcb4-assembleでアセンブルして
+ROMのモーションテーブルのどこかの番号の動作と
+して書き込んで，
+その後，その番号のモーションを
+:call-motion
+で呼び出す．という形のサンプルで，機械語レベルで
+ループを行うので，指の開閉は速くなされる．
+倒立振子などはこの機械語での制御プログラムを
+書いて作る必要がある．
+
+(defun test-gripper3 (&optional (v 10))
+  (setq svids (send *robot* :ri :servo-sorted-ids))
+  (send *robot* :ri :hold :arms)
+  (send *robot* :rarm-gripper-r :joint-angle 30)
+  (ri-viewer-update)
+  (setq sv0 (send *robot* :servo-vector))
+  (send *robot* :rarm-gripper-r :joint-angle -30)
+  (ri-viewer-update)
+  (setq sv1 (send *robot* :servo-vector))
+  (send *robot* :neutral)
+  (ri-viewer-update)
+  (setq sv2 (send *robot* :servo-vector))
+  (setq
+   cc
+   `(
+     (:move (:lit 5) (:ram (:counter 0)))
+     labloop
+     (:servo ,svids ,v ,sv0)
+     (:servo ,svids ,v ,sv1)
+     (:sub (:lit 1) (:ram (:counter 0)))
+     (:jump (:z :z=) labend)
+     (:jump nil labloop)
+     labend
+     (:servo ,svids ,v ,sv2)
+     (:return)
+     ))
+  (setq bb (rcb4-assemble cc 113))
+  (terpri)
+  (send *robot* :ri :write-motion-lst bb 113 "test-gripper3")
+  ;;(prhex (equal (car (send *robot* :ri :read-motion-lst 113)) bb))
+  ;;(terpri)
+  (send *robot* :ri :call-motion 113)
+  )
+
+
+3年生ゼミで足首に車輪を付けた
+kxrl2w2l5a3h2
+のロボットで，そのバランス制御を少し試みている例で
+lispのスピードで動かそうというプログラムが
+(test-balance)
+で，
+(defun test-balance (&optional (vel 200))
+  (send *robot* :read-from-ri)
+  (if (find-method *robot* :rleg-ankle-w) (send *robot* :legs :ankle-w :joint-angle 0))
+  (do-until-key
+   (setq p-r (send *robot* :ri :gravity-p-r))
+   (send *robot* :legs :ankle-p :joint-angle (rad2deg (elt p-r 0)))
+   (send *robot* :legs :ankle-r :joint-angle (rad2deg (elt p-r 1)))
+   (send *robot* :send-to-ri vel)
+   (ri-viewer-update)
+   )
+  )
+
+機械語を書いて試みているのが
+(test-balance3)
+で，まだちゃんとバランス制御はできていない．
+
+  (setq
+   cc `(
+        (:move (:lit ,n) (:ram (:counter 0)))
+        countloop
+        (:move (:ram (:ad 5) 2) (:ram (:user 0)))
+        (:move (:ram (:adref 5) 2) (:ram (:user 2)))
+        (:add (:ram (:user 2) 2) (:ram (:user 0)))
+        (:sub  (:lit 69 1) (:ram (:user 0)))
+        (:jump (:c= :c) skip1)
+        (:servo ,svids ,vel ,sv0)
+        (:jump nil skip2)
+        skip1
+        (:servo ,svids ,vel ,sv1)
+        skip2
+        (:sub (:lit 1) (:ram (:counter 0)))
+        (:jump (:z :z=) labend)
+        (:jump nil countloop)
+        labend
+        (:servo ,svids ,vel ,sv2)
+        (:return)
+        ))
+
+変数領域として，５個程度までの:counter変数領域と，
+ユーザの自由な変数用に２０個以下ほどの領域が
+解放されているという仕様のrcb4-miniのROMプログラム
+なのでそれらをアクセスするのに
+(:ram (:counter <number>))
+や
+(:ram (:user <number>))
+でアクセスし，
+(:ram (:ad 5) 2)
+は，加速度センサが５つのAD変換ポートにつながっていて
+５番目はY軸(Pitch軸）回りの前後のA/Dの値を２バイトでアクセス
+する書式を使い，:move命令と四則計算，Jump/call/return
+などで制御を書いてゆくというものになっている．
+
+
+(defun test-balance3 (&key (n 100) (vel 10) (d 3))
+  (setq svids (send *robot* :ri :servo-sorted-ids))
+  (setq svids
+	(list
+	 (send *robot* :ri :robot :head-neck-y :servo-index)
+	 (send *robot* :ri :robot :lleg-ankle-p :servo-index)
+	 (send *robot* :ri :robot :rleg-ankle-p :servo-index)))
+  (send *robot* :head-neck-y :joint-angle 0)
+  (send *robot* :lleg-ankle-p :joint-angle 0)
+  (send *robot* :rleg-ankle-p :joint-angle 0)
+
+  (send *robot* :lleg-ankle-p :joint-angle d)
+  (send *robot* :rleg-ankle-p :joint-angle d)
+  (ri-viewer-update)
+  (setq sv0 (send *robot* :servo-vector))
+  (send *robot* :lleg-ankle-p :joint-angle (- d))
+  (send *robot* :rleg-ankle-p :joint-angle (- d))
+  (ri-viewer-update)
+  (setq sv1 (send *robot* :servo-vector))
+  (send *robot* :neutral)
+  (ri-viewer-update)
+  (send *robot* :head-neck-y :joint-angle 30)
+  (ri-viewer-update)
+  (setq sv2 (send *robot* :servo-vector))  
+  (setq
+   cc `(
+	(:move (:lit ,n) (:ram (:counter 0)))
+	countloop
+	(:move (:ram (:ad 5) 2) (:ram (:user 0)))
+	(:move (:ram (:adref 5) 2) (:ram (:user 2)))
+	(:add (:ram (:user 2) 2) (:ram (:user 0)))
+	(:sub  (:lit 69 1) (:ram (:user 0)))
+	(:jump (:c= :c) skip1)
+	(:servo ,svids ,vel ,sv0)	
+	(:jump nil skip2)
+	skip1
+	(:servo ,svids ,vel ,sv1)
+	skip2
+	(:sub (:lit 1) (:ram (:counter 0)))
+	(:jump (:z :z=) labend)
+	(:jump nil countloop)
+	labend
+	(:servo ,svids ,vel ,sv2)
+	(:return)
+	))
+  (setq bb (rcb4-assemble cc 117))
+  (print bb)
+  (send *robot* :ri :write-motion-lst bb 117)
+  (send *robot* :ri :call-motion 117)
+  t)
+
+(defun test (&optional (v 40) (tab 111))
+  (setq svids (send *robot* :ri :servo-sorted-ids))
+  (send *robot* :rarm-gripper-r :joint-angle 30)
+  (setq sv0 (send *robot* :servo-vector))
+  (send *robot* :rarm-gripper-r :joint-angle -30)
+  (setq sv1 (send *robot* :servo-vector))
+  (send *robot* :neutral)
+  (setq sv2 (send *robot* :servo-vector))  
+  (setq
+   cc
+   `(
+     (:move (:lit 5) (:ram (:counter 0)))
+     labloop
+     (:servo ,svids ,v ,sv0)
+
+     (:move (:ram (:ad 5) 2) (:ram (:user 0)))
+     (:move (:ram (:user 0) 2) (:ram (:user 1)))
+     (:move (:ram (:adref 5) 2) (:ram (:user 2)))
+     (:add (:ram (:user 2) 2) (:ram (:user 0)))
+     (:sub  (:lit 69 1) (:ram (:user 0)))
+
+     (:move (:ram (:ad 3) 2) (:ram (:user 3)))
+     (:move (:ram (:user 3) 2) (:ram (:user 4)))
+     (:move (:ram (:adref 3) 2) (:ram (:user 5)))
+     (:add (:ram (:user 5) 2) (:ram (:user 3)))
+     (:sub  (:lit 69 1) (:ram (:user 3)))
+
+     (:move (:ram (:ad 4) 2) (:ram (:user 6)))
+     (:move (:ram (:user 6) 2) (:ram (:user 7)))
+     (:move (:ram (:adref 4) 2) (:ram (:user 8)))
+     (:add (:ram (:user 8) 2) (:ram (:user 6)))
+     (:sub  (:lit 119 1) (:ram (:user 6)))
+
+     (:servo ,svids ,v ,sv1)
+     (:sub (:lit 1) (:ram (:counter 0)))
+     (:jump (:z :z=) labend)
+     (:jump nil labloop)
+     labend
+     (:servo ,svids ,v ,sv2)
+     (:return)
+     ))
+  (setq bb (rcb4-assemble cc tab))
+  (send *robot* :ri :write-motion-lst bb tab "test")
+  (send *robot* :ri :call-motion tab)
+  (do-until-key
+   (dotimes (i 9)
+     (setq adr (rcb4-address (list :user i)))
+     (format t " ~A(~X):~A" i adr
+	     (numseq-to-short (send *robot* :ri :read-str adr :ram 2) 2))
+     (if (= (mod i 3) 2) (format t "	")))
+   (terpri))
+  )
+
+-----------------------------------------------------------------
+*** 15. angle-vectorの列から動作プログラムを生成する
+-----------------------------------------------------------------
+
+機械語ではなく，angle-vectorを順に蓄えておいて
+:servo命令列に変換し，ROMのモーションテーブルに書き込んで
+そのモーションを呼び出すという方法であれば，
+angle-vectorをlispで毎回送るのとは違って
+モーションプログラム内の関節速度指令に従って
+動作する．
+
+
+(test-head2)
+では，
+(send *robot* :read-from-ri)
+(send *robot* :angle-vector (send *robot* :ri :read-angle-vector))
+
+で実機の姿勢を*robot*へ反映させ，
+(send *robot* :ri :push-servo-command (send *robot* :angle-vector) time)
+で，
+angle-vectorを蓄えてゆく．
+(ri-viewer-update)
+で，その時の*robot*の姿勢を表示する．
+
+(send *robot* :ri :write-codes-to-motion-table 100 t)
+
+によって，貯められたプログラムをモーションテーブル100へ
+書き込む．
+
+(send *robot* :ri :call-motion 100)
+
+によって，100番のモーションを実行する．
+
+
+(defun test-head2 (&optional (time 10) (v 40))
+  (send *robot* :read-from-ri)
+  (send *robot* :angle-vector (send *robot* :ri :read-angle-vector))
+  (when (find-method *robot* :rleg-ankle-w)
+    (send *robot* :legs :ankle-w :joint-angle 0))
+  (dotimes (i 4)
+    (send *robot* :rarm-gripper-r :joint-angle v)
+    (send *robot* :head-neck-y :joint-angle v)
+    (send *robot* :ri :push-servo-command (send *robot* :angle-vector) time)
+    (ri-viewer-update)
+    (send *robot* :rarm-gripper-r :joint-angle (- v))
+    (send *robot* :head-neck-y :joint-angle (- v))
+    (send *robot* :ri :push-servo-command (send *robot* :angle-vector) time)
+    (ri-viewer-update)
+    )
+  (send *robot* :ri :write-codes-to-motion-table 100 t)
+  (send *robot* :ri :call-motion 100)
+  (when (find-method *robot* :rleg-ankle-w)
+    (send *robot* :legs :ankle-w :joint-angle 0)
+    (send *ri* :angle-vector (send *robot* :angle-vector))
+    )
+  )
+
+
+(send *robot* :legs :ankle-w :joint-angle 0))
+
+で車輪の回転を止める角度をもったangle-vectorを作る．
+
+(send *ri* :angle-vector (send *robot* :angle-vector))
+
+によって，現在の*robot*の:angle-vectorを
+実機へ送る．
+
+-----------------------------------------------------------------
+*** 16. ROMの動作表の読み出し
+-----------------------------------------------------------------
+
+実機を繋いで、
+(make-kxr-robot "xxx")
+とした後、
+(send *robot* :com-init)
+すると通信が可能となり、
+
+(send *robot* :ri :draw-rom-table)
+とすると、体内の120の動作を読み出して、
+逆アセンブルし，プログラムを順に実行する
+プログラムコードのエミュレーション実行
+をしてゆく．
+
+プログラムの中にJump命令があればJump実行を
+してJumpした先の命令を読み込んで実行して
+ゆく．実行中に:servo命令があれば，
+ロボットモデル表示がその姿勢になり，
+アニメーション表示がなされてゆく．
+
+電圧低下モーションなど近藤科学があらかじめ作って登録してあるものは，無
+限ループになっているプログラムとなっており，このエミュレータでは，繰り
+返し回数に上限（初期値２００）を設けて，ループプログラムから抜け出るよ
+うにしている．
+
+読み出しだけであれば、
+
+(send *robot* :ri :read-rom-all)
+
+で、動作表と
+リモコンボタンに対応した動作実行を行っているJump表を読み出す．
+
+
+動作表全体は
+(send *robot* :ri :read-rom-table)
+で、
+Jump表は
+(send *robot* :ri :read-jump-vectors)
+で読み出せる．
+
+
+(send *robot* :ri :read-rom-table i)
+
+とすると、i番目の動作を読み出す．
+
+
+-----------------------------------------------------------------
+*** 17. 動作のROMモーションテーブルへの書込み
+-----------------------------------------------------------------
+
+(send *robot* :ri :write-project-to-rom)
+
+とするとプロジェクトファイルの内容をROMへ書き込む．
+
+(send *robot* :ri :write-motion-lst x num "name")
+は、
+xがアセンブルした動作命令をnum番の動作として書込み、
+その動作の名前もROMに書き込む．
+
+動作表の各要素は2KByteの大きさであるが、この名前を
+書き込むのそのための領域が必要となる．
+
+(send *robot* :ri :write-convert-motion from to)
+
+番号fromの動作を動作表の番号toへ書き込むことを行う．
+
+(send *robot* :ri :push-servo-command angle-vector time)
+として、動作を溜め込んでおいて、
+
+(send *robot* :ri :write-codes-to-motion-table i t)
+
+でそれらをROMの動作表のi番へ書き込む．
+
+たとえば，i番目の動作を行った後，最終処理を行う決まり動作を
+行いたい時のために，
+
+(send *robot* :ri :write-codes-to-motion-table i t :recover j)
+
+というように:recoverキーワードの後に，動作表のj番の動作を
+指定することができるようにしている．
+その定義は，
+
+  (:write-codes-to-motion-table
+   (i &optional (flush t) &key recover)
+   (if recover
+       (push (rcb4-assemble-one `(:call nil (:motiontable ,recover))) codes))
+   (push (rcb4-assemble-one '(:return)) codes)
+   (print codes)
+   (send self :write-motion-lst (reverse codes) i)
+   (if flush (setq codes nil))
+   )
+
+というようになり，動作表のrecover番の動作を:callする命令を
+:returnの前に来るようにcodesを作って動作表 i番に書き込んでいる．
+
+
+-----------------------------------------------------------------
+*** 18. Jump vector表とRemocon の機構　
+-----------------------------------------------------------------
+
+RCB4には，リモコン KRR-5FH というリモコン用の受信機を
+サーボと同じように接続し，リモコンの受信機とリモコンとを
+ペアリングすると，リモコンボタンにより登録された動作表の
+動作を実行することができる仕組みがある．
+
+リモコンボタン番号は，１２ビットで表現できるようになって
+おり，rcb4interface.lでは，それぞれは
+
+シフトボタン：:shift1, :shift2, :shift3, :shift4
+右方向ボタン：:rforward, :rback, :rleft, :rright
+左方向ボタン：:lforward, :lback, :lleft, :lright
+
+の１２個のボタン名で指定することができるようにしている．
+
+これらの１２個のボタンの組合せで他のボタンを
+表すことができるようになっていることが
+KXR-5FHCommandReference1.pdf
+の13ページに説明されている．
+
+具体的には，
+中央に２つのSP1（左）,SP2（右）ボタンがあるが，
+SP1: (:lforward :lback :lright :lleft)
+SP2: (:rforward :rback :rright :rleft)
+と，組み合わせて表現できる．
+円形の左右の４つのボタンは，それぞれ左右の方向ボタンの
+２つの方向ボタンの集合で表すことになっている．
+
+右サークル右上：(:rforward :rright)
+右サークル左上：(:rforward :rleft)
+右サークル右下：(:rback :rright)
+右サークル左下：(:rback :rright)
+
+左サークル右上：(:lforward :lright)
+左サークル左上：(:lforward :lleft)
+左サークル右下：(:lback :lright)
+左サークル左下：(:lback :lright)
+
+これら１２個のボタンは並列の１２ビットで表されて
+いるため，同時に押された場合でもその押下されている
+ボタン集合の状態をリストの形で表現できるようになる．
+最大でボタン押下の状態は，2の12乗:4096種を作ることができる
+ことになるが，押しやすさなどからどのボタンの組合せ
+を用いるかが選ばれることになる．
+
+とくに，シフトボタンは，左右の方向，サークルボタンと同時に
+押すことがしやすい配置となっている．
+
+RCB4では，この各リモコンボタンに対して，動作を対応付ける
+仕組みは，Jump vector表という機構で実装している．
+
+このJump vector表のサイズは32までとなっており，ボタンの
+登録は表の最後にEOFフラグを立てる必要があることから
+３１個までとなっている．
+
+このJumv vector 表は，２つの数の引き算を行ってその
+数が同じであればJumpかCallするという形の機構となって
+おり，リモコン以外にも使える一般化されたものといえる．
+引き算をする２つに対して，RAMアドレス，直値(リテラル)，
+ICS番号・オフセットを与えることができるが，
+HeartToHeartでのデフォルトでは，
+リモコンボタンの受信機の数値を蓄える
+RAMアドレスと，登録されたリモコンボタンの12bitの
+組合せを含んだ数との比較がなされ，同じ数のものを
+３２個の中で順に走査してゆきEOFがくるまで順に
+繰り返し比較操作を行っている．
+
+
+Jump vector表は、8 byteで記述された比較条件とJump先の
+情報を貯めた表で、32個をRAMとROM領域にとって
+遠隔操縦装置から利用されていて、登録動作を遠隔から実行できる
+ようにしている仕組みの元となっている．
+
+8 byteの形式については、
+RCB-4
+RCB-4ファームウェアリファレンス20131018.pdf
+の14頁に示されている．
+
+C : 1byte :比較用途   8bit:|EOF|JUMP|SIZE|LITE|CE|ZE|C|Z|
+D : 2byte :比較先の数
+S : 2byte :比較元の値
+A : 3byte :飛び先番地
+
+DからSを引き算して，フラグを更新し，指定更新フラグの条件に
+従ってJUMPかCALLを行う．
+D, Sには，RAMアドレスを指定しておくと，RAMアドレスの値1byte
+の比較を行い，その比較結果に基づいてJump/Callする．
+
+D, Sの１５ビット目が１の場合には，RAMではなく，ICS割当
+の比較となり，0-7ビットがICS割当先のオフセット，
+8-14bitがICS番号として比較される．
+
+比較用途の8bitは，|EOF|JUMP|SIZE|LITE|CE|ZE|C|Z|
+EOF=1:末尾, 0:末尾でない．
+JUMP=1:条件一致でJUMP, 0:条件一致でCALL
+SIZE=比較元・先のデータサイズ　1:WORD, 0:BYTE
+LITE=1:比較元がリテラル, 0:リテラルでない
+
+たとえば，８バイトは，
+
+(53 80 3 2 2 128 19 0)
+
+であれば，C,D,S,Aは，
+(#x35 #x350 #x202 #x1380)
+
+となり，RAMアドレスの#x350は，:button用メモリ，
+#x202は，リテラルで，:shift1, :lbackの
+
+リモコンボタンの説明は
+KXR-5FHCommandReference1.pdf
+の13ページを参考にする必要がある．
+
+リモコンボタン番号のビットの対応は，
+| 0 | 0 | 0 | :shift4 | :shift3 | :shift2 | :shift1 | :rleft |
+
+| 0 | :rright | :rback | :rforward | :lleft | :lright | :lback | :lforward |
+
+となり，#x201であれば，:shift1，:lforwardであることがわかる．
+
+
+
+((:jump-vector 0)
+   (:button 513 (2 1 128 11 0) :shift1 :lforward)
+   (:motiontable 0 0 |L#XB80|)
+   (:name ("0" "XL2GH_101_微細歩行前")))
+
+では，Jump表の0番が:buttonのボタン番号との比較を行って一致した
+場合に，:motiontable の 0番の動作を実行するという定義になっている
+ということを表している．
+
+   (:button 513 (2 1 128 11 0) :shift1 :lforward)
+
+の中の(2 1 128 11 0)の最初の２つの数がリモコンボタンのビット
+パターンの数を表しており，
+KXR-5FHCommandReference1.pdf
+の１３ぺーじにあるbit Patternのaddress ０、１の
+データを表している．
+
+513は，(2 1)の２byteの数(2x256+1)を表している．
+
+(rcb4-decode-button-code '(2 1))
+
+-> (513 (2 1) :shift1 :lforward)
+
+(rcb4-decode-button-code 513)
+
+-> (513 (2 1) :shift1 :lforward)
+
+(rcb4-decode-button-code '(513 (2 1) :shift1 :lforward))
+
+-> (513 (2 1) :shift1 :lforward)
+
+という関数でこの数値が何に対応するかを計算する．
+
+:shift1, :lforwardのbitが立っている数となっている．
+
+(rcb4-encode-button-code '(:shift1 :lforward))
+
+->513
+
+(rcb4-encode-button-code '(513 (2 1) :shift1 :lforward))
+
+->513
+
+(rcb4-encode-button-code '(2 1))
+
+->513
+
+(rcb4-encode-button-code 513)
+
+->513
+
+となり，逆の計算を行う．
+
+  ((:jump-vector 28)
+   (:button 15 (0 15 128 139 2) :lforward :lback :lright :lleft)
+   (:motiontable 80 0 |L#X28B80|)
+   (:name ("80" "XL2GH_81_前傾両手接地トグル")))
+
+は，４つのボタン:lforward :lback :lright :lleftが
+押されたということになるが，これはSP1ボタンが押された時に
+対応している．
+
+  ((:jump-vector 27)
+   (:button 368 (1 112 128 131 2) :rleft :rforward :rback :rright)
+   (:motiontable 79 0 |L#X28380|)
+   (:name ("79" "XL2GH_80_うつ伏せトグル")))
+
+は，SP2ボタンが押されたことに対応している．
+
+ (rcb4-decode-button-code 368)
+
+-> (368 (1 112) :rleft :rforward :rback :rright)
+
+
+また，プロジェクトファイルの読込時には，リモコンボタン番号の値も
+rcb4-motion-codeへデータとして取り込むようにしてあり，
+プロジェクトファイル内の79番目の動作のボタンデータを調べる方法は
+
+(send *robot* :ri :project-file :mcodes 79 :buttondata)
+
+-> 368 
+
+として行うことができる．
+これによりロボットの本体のROMから
+読み込んだJump表のデータとプロジェクトファイルのデータとが
+同じ368であることを確認できる．
+
+ROMの動作表の i 動作にリモコンがマッピングされているかは，
+
+(send *robot* :ri :motion-button i)
+
+により知ることができる．
+
+
+
+
+(send *robot* :ri :read-jump-vectors)
+
+で３２個のJump表を読み出すことができ，以下のような情報が入っている．
+この例では，リモコンボタンとの比較を行っていることがわかる．
+
+#(((:jump-vector 0)
+   (:button 513 (2 1) :shift1 :lforward)
+   (:motiontable 0 0 |L#XB80|)
+   (:name ("0" "XL2GH_101_微細歩行前")))
+  ((:jump-vector 1)
+   (:button 514 (2 2) :shift1 :lback)
+   (:motiontable 1 0 |L#X1380|)
+   (:name ("1" "XL2GH_102_微細歩行後")))
+  ((:jump-vector 2)
+   (:button 520 (2 8) :shift1 :lleft)
+   (:motiontable 2 0 |L#X1B80|)
+   (:name ("2" "XL2GH_103_微細歩行左")))
+  ((:jump-vector 3)
+   (:button 516 (2 4) :shift1 :lright)
+   (:motiontable 3 0 |L#X2380|)
+   (:name ("3" "XL2GH_04_微細歩行右")))
+  ((:jump-vector 4)
+   (:button 2 (0 2) :lback)
+   (:motiontable 9 0 |L#X5380|)
+   (:name ("9" "XL2GH_10_高速歩行後")))
+  ((:jump-vector 5)
+   (:button 8 (0 8) :lleft)
+   (:motiontable 10 0 |L#X5B80|)
+   (:name ("10" "XL2GH_11_高速歩行左")))
+  ((:jump-vector 6)
+   (:button 4 (0 4) :lright)
+   (:motiontable 11 0 |L#X6380|)
+   (:name ("11" "XL2GH_12_高速歩行右")))
+  ((:jump-vector 7)
+   (:button 9 (0 9) :lforward :lleft)
+   (:motiontable 12 0 |L#X6B80|)
+   (:name ("12" "XL2GH_13_高速歩行左旋回")))
+  ((:jump-vector 8)
+   (:button 5 (0 5) :lforward :lright)
+   (:motiontable 13 0 |L#X7380|)
+   (:name ("13" "XL2GH_14_高速歩行右旋回")))
+  ((:jump-vector 9)
+   (:button 2049 (8 1) :shift3 :lforward)
+   (:motiontable 16 0 |L#X8B80|)
+   (:name ("16" "XL2GH_17_起き上がり（方向判別）")))
+  ((:jump-vector 10)
+   (:button 16 (0 16) :rforward)
+   (:motiontable 20 0 |L#XAB80|)
+   (:name ("20" "XL2GH_01_挨拶")))
+  ((:jump-vector 11)
+   (:button 592 (2 80) :shift1 :rforward :rright)
+   (:motiontable 21 0 |L#XB380|)
+   (:name ("21" "XL2GH_02_手を振る")))
+  ((:jump-vector 12)
+   (:button 32 (0 32) :rback)
+   (:motiontable 22 0 |L#XBB80|)
+   (:name ("22" "XL2GH_03_腕立伏せ")))
+  ((:jump-vector 13)
+   (:button 96 (0 96) :rback :rright)
+   (:motiontable 23 0 |L#XC380|)
+   (:name ("23" "XL2GH_04_喜ぶ")))
+  ((:jump-vector 14)
+   (:button 288 (1 32) :rleft :rback)
+   (:motiontable 24 0 |L#XCB80|)
+   (:name ("24" "XL2GH_05_がっかり")))
+  ((:jump-vector 15)
+   (:button 272 (1 16) :rleft :rforward)
+   (:motiontable 25 0 |L#XD380|)
+   (:name ("25" "XL2GH_06_シュート左")))
+  ((:jump-vector 16)
+   (:button 80 (0 80) :rforward :rright)
+   (:motiontable 26 0 |L#XDB80|)
+   (:name ("26" "XL2GH_07_シュート右")))
+  ((:jump-vector 17)
+   (:button 256 (1 0) :rleft)
+   (:motiontable 27 0 |L#XE380|)
+   (:name ("27" "XL2GH_08_パス（左）")))
+  ((:jump-vector 18)
+   (:button 64 (0 64) :rright)
+   (:motiontable 28 0 |L#XEB80|)
+   (:name ("28" "XL2GH_09_パス（右）")))
+  ((:jump-vector 19)
+   (:button 800 (3 32) :rleft :shift1 :rback)
+   (:motiontable 29 0 |L#XF380|)
+   (:name ("29" "XL2GH_10_ゴールキーパー")))
+  ((:jump-vector 20)
+   (:button 768 (3 0) :rleft :shift1)
+   (:motiontable 32 0 |L#X10B80|)
+   (:name ("32" "XL2GH_13_パンチ左")))
+  ((:jump-vector 21)
+   (:button 576 (2 64) :shift1 :rright)
+   (:motiontable 33 0 |L#X11380|)
+   (:name ("33" "XL2GH_14_パンチ右")))
+  ((:jump-vector 22)
+   (:button 544 (2 32) :shift1 :rback)
+   (:motiontable 34 0 |L#X11B80|)
+   (:name ("34" "XL2GH_15_防御")))
+  ((:jump-vector 23)
+   (:button 1025 (4 1) :shift2 :lforward)
+   (:motiontable 69 0 |L#X23380|)
+   (:name ("69" "XL2GH_70_腕立て姿勢車輪前")))
+  ((:jump-vector 24)
+   (:button 1026 (4 2) :shift2 :lback)
+   (:motiontable 70 0 |L#X23B80|)
+   (:name ("70" "XL2GH_71_腕立て姿勢車輪後")))
+  ((:jump-vector 25)
+   (:button 1032 (4 8) :shift2 :lleft)
+   (:motiontable 71 0 |L#X24380|)
+   (:name ("71" "XL2GH_72_車輪左後")))
+  ((:jump-vector 26)
+   (:button 1028 (4 4) :shift2 :lright)
+   (:motiontable 72 0 |L#X24B80|)
+   (:name ("72" "XL2GH_73_右車輪後")))
+  ((:jump-vector 27)
+   (:button 368 (1 112) :rleft :rforward :rback :rright)
+   (:motiontable 79 0 |L#X28380|)
+   (:name ("79" "XL2GH_80_うつ伏せトグル")))
+  ((:jump-vector 28)
+   (:button 15 (0 15) :lforward :lback :lright :lleft)
+   (:motiontable 80 0 |L#X28B80|)
+   (:name ("80" "XL2GH_81_前傾両手接地トグル")))
+  ((:jump-vector 29)
+   (:button 1 (0 1) :lforward)
+   (:motiontable 89 0 |L#X2D380|)
+   (:name ("89" "XL2GH_90_中速歩行前")))
+  ((:jump-vector 30)
+   (:button 4096 (16 0) :shift4)
+   (:motiontable 109 0 |L#X37380|)
+   (:name ("109" "XL2GH_110_挨拶握手")))
+  nil
+  )
+
+
+Jump表は，、RAMとROMの両方に設けられており，
+
+(send *robot* :ri :read-jump-vectors)
+
+では，両方を読んで比較して確認している．
+
+(send *robot* :ri :read-jump-vectors-region :rom)
+
+(send *robot* :ri :read-jump-vectors-region :ram)
+
+Jump表のi番目の読み出しは，
+
+(send *robot* :ri :read-jump-vector i region)
+
+で可能である．
+
+
+-----------------------------------------------------------------
+*** 19. Jump表への書込み
+-----------------------------------------------------------------
+
+Jump表への書込みは
+
+(send *robot* :ri :write-jump-vector lst)
+で，ROMとRAMの両方へlstを書き込む．
+
+Jump表は，RAMとROMの両方に設けられており、
+RAMへは
+
+(send *robot* :ri :write-jump-vector-region lst :ram)
+
+ROMへは
+
+(send *robot* :ri :write-jump-vector-region lst :rom)
+
+で書き込むことが可能となっている．
+
+(rcb4-encode-jump-vector lst)
+
+irteusgl$ (rcb4-encode-jump-vector
+               '((:jump-vector 30)
+                 (:button :shift4)
+                 (:motiontable 109 0 |L#X37380|)
+                 (:name ("109" "XL2GH_110_挨拶握手"))))
+は、
+(53 80 3 16 0 128 115 3)
+を返す．
+
+(send *robot* :ri :write-jump-vector-region
+   (rcb4-encode-jump-vector
+               '((:jump-vector 30)
+                 (:button :shift4)
+                 (:motiontable 109 0 |L#X37380|)
+                 (:name ("109" "XL2GH_110_挨拶握手")))))
+
+で，:shift4のボタンを押すと，109番の動作が実行されることとなる．
+
+i 番目の動作をボタン bに割り付けるためには
+
+(send *robot* :ri :set-motion-button i b)
+
+というメソッドがある．
+
+(send *ri* :set-motion-button 50 '(:lforward :shift3))
+
+や
+
+(send *ri* :set-motion-button 50 2049)
+
+などとすると，ボタン番号がすでにJump表に登録されていれば
+それを置き換える．
+
+すでに31個すべてに登録がなされている場合には，
+ボタンの割り付けを一度削除する必要がある．
+
+(send *ri* :erase-motion-button '(:lforward :shift3))
+
+などとする．
+このボタンにマッチするものがあれば，Jump表の最後の
+Jump-vectorをそこへ移動し，元のJump表の最後のところへ
+eofの印を記入してrom-jump-vectorsの箇所をnilにしている．
+
+
+
+
+-----------------------------------------------------------------
+*** 20. USBシリアルを使えるようにするために
+-----------------------------------------------------------------
+
+ftdiとは，USBシリアルのチップを作っている会社の名前で，模造品が
+沢山出回るくらいに世界中でよく使われているものである．
+近藤科学のロボットに付属してくるUSBシリアルケーブルもftdiのチップを使っ
+ており，
+
+lsusb
+などとして見てみると
+inaba@ubuntu:~/prog/rcb4eus$ lsusb
+Bus 001 Device 001: ID 1d6b:0002 Linux Foundation 2.0 root hub
+Bus 002 Device 008: ID 165c:0008 Kondo Kagaku 
+Bus 002 Device 004: ID 0e0f:0008 VMware, Inc. 
+Bus 002 Device 003: ID 0e0f:0002 VMware, Inc. Virtual USB Hub
+Bus 002 Device 002: ID 0e0f:0003 VMware, Inc. Virtual Mouse
+Bus 002 Device 001: ID 1d6b:0001 Linux Foundation 1.1 root hub
+inaba@ubuntu:~/prog/rcb4eus$ 
+
+というように，ベンダーIDが0x165c, プロダクトIDが0x0008
+となっていることがわかり，
+
+sudo bash -c 'echo SUBSYSTEMS==\"usb\", ATTRS{idVendor}==\"165c\",
+ATTRS{idProduct}==\"0008\", MODE=\"0666\" >
+/etc/udev/rules.d/99-my-khr.rules'
+
+のように，udev/rules.dにルールファイルを書いておくとrootにならなくても
+読み書きできるようになる．
+
+
+-----------------------------------------------------------------
+*** 21. ftdi.lについて
+-----------------------------------------------------------------
+
+euslispには，他言語インタフェース機能があり，C言語などで記述された
+関数のlibraryをload-foreignするだけでそのライブラリ内の関数を
+defforeignしてゆくだけで利用することができる．
+ftdiを利用するためのlibraryは，libftdiなどが標準である．
+
+sudo apt-get install libftdi-dev
+
+としてインストールしておけば使えるようになる．
+
+#-:arm
+(setq *ftdi-mod* (load-foreign "/usr/lib/x86_64-linux-gnu/libftdi.so.1"))
+#+:arm
+(setq *ftdi-mod* (load-foreign "/usr/lib/aarch64-linux-gnu/libftdi.so.1"))
+
+のように，intelのマシン，あるいは，JetsonなどのARMのlinuxのシステムで
+libftdi.soをロードすることができる．
+
+このモジュールの中には，
+/usr/include/ftdi.h
+の中に宣言されている構造体データなどに応じた，関数が多数定義されて
+おり，それらをdefcstruct,defforeignで宣言して利用してゆく．
+
+構造体としては，ftdi_contextが定義されている．
+
+(defcstruct ftdi_context
+  (usb_dev_handle :long)
+  (usb_read_timeout :integer)
+  (usb_write_timeout :integer)
+  (ftdi_chip_type :integer)
+  (baudrate :integer)
+  (bitbang_enabled :byte)
+  (readbuffer :long)
+  (readbuffer_offset :integer)
+  (readbuffer_remaining :integer)
+  (readbuffer_chunksize :integer)
+  (writebuffer_chunksize :integer)
+  (max_packet_size :integer)
+  (interface :integer)
+  (index :integer)
+  (in_ep :integer)
+  (out_ep :integer)
+  (bitbang_mode :byte)
+  (eeprom_size :integer)
+  (error_str :long)
+  (async_usb_buffer :long)
+  (async_usb_buffer_size :integer)
+  (module_detach_mode :integer)
+    )
+
+(defun ftdi-com-init (&key (baud 1250000)
+                           (vid #x165c) (pid #x0008)
+                           (index 0) (interface 0)
+                           (description 0) (serial 0))
+  (let ((fcon (instantiate ftdi_context)))
+    (ftdi_init fcon)
+    (ftdi_set_interface fcon interface)
+    (ftdi_usb_open_desc_index fcon vid pid description serial index)
+    (unless (numberp baud)
+      (if (or (null baud) (equal baud :low)) (setq baud 115200)
+        (setq baud 1250000)))
+    (ftdi_set_baudrate fcon baud)
+    (ftdi_set_line_property fcon 8 0 2) ;; BITS_8, STOP_BIT_1, EVEN                 
+    fcon))
+
+(defun ftdi-read-data (fcon n &optional (str (instantiate string n)))
+  (while (= 0 (ftdi_read_data *com* str n)))
+  str)
+
+(defun ftdi-write-data (fcon str)
+  (ftdi_write_data fcon str (length str)))
+
+(setq *com* (ftdi-com-init))
+(ftdi-write-data *com* "abc")
+(ftdi-read-data *com* 3)
+のように使う．
+
+
+-----------------------------------------------------------------
+*** 22. swigについて
+-----------------------------------------------------------------
+
+SWIG とは， Software Wrapper and Interface Generator
+http://www.swig.org/
+というソフトウェアで，
+C/C++ で書かれたプログラムやライブラリを，
+Python、Ruby、PHP、Luaなどのスクリプト言語や，
+Java，Common Lispなどのプログラミング言語に接続するWrapperを生成する
+ソフトウェアである．
+
+commonlisp用にできているので，euslisp用に少し拡張を加えたものを
+webotsという動力学シミュレータ用に作ったものがある．
+
+cd ~/prog
+svn up webots
+とすると，webotsシミュレータ用にたくさんのコードが得られ，通常はC++や
+Matlabなどで行動プログラムを書くことができ，最近はROSでの通信例なども
+あるが，
+euslispでその行動プログラムを書けるようにするためには
+C/C++用のライブラリをeuslispから利用するようにすればよいため，
+webotsのライブラリを使うC/C++のヘッダファイルから
+euslispのライブラリを使う関数群を生成するためにswigを拡張しており，
+prog/webots/euscommon/swig-2.0.9-eus.tgz
+がそれである．
+
+これを
+tar xvzfして
+cd swig-2.0.9
+make
+sudo make install
+して
+swig -euslisp webotslib.i
+とすると，webotslib.lができるようになっている．
+
+
+libftdi.soを利用する場合には，
+/usr/include/ftdi.hから生成することを指定する
+ftdi.i
+を準備し，
+swig -euslisp ftdi.i
+とするとftdi.lができてくるというような流れとなる．
+
+生成されたftdi.lは，不完全なので手を入れて直してゆく必要がある．
+ftdi.lはそうやって手を入れたものになっている．
+
+struct ftdi_context
+{
+    /* USB specific */
+    struct usb_dev_handle *usb_dev;
+    int usb_read_timeout;
+    int usb_write_timeout;
+
+    /* FTDI specific */
+    enum ftdi_chip_type type;
+    int baudrate;
+    unsigned char bitbang_enabled;
+    unsigned char *readbuffer;
+    unsigned int readbuffer_offset;
+    unsigned int readbuffer_remaining;
+    unsigned int readbuffer_chunksize;
+    unsigned int writebuffer_chunksize;
+    unsigned int max_packet_size;
+
+    /* FTDI FT2232C requirecments */
+    int interface;   /* 0 or 1 */
+    int index;       /* 1 or 2 */
+    /** FT2232C end points: 1 or 2 */
+    int in_ep;
+    int out_ep;      /* 1 or 2 */
+    unsigned char bitbang_mode; /** 1: (default) Normal bitbang mode, 2: FT2232C SPI bitbang mode */
+
+    int eeprom_size;    /** Default is 128 bytes for 232BM and 245BM chips */
+    
+    char *error_str; /** String representation of last error */
+    
+    char *async_usb_buffer; /** Buffer needed for async communication */
+    
+    unsigned int async_usb_buffer_size; /** Number of URB-structures we can buffer */
+
+    /** Defines behavior in case a kernel module is already attached to the device */
+    enum ftdi_module_detach_mode module_detach_mode;
+
+};
+
+この構造体を利用する関数が下のように定義されている．
+
+int ftdi_init(struct ftdi_context *ftdi);
+struct ftdi_context *ftdi_new(void);
+int ftdi_set_interface(struct ftdi_context *ftdi, enum ftdi_interface interface);
+
+void ftdi_deinit(struct ftdi_context *ftdi);
+void ftdi_free(struct ftdi_context *ftdi);
+void ftdi_set_usbdev (struct ftdi_context *ftdi, usb_dev_handle *usbdev);
+
+int ftdi_usb_get_strings(struct ftdi_context *ftdi, struct usb_device *dev,
+                         char * manufacturer, int mnf_len,
+                         char * description, int desc_len,
+                         char * serial, int serial_len);
+
+int ftdi_usb_open(struct ftdi_context *ftdi, int vendor, int product);
+int ftdi_usb_open_desc(struct ftdi_context *ftdi, int vendor, int product,
+                       const char* description, const char* serial);
+int ftdi_usb_open_desc_index(struct ftdi_context *ftdi, int vendor, int product,
+                       const char* description, const char* serial, unsigned int index);
+int ftdi_usb_open_dev(struct ftdi_context *ftdi, struct usb_device *dev);
+int ftdi_usb_open_string(struct ftdi_context *ftdi, const char* description);
+
+int ftdi_usb_close(struct ftdi_context *ftdi);
+int ftdi_usb_reset(struct ftdi_context *ftdi);
+int ftdi_usb_purge_rx_buffer(struct ftdi_context *ftdi);
+int ftdi_usb_purge_tx_buffer(struct ftdi_context *ftdi);
+int ftdi_usb_purge_buffers(struct ftdi_context *ftdi);
+
+int ftdi_set_baudrate(struct ftdi_context *ftdi, int baudrate);
+int ftdi_set_line_property(struct ftdi_context *ftdi, enum ftdi_bits_type bits,
+                           enum ftdi_stopbits_type sbit, enum ftdi_parity_type parity);
+int ftdi_set_line_property2(struct ftdi_context *ftdi, enum ftdi_bits_type bits,
+                            enum ftdi_stopbits_type sbit, enum ftdi_parity_type parity,
+                            enum ftdi_break_type break_type);
+
+int ftdi_read_data(struct ftdi_context *ftdi, unsigned char *buf, int size);
+int ftdi_read_data_set_chunksize(struct ftdi_context *ftdi, unsigned int chunksize);
+int ftdi_read_data_get_chunksize(struct ftdi_context *ftdi, unsigned int *chunksize);
+
+int ftdi_write_data(struct ftdi_context *ftdi, unsigned char *buf, int size);
+int ftdi_write_data_set_chunksize(struct ftdi_context *ftdi, unsigned int chunksize);
+int ftdi_write_data_get_chunksize(struct ftdi_context *ftdi, unsigned int *chunksize);
+
+int ftdi_write_data_async(struct ftdi_context *ftdi, unsigned char *buf, int size);
+void ftdi_async_complete(struct ftdi_context *ftdi, int wait_for_more);
+
+int DEPRECATED(ftdi_enable_bitbang(struct ftdi_context *ftdi, unsigned char bitmask));
+int ftdi_disable_bitbang(struct ftdi_context *ftdi);
+int ftdi_set_bitmode(struct ftdi_context *ftdi, unsigned char bitmask, unsigned char mode);
+int ftdi_read_pins(struct ftdi_context *ftdi, unsigned char *pins);
+
+int ftdi_set_latency_timer(struct ftdi_context *ftdi, unsigned char latency);
+int ftdi_get_latency_timer(struct ftdi_context *ftdi, unsigned char *latency);
+
+int ftdi_poll_modem_status(struct ftdi_context *ftdi, unsigned short *status);
+
+/* set eeprom size */
+void ftdi_eeprom_setsize(struct ftdi_context *ftdi, struct ftdi_eeprom *eeprom, int size);
+
+/* init and build eeprom from ftdi_eeprom structure */
+void ftdi_eeprom_initdefaults(struct ftdi_eeprom *eeprom);
+void ftdi_eeprom_free(struct ftdi_eeprom *eeprom);
+int ftdi_eeprom_build(struct ftdi_eeprom *eeprom, unsigned char *output);
+int ftdi_eeprom_decode(struct ftdi_eeprom *eeprom, unsigned char *output, int size);
+
+/* "eeprom" needs to be valid 128 byte eeprom (generated by the eeprom generator)                 
+   the checksum of the eeprom is valided */
+int ftdi_read_eeprom(struct ftdi_context *ftdi, unsigned char *eeprom);
+int ftdi_read_chipid(struct ftdi_context *ftdi, unsigned int *chipid);
+int ftdi_read_eeprom_getsize(struct ftdi_context *ftdi, unsigned char *eeprom, int maxsize);
+int ftdi_write_eeprom(struct ftdi_context *ftdi, unsigned char *eeprom);
+int ftdi_erase_eeprom(struct ftdi_context *ftdi);
+
+int ftdi_read_eeprom_location (struct ftdi_context *ftdi, int eeprom_addr, unsigned short *eeprom_val);
+int ftdi_write_eeprom_location(struct ftdi_context *ftdi, int eeprom_addr, unsigned short eeprom_val);
+
+char *ftdi_get_error_string(struct ftdi_context *ftdi);
+
+
+-----------------------------------------------------------------
+*** 23. リモコンのエミュレータ kxrviewer.l  2018.11.15
+-----------------------------------------------------------------
+
+リモコンを三次元表示し，そのリモコンボタンをマウスでクリックすると
+そのボタンにマップされている動作をアニメーション表示することが
+できる．
+
+cd prog/rcb4eus
+irteusgl kxrviewer.l
+
+(make-kxr-robot "kxrl4d")
+
+などで，好きなロボットのモデルを表示する．
+
+(kxr-remocon-view)
+
+とすると，リモコンの３D表示が現れる．
+このビューワの中で，リモコンボタンをマウスクリックすると
+そのボタンの表示の色が変わり，
+表示されているロボットモデルが
+そのボタンに割り付けられた動作をアニメート表示する．
+
+リモコンモデルは，簡易モデルで　kxrviewer.l内で定義され
+(kxr-remocon)
+で生成される．
+
+
+このプログラムは，irtviewerの中で表示されている三次元物体の
+面をマウスでどのように選ぶかというプログラムのサンプルと
+なっている．
+また，irtviwerの中に画像や文字を表示する例ともなっている．
+
+-----------------------------------------------------------------
+*** 24. irtviewerの中への文字・画像表示
+-----------------------------------------------------------------
+
+文字表示は，
+x::irtviewer
+のサブクラスとしてkxrviewerを作り，
+
+(defmethod kxrviewer
+  (:string (x y str &optional ;;(fid x::font-helvetica-bold-12))                    
+              (fid x::font-a14))
+           (send-all x::subwindows :2d-mode)
+           ;;(gl::glxUseXfont fid 32 96 (+ 1000 32))                                
+           (gl::glxUseXfont fid 32 96 (+ 1000 32))
+           (gl::glRasterPos2i (round x) (- (send self :height) (round y)))
+           (gl::glListBase 1000)
+           (gl::glCallLists (length str) gl::GL_UNSIGNED_BYTE str)
+           (send-all x::subwindows :3d-mode)
+           (send self :flush)
+           )
+　)
+として
+
+(send self :string 120 100 "abcdef")
+とすると，左上の角からx:120, y:100の場所から文字列abcdefが表示される．
+
+
+
+-----------------------------------------------------------------
+*** 25. irtviewerの中の表示モデルの面のマウス選択の方法
+-----------------------------------------------------------------
+
+irtviewerの中のマウスの点が画面の2Dの場所がspos
+として，マウスでクリックした場合の面と点を返すには
+
+(defun kxr-pick-face
+  (spos &optional (viewer *remocon-viewer*))
+  (let*
+      ((eye (send viewer :viewer :viewing))
+       (vp (send viewer :viewer :viewport :screen-point-to-ndc spos)))
+    (bodies-vector-limit-face-pos (send viewer :objects)
+                                  (send eye :viewpoint)
+                                  (send eye :view-orient vp)
+                                  #'<))
+  )
+
+のように定義できる．
+
+(defun bodies-vector-limit-face-pos
+  (bb &optional (pos #f(0 0 -10000)) (v #f(0 0 1)) (test #'>))
+  (find-extream
+   (apply #'append
+          (send-all bb :faces-intersect-with-point-vector pos v))
+   #'(lambda (x) (if x (v. (cadr x) v) 0.0))
+   test))
+
+で定義されている．find-extream関数は，
+euslispの幾何モデルファイル
+jskeus/eus/lisp/geo/primt.l
+の中に以下のように定義されている．
+
+(defun find-extream (vertices key test)
+   (let* ((ext (pop vertices)) (p (funcall key ext)))
+      (dolist (v vertices)
+         (when (funcall test (funcall key v) p)
+            (setq ext v
+                  p   (funcall key ext))))
+       ext))
+
+また，
+
+(send-all bb :faces-intersect-with-point-vector pos v)
+
+の
+:faces-intersect-with-point-vector pos v
+メソッドは，
+jskeus/eus/lisp/geo/geobody.l
+に定義されており，フェースと交点座標のリストを返す．
+
+
+-----------------------------------------------------------------
+*** 26. assemble, disassemble, conversion, deconversion
+-----------------------------------------------------------------
+
+
+rcb4file.lの中に定義されているrcb4-motion-codeクラスのインスタンスは，
+120の動作表の各動作プログラムを表す．
+
+(defclass rcb4-motion-code :super object
+  :slots (name    ;   動作の名前
+　　　　　number  ;　 動作表の中での番号
+          buttondata  ; この動作を呼び出すリモコンボタンデータ
+　　　　　bcodes  ;   命令機械語数値のリスト列
+　　　　　acodes  ;　 bcodesに対応するニーモニックアセンブリ言語記述
+          labels  ;　 ラベル
+          ccodes  ; 　最上位記述
+          ac      ;　 ccodesをrcb4-conversionして生成される記述
+          bc      ;   ac をrcb4-assembleして生成される記述
+          used-insts  ; この動作で使われている命令のオプコードのリスト
+          servo-vectors  ;　この動作でのサーボベクトルのリスト
+          ))
+
+
+:assemble &optional (codes acodes)
+
+   codesをrcb4-assembleして機械語のリストを返す．
+   
+:disassemble
+
+　 bcodesをrcb4-disassembleしてacodesを作る．
+　 acodesをrcb4-assembleしてbcodesと同じかどうかを確認する．
+
+:assemble-labels
+
+   acodesの中のラベルのアドレスを計算し，(label . address)の対の
+　 リストをlabelsに入れる．
+
+:deconversion &optionnal (ri *ri*)
+
+　　acodesをrcb4-deconversionし，ccodesを生成する．
+
+:conversion &optionnal (ri *ri*)
+
+　　ccodesからacへrcb4-conversionし，acをrcb4-assembleしてbcを生成する．
+    bcodesとbcが等しいか，acとacodesが等しいかをチェックする．
+    違っている場合にはその命令で違っているかを表示する．
+
+
+rcb4-assemble, rcb4-disassemble, rcb4-conversion, rcb4-deconversionの本体は
+rcb4asm.lの中に定義している．
+
+
+利用可能な命令には以下があり，RCB4コマンドリファレンス
+(RCBー４コマンドリファレンス20131018.pdfなど)に記述された機械語に
+対応する．
+
+
+(:version)
+(:ack)
+(:return)
+(:move src dest)
+(:and value dest flag)
+(:or value dest flag)
+(:xor value dest flag)
+(:add value dest flag)
+(:sub value dest flag)
+(:mult value dest flag)
+(:div value dest flag)
+(:mod value dest flag)
+(:not size dest flag)
+(:shift shift size dest flag)
+(:jump cond address)
+(:call cond address)
+(:ics no size src-address dest-address)
+(:s-s   no velocity position)
+(:m-s-cv nos velocity position)
+(:m-s-mv nos velocity position)
+(:servo no velocity position)
+(:m-ss nos values)
+(:stretch nos values)
+(:speed  nos values)
+
+
+このニーモニック形式から，機械語数値への変換を行うrcb4-assembleは，
+rcb4asm.lの中のrcb4-assemble-oneを繰り返し行うことでなされる．
+各命令については以下のような形式となっている．
+
+(1) :move 
+
+(:mod src dst)  転送元のsrcから転送先のdstへデータを転送する
+
+src，dstの指定には，それぞれ以下の4種類ある．
+
+srcの指定には，
+
+ (:ram address size)
+
+  RAM領域のアドレス(address: #x0000 - #x048F)から，size(1 - 128)で指定
+  される数のbyteデータ
+
+  (prhex (rcb4-assemble '((:move (:ram :button 2) (:ram (:user 0))))))
+  ->#x:(a 0 0 62 4 0 50 3 2 c5)
+
+ (:ics ics-no offset size)
+
+  サーボの通信ポートから ics-id: 0 - 35,  offset: #x00 - #xff, 転送デー
+  タsize: 1-128
+
+ (:lit data)
+
+    文字列または数のリストであるdataをシリアルポートから読み込む．data
+    のサイズはdataの長さで 1 - 128 まで．
+
+  (prhex (rcb4-assemble '((:move (:lit 7) (:ram (:counter 0))))))
+  ->#x:(8 0 2 57 4 0 7 6c)
+
+  (prhex (rcb4-assemble '((:sub (:lit #x00 #x10) (:ram (:user 4))))))
+  ->#x:(9 7 2 6a 4 0 0 10 90)
+
+ (:rom address size)
+
+  ROM領域のアドレス(address: #x000000 - #x03ffff)からsizeバイト分のデータ
+
+  (prhex (rcb4-assemble '((:move (:rom (:motiontable 0 0) 1) (:ram (:user 0))))))
+  ->#x:(b 0 3 62 4 0 80 b 0 1 0)
+
+
+dstの指定には，
+
+ (:ram address)
+
+  RAM領域のアドレス（address: #x0000 - #x048F）からの領域
+
+ (:ics no offset size)
+
+  サーボ用ics通信ポート（ics-no: 0 - 35, offset: #x00 - #xff）への転送
+  となる．
+
+ (:com)
+
+    シリアルポートへの転送となる．
+
+ (:rom address)
+
+  ROM領域のアドレス(address: #x000000 - #x03ffff)への転送となる．
+
+
+COMから実行した場合には，sizeバイトの演算結果が返る．
+
+
+irteusgl$ (rcb4-assemble-one '(:move (:ram (:ad 4) 2) (:ram (:user 6))))
+(10 0 0 110 4 0 42 0 2 168)
+irteusgl$ (rcb4-disassemble-one '(10 0 0 110 4 0 42 0 2 168))
+(:move (:ram (:ad 4 0) 2) (:ram (:user 6 0)))
+
+irteusgl$ (rcb4-assemble-one '(:move (:ram (:ad 4) 2) (:ram (:user 6)) t))
+(10 0 0 110 4 0 42 0 2 168)
+irteusgl$ (rcb4-assemble-one '(:move (:ram (:ad 4) 2) (:ram (:user 6)) nil))
+(10 0 0 110 4 0 42 0 2 168)
+
+irteusgl$ (rcb4-assemble-one '(:move (:ram (:user 6) 2) (:ram (:user 7))))
+(10 0 0 112 4 0 110 4 2 242)
+irteusgl$ (rcb4-disassemble-one '(10 0 0 112 4 0 110 4 2 242))
+(:move (:ram (:user 6 0) 2) (:ram (:user 7 0)))
+
+irteusgl$ (rcb4-assemble-one '(:move (:ram (:ad 4) 2) (:rom (:motiontable 0 0))))
+(10 0 48 128 11 0 42 0 2 241)
+irteusgl$ (rcb4-disassemble-one '(10 0 48 128 11 0 42 0 2 241))
+(:move (:ram (:ad 4 0) 2) (:rom 2944))
+
+irteusgl$ (rcb4-assemble-one '(:move (:ram (:counter 4) 2) (:rom (:motiontable 0 0))))
+(10 0 48 128 11 0 91 4 2 38)
+irteusgl$ (rcb4-disassemble-one '(10 0 48 128 11 0 91 4 2 38))
+(:move (:ram (:counter 4 0) 2) (:rom 2944))
+
+irteusgl$ (rcb4-assemble-one '(:move (:rom (:motiontable 0 100) 20) (:rom (:motiontable 0 0))))
+(11 0 51 128 11 0 228 11 0 20 204)
+irteusgl$ (rcb4-disassemble-one '(11 0 51 128 11 0 228 11 0 20 204))
+(:move (:rom 3044 20) (:rom 2944))
+
+
+irteusgl$ (rcb4-assemble-one '(:move (:lit 10 20 30 40) (:rom (:motiontable 0 0))))
+(11 0 50 128 11 0 10 20 30 40 44)
+irteusgl$ (rcb4-disassemble-one '(11 0 50 128 11 0 10 20 30 40 44))
+(:move (:lit 10 20 30 40) (:rom 2944))
+irteusgl$ (rcb4-assemble-one '(:move (:lit 10 20 30 40) (:ram (:user 0))))
+(11 0 2 98 4 0 10 20 30 40 215)
+irteusgl$ (rcb4-disassemble-one '(11 0 2 98 4 0 10 20 30 40 215))
+(:move (:lit 10 20 30 40) (:ram (:user 0 0)))
+
+
+(2) :and  :or  :xor
+
+(:and src dst flag)
+(:or  src dst flag)
+(:xor src dst flag)
+
+ の形式の命令で，srcとdstの演算を行い
+
+flagがnilであれば，その演算結果をdstへ転送し，
+flagがtであれば，その演算結果をdstへ転送しない．
+
+srcの指定には，
+
+   (:ram address size)
+
+  RAM領域のアドレス(address: #x0000 - #x048F)から，size(1 - 128)で指定
+  される数のbyteデータ
+
+   (:ics ics-no offset size)
+
+  サーボの通信ポートから ics-id: 0 - 35,  offset: #x00 - #xff, 転送デー
+  タsize: 1-128
+
+  (:lit data)
+
+    文字列または数のリストであるdataをシリアルポートから読み込む．
+    data サイズは 1 - 128 bytes
+
+  (:rom address size)
+
+  ROM領域のアドレス(address: #x000000 - #x03ffff)からsize(1 - 128)バイト分のデータ
+
+
+dstの指定は，以下の3種類となる．
+
+  (:ram address)
+
+	   RAM領域のアドレス（address: #x0000 - #x048F）からの領域
+
+  (:ics no offset)
+
+  サーボ用ics通信ポート（ics-no: 0 - 35, offset: #x00 - #xff）への転送
+  となる．
+
+  (:rom address)
+  ROM領域のアドレス(address: #x000000 - #x03ffff)への転送となる．
+
+
+COMから実行した場合には，srcで指定されたバイト数の演算結果を
+COMへ返す．
+
+
+
+
+(3) :not
+
+(:not size dst flag)
+
+dstのsizeバイトのデータを反転し，
+flagがtの場合に反転はせずに演算結果フラグだけを更新する．
+
+COMから実行した場合には，sizeバイトの演算結果が返る．
+
+
+
+(4) :shift
+
+(:shift shift size dst flag)
+
+dstのsize幅のデータをshiftし，キャリーフラグを更新する．
+
+size: 1 - 128
+shift: 0: シフトしない，1-127: 右シフト，255 - 128: 左シフト
+
+flagがtの場合には，演算結果をdstへ書き込まずに
+フラグだけを更新する．
+
+COMから実行した場合には，sizeバイトの演算結果が返る．
+
+
+
+(5) :add :sub :mult :div :mod
+
+(:xxx src dst flag) の形式の命令で，srcとdstの四則演算を行い，
+flagがnilであれば，dstへ計算結果を書き込み，計算結果に基づく
+フラグ(carry flag, zero flag)を更新する．flagがtであれば
+計算結果をdstへ書き込むことはせずに，フラグだけを更新する．
+
+COMから実行した場合には，srcで指定されたバイト数の演算結果を
+COMへ返す．
+
+irteusgl$ (rcb4-assemble-one '(:sub  (:lit 119 1) (:ram (:user 6))))
+(9 7 2 110 4 0 119 1 252)
+irteusgl$ (rcb4-disassemble-one '(9 7 2 110 4 0 119 1 252))
+(:sub (:lit 119 1) (:ram (:user 6 0)))
+
+irteusgl$ (rcb4-assemble-one '(:add (:ram (:user 8) 2) (:ram (:user 6))))
+(10 6 0 110 4 0 114 4 2 250)
+irteusgl$ (rcb4-disassemble-one '(10 6 0 110 4 0 114 4 2 250))
+(:add (:ram (:user 8 0) 2) (:ram (:user 6 0)))
+
+irteusgl$ (rcb4-assemble-one '(:add (:ram (:ad 4) 2) (:ram (:user 6))))
+(10 6 0 110 4 0 42 0 2 174)
+irteusgl$ (rcb4-disassemble-one '(10 6 0 110 4 0 42 0 2 174))
+(:add (:ram (:ad 4 0) 2) (:ram (:user 6 0)))
+
+irteusgl$ (rcb4-assemble-one '(:add (:ram (:ad 4) 2) (:ram (:user 6)) t))
+(10 6 128 110 4 0 42 0 2 46)
+irteusgl$ (rcb4-disassemble-one '(10 6 128 110 4 0 42 0 2 46))
+(:add (:ram (:ad 4 0) 2) (:ram (:user 6 0)) t)
+
+irteusgl$ (rcb4-assemble-one '(:add (:ram (:ad 4) 2) (:ram (:user 6)) nil))
+(10 6 0 110 4 0 42 0 2 174)
+irteusgl$ (rcb4-disassemble-one '(10 6 0 110 4 0 42 0 2 174))
+(:add (:ram (:ad 4 0) 2) (:ram (:user 6 0)))
+
+
+(6) :jump,  :call
+
+(:jump cond address)
+(:call cond address)
+
+の形式で，addressはROM空間の絶対アドレスとなる．
+
+ROM空間は #x0 - #x03FFFFまでのアドレス空間となっている．
+
+ROMのアドレスマップは，RCB4プログラミングマニュアル20131018.pdfに
+示されている．
+
+モーションテーブルは，ROM領域に，2KBごとに120個の領域を設けて
+あり，モーションテーブルの先頭アドレスは，#x000B80で，
+モーションテーブルのi番目のモーション領域の先頭アドレスは，
+
+(+ #x000B80 (* #x800 i))
+
+で計算される．
+
+(rcb4-address addr)
+
+関数で得ることができる．
+
+(rcb4-address '(:motiontable 0 0))                            
+
+-> 2944                                                                       
+
+(prhex 2944)                                                  
+
+-> #xb80
+
+というように，先頭が#xB80となり，
+
+(prhex (rcb4-address '(:motiontable 10 0)))
+
+-> #x5b80
+
+となることがわかる．addressの指定の仕方は，:motiontable 
+キーワードの他にも，*rcb4-rom-address*に定義されている
+キーワードとそれに対応するアドレス，領域サイズなどの
+連想リストから得ることができる．
+
+利用できるキーワードについては，メモリマップの節に示す．
+
+(prhex (rcb4-address '(:romend 0)))
+
+-> #x3cb83
+
+
+irteusgl$ (rcb4-assemble-one '(:jump (:z :z=) (:motiontable 0 0)))
+(7 11 128 11 0 5 162)
+irteusgl$ (rcb4-disassemble-one '(7 11 128 11 0 5 162))
+(:jump (:z :z=) (:motiontable 0 0 |L#XB80|))
+
+irteusgl$ (rcb4-assemble-one '(:jump nil (:motiontable 0 0)))
+(7 11 128 11 0 0 157)
+irteusgl$ (rcb4-disassemble-one '(7 11 128 11 0 0 157))
+(:jump nil (:motiontable 0 0 |L#XB80|))
+
+irteusgl$ (rcb4-assemble-one '(:jump (:z :z=) (:motiontable 0 100)))
+(7 11 228 11 0 5 6)
+irteusgl$ (rcb4-disassemble-one '(7 11 228 11 0 5 6))
+(:jump (:z :z=) (:motiontable 0 100 |L#XBE4|))
+
+irteusgl$ (rcb4-assemble-one '(:call nil (:motiontable 1 0)))
+(7 12 128 19 0 0 166)
+irteusgl$ (rcb4-disassemble-one '(7 12 128 19 0 0 166))
+(:call nil (:motiontable 1 0 |L#X1380|))
+
+irteusgl$ (rcb4-assemble-one '(:call (:z :z=) (:motiontable 1 0)))
+(7 12 128 19 0 5 171)
+irteusgl$ (rcb4-disassemble-one '(7 12 128 19 0 5 171))
+(:call (:z :z=) (:motiontable 1 0 |L#X1380|))
+
+
+irteusgl$ (rcb4-assemble-one '(:return))
+(3 13 16)
+irteusgl$ (rcb4-disassemble-one '(3 13 16))
+(:return)
+
+
+(7) :ics
+
+ no size src-address dest-address
+
+
+
+(8) :servo
+
+  サーボへの命令は，3種類用意されていて，
+　(:s-s    id time position)
+  (:m-s-cv ids time float-vector)
+  (:m-s-mv ids time-list float-vector)
+
+　の形式の命令で与えることもできるが，一つの
+
+  (:servo ids time servo-vector)
+
+　の形式で idsがリストではなく数値であれば，:s-sの
+　形式となり，timeがリストになれば，:m-s-mvの形式
+　となる．
+
+  よく使われている命令は idsがリストで，timeが
+  どの軸も同じ時間で動く:m-s-cvとなっている．
+  
+
+irteusgl$ (rcb4-assemble-one '(:servo 10 30 7500))
+(7 15 10 30 76 29 167)
+irteusgl$ (rcb4-disassemble-one '(7 15 10 30 76 29 167))
+(:servo 10 30 7500)
+
+irteusgl$ (rcb4-assemble-one '(:servo (10) 30 #f(0 1 2 3 4 5 6 7 8 9 10 11 12 13 14)))
+(11 16 0 4 0 0 0 30 10 0 71)
+
+irteusgl$ (rcb4-disassemble-one '(11 16 0 4 0 0 0 30 10 0 71))
+(:servo (10) 30 #f(7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0
+ 10.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0
+ 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0))
+
+irteusgl$ (rcb4-assemble-one '(:servo (10) 30 #f(7500.0 7500.0 7500.0 7500.0 7500.0 7500.0
+ 7500.0 7500.0 7500.0 7500.0 10.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0
+ 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0
+ 7500.0 7500.0 7500.0 7500.0)))
+(11 16 0 4 0 0 0 30 10 0 71)
+
+
+
+(9) :stretch, :speed, :m-ss
+
+  ストレッチ，スピードを与える命令の:m-ss
+
+  (:m-ss subcom ids float-vector)
+
+　を生成するもので，
+
+　(:stretch ids float-vector)
+　(:speed ids float-vector)
+
+  の形式となっている．
+
+
+irteusgl$ (rcb4-assemble-one '(:version))
+(3 253 0)
+irteusgl$ (rcb4-disassemble-one '(3 253 0))
+(:version 0)
+
+irteusgl$ (rcb4-assemble-one '(:ack))
+(3 254 1)
+irteusgl$ (rcb4-disassemble-one '(3 254 1))
+(:ack 1)
+
+
+
+機械語は大変なので，ロボットの身体モデルと合わせて，
+:angle-vectorから:servo命令を作ったり，その逆に:servo命令から
+:angle-vectorを生成することをrcb4-conversion, rcb4-deconversionで行う．
+
+その他，:if文や:dotimesなどの構文なども順次実装してゆく
+準備をrcb4asm.lに記述しつつある．
+
+irteusgl$ (rcb4-deconversion '((:servo (10) 30 #f(7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0
+ 10.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0
+ 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0))) *ri*)
+((:angle-vector #f(0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 170.0 0.0 0.0 0.0 0.0) 30
+ #(nil nil nil nil nil nil nil nil nil nil nil nil nil nil nil nil nil t nil nil nil nil)))
+
+irteusgl$ (rcb4-conversion '((:angle-vector #f(0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0
+ 0.0 0.0 0.0 0.0 0.0 170.0 0.0 0.0 0.0 0.0) 30
+ #(nil nil nil nil nil nil nil nil nil nil nil nil nil nil nil nil nil t nil nil nil nil))) *ri*)
+((:servo (10) 30 #f(7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 2400.0 7500.0 7500.0
+ 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0
+ 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0)))
+
+irteusgl$ (rcb4-conversion '((:angle-vector #f(0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0
+ 0.0 0.0 170.0 0.0 0.0 0.0 0.0) 30)) *ri*)
+((:servo (2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 30 32) 30 #f(7500.0 7500.0 7500.0 7500.0 7500.0
+ 7500.0 7500.0 7500.0 7500.0 7500.0 2400.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0
+ 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0)))         
+
+irteusgl$ (rcb4-deconversion '((:servo (2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 30 32) 30
+ #f(7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 2400.0 7500.0 7500.0 7500.0 7500.0
+ 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0
+ 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0))) *ri*)
+((:angle-vector #f(0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 170.0 0.0 0.0 0.0 0.0) 30))
+
+
+
+-----------------------------------------------------------------
+*** 27. メモリマップ
+-----------------------------------------------------------------
+
+RCB4ボードでは，RAM領域とROM領域は異なるアドレス空間で
+それぞれにアドレス空間をもってきている．
+
+RAM領域は，#x0000から#x048Dまでの1KB強が利用され，
+ROM領域は，#x000000から #x03cb83程度までの248KByte程度が
+利用されている．
+
+これらのメモリ領域のアドレスマップついては
+RCB-4プログラミングマニュアル20131018.pdf
+に記されている．
+
+rcb4asm.lに，rcb4-address関数が
+
+(rcb4-address addr {labels})
+
+となり，
+(rcb4-address "#x1000")
+(rcb4-address #x1000)
+(rcb4-address x)
+(rcb4-address :counter)
+(rcb4-address '(:counter 0))
+(rcb4-address '(:counter 1))
+(rcb4-address y '((x . 100) (y . 200)))
+
+などの引数を受付け，
+
+irteusgl$ (prhex (rcb4-address "#x1000"))
+#x1000
+irteusgl$ (prhex (rcb4-address #x1000))
+#x1000
+
+irteusgl$ (rcb4-address :motiontable))                           
+2944
+irteusgl$ (prhex (rcb4-address :motiontable))                           
+#xb80
+
+irteusgl$ (rcb4-address '(:motiontable 0 0))
+2944
+irteusgl$ (rcb4-address '(:motiontable 0 2))
+2946
+
+irteusgl$ (prhex (rcb4-address :counter))                               
+#x457
+irteusgl$ (prhex (rcb4-address '(:counter 0)))
+#x457
+irteusgl$ (prhex (rcb4-address '(:counter 1)))
+#x458
+irteusgl$ (rcb4-address 'y '((x . 100) (y . 200)))                      
+200
+
+などという計算を行う．
+
+アドレスマップのキーワードは，ROMとRAMで同じ
+キーワードは無いようになっているが，RAM領域の名前から
+先に調べてアドレス値を返す．
+
+
+RAM領域には，
+
+2バイトのシステム全体の設定領域(:sysreg)
+3バイトのプログラムカウンタ(:pc)
+2バイトのAD変換の基準値(:adref)が11個
+2バイトのAD変換の現在値(:ad)が11個
+2バイトのPIOポートの入出力設定(:pio-dir)が1個
+2バイトのPIOポートの状態(:pio-port)が1個
+2バイトのタイマーカウンタ(:timer)が4個
+2バイトのICSのデータアドレス(:ics-data)が35個
+20バイトでServoとのやり取りをする領域(:servo)が35個，
+8バイトのJumpベクタ(:jump-vector)が，３２個，
+1バイトのカウンタ(:counter)が，11個
+2Byteのユーザ変数(:user)が，２０個
+
+などが割り付けられており，rcb4asm.l内に定義されている
+*rcb4-ram-address*のキーワードでアクセスできる．
+
+(defvar *rcb4-ram-address*
+  '(
+    (:sysreg #x00 2 1) ;; system register
+    (:pc  #x02 3 1) ;; 3 bytes
+    (:sp  #x05 2 1)
+    (:rom-flag  #x07 1 5)
+    (:adref #x0c 2 11)   ;; 2 bytes x 11 until #x021
+    (:ad  #x022 2 11)   ;; 2 bytes x 11 until #x037
+    (:pio-dir  #x038 2 1)   ;; 2 bytes 
+    (:pio-port #x03A 2 1)   ;; 2 bytes 
+    (:timer   #x03c 2 4) ;; 2 bytes x 4 until #x043
+    (:ics-data #x044 2 36) ;; 2 bytes x 36
+    (:jump-vector-address #x08c 2 2) ;; address #x357
+    (:servo  #x090 20 35) ;; 20 bytes x 35 until #x034B
+    (:kri3  #x034c 1 1)  ;; 
+    (:kri3-id  #x034d 1 1)  ;; 
+    (:kri3-rd  #x034e 1 2)  ;; 0, 7 fix 
+    (:button  #x0350 2 1)  ;; 2byte 
+    (:kri3-ad  #x0352 1 4)  ;; 1byte x 4
+    (:kri3-sum  #x0356 1 1)  ;; 1byte 
+    (:jump-vector  #x0357 8 32) ;; 8 bytes x 32 vector until 0x0456
+    (:counter  #x0457 1 11) ;; 1 byte x 11 until #x0461
+    (:user  #x0462 2 22) ;;  2 byte x 22 until #x048d
+    (:ramend  #x048e 2 1) ;;  2 byte x 22 until #x048d
+    ))
+
+(rcb4-address (:motiontable i j)) ;; モーションテーブル i の j番地
+
+
+
+
+ROM領域は，#x000000から #x03cb83程度までの248KByte程度が利用されている．
+
+このうち，#xB80から2KBごとに120個のROM領域にモーションテーブル
+として240KBが利用されており，ほとんどがモーションテーブルの
+記憶となっている．
+
+ROM領域内のアドレスをキーワードで参照することができ，
+以下の*rcb4-rom-address*のキーワードを利用することができる．
+
+
+(defvar *rcb4-rom-address*
+  '(
+    (:Config  #x0 9 1)  ;; 9 bytes  mov(2)
+    (:PioConfig  #x09 9 1)  ;; 9 bytes  mov(2)
+    (:PioCmd  #x12 9 1)  ;; 9 bytes  mov(2)
+    (:AdrCmdRom #x1B 11 1) ;; 11 bytes mov(3)
+    (:Servocmd  #x26 11 35) ;; 11 bytes x 35
+    (:ServoCmdRam  #x1A7 11 1) ;; 11bytes
+    (:KRI3CmdRom  #x1B2 11 1) ;; 11bytes
+    (:KRI3CmdRam  #x1BD 11 1) ;; 11bytes
+    (:VectorJumpCmdRom  #x1C8 11 32) ;; 11 x 32
+    (:VectorJumpCmdRam  #x328 11 1) ;; 11 bytes
+    (:ConfigCmdExecute  #x333 11 1) ;; 11 bytes
+    (:ServoCmdFree  #x33E 79 1) ;; 79bytes (:servo all #f(#x8000 ... #x8000))
+    (:TimerWaitCmd  #x38D 25 1) ;; 25bytes 3cmd(:move(:lit 16 0)(:ram (:timer 0)))
+    			    ;; (:sub (:lit 0 128) (:ram (:timer 0)) t)
+    			    ;; (:jump (:nc :c<> :z :z<>) |L#X349|)
+    (:ServoCmdHold  #x3A6 79 1) ;; 79bytes (:servo all #f(#x8000 ... #x7fff))
+    (:ServoCmdHome  #x3F5 79 1) ;; 79bytes (:servo all #f(#x8000 ... 7500))
+    (:StartupCmdRom #x444 7 1) ;; 7 bytes (:call (:nc :c<> :nz :z<>) |L#X13B80|) motion 39
+    (:Mainloop #x44B 9 1) ;; Move(2)
+    (:PioDirToInput #x454 9 1) ;; 9 bytes
+    (:PriorityMotion #x45D 25 13) ;; 25 x 13
+    (:PioDirToOutput  #x5A2 9 1) ;; 9bytes
+    (:JmpToMainLoop  #x5AB 7 1) ;; 7bytes until #x5b1
+                                ;; 42bytes
+    (:ConfigDataRom #x5DC 2 1) ;; 2bytes
+    (:ServoDataRam  #x5DE 72 1) ;; 72bytes
+    (:ServoDataRom  #x626 20 36) ;; 20 x 36
+    (:ADRDataRom  #x8F6 2 11) ;; 2 x 11 22 bytes
+    (:KRI3DataRam #x90C 2 1) ;; 2 bytes
+    (:KRI3DataRom #x90E 11 1) ;; 11 bytes
+    (:JumpVectorDataRam #x919 2 1) ;; 2 bytes
+    (:JumpVectorDataRom #x91B 8 32) ;; 8 x 32
+    (:ProjectTitleRom #xA1B 32 1) ;; 32bytes
+    (:PriorityMotionCall #xA3B 25 13) ;; 19 x 13 ;; 25 x 13?
+    (:MotionTable  #x0B80 2048 120)  ;; 2048 x 120
+    (:DefaultStartup #x3cb80 3 1) ;; 3bytes for :return
+    (:RomEnd #x3cb83 2 1) ;;
+    )
+  )
+
+
+
+(send *ri* :read-mainloop)
+      
+
+(send *ri* :read-priority-motions)
+
+
+-----------------------------------------------------------------
+*** 28. RCB-4 プログラムのエミュレーションEmulation
+-----------------------------------------------------------------
+
+:draw-rom-tableでは，モーションテーブルの内容を読んで，その中の
+命令コードを順に実行することをeuslispで記述している．
+
+これは命令コードごとに，順に実行をしてゆくが，
+rcb4interface.lの中の
+robot-interfaceの中の:draw-motion-codeが行っている．
+
+この中では，RAM領域，ROM領域のメモリを表す
+machine-ram, machine-romスロット変数を持って
+命令を実行して進めている．
+
+
+(:draw-motion-code
+   (mc &optional (loopmax 200) copy-viewer)
+   (let* ((acodes (send mc :acodes))
+	  (alen (length acodes))
+	  (num (send mc :number))
+	  scodes slen (pc 0) a labels
+	  i op src dest flag addr len data cond
+	  zflag cflag (loop 0) labaddr)
+     (format t "~S~%" (send mc :name))
+
+     (dolist (a acodes)
+       (cond ((symbolp a) (push (cons a pc) labels))
+	     (t (push a scodes)	(setq pc (1+ pc)))))
+     (setq slen pc  scodes (coerce (reverse scodes) vector))
+     (setq pc 0) ;; (format t ";~A~%; labels=~A~%" mc labels)
+     (while (< pc slen)
+       (setq a (elt scodes pc)) (setq op (pop a))
+       (when (> (setq loop (1+ loop)) loopmax)
+	 (format t ";; loop ~A: ~A~%" loop mc) (setq pc slen))
+       ;;(format t ";;;mc=~A, pc=~A ~A ~A ~A~%" mc pc op (car a) (cadr a))
+       (case op
+	 (:return (setq pc slen))
+	 (:jump
+	  ;;(format t ";:jump pc=~A (assoc ~A labels) ~A, zflag=~A, cflag=~A~%"
+	  ;;pc (cadr a) (assoc (cadr a) labels) zflag cflag)
+	  (setq cond (pop a)) (setq addr (pop a))
+	  (cond
+	   ((and (symbolp addr) (assoc addr labels))
+	    (setq addr (assocdr addr labels)))
+	   ((consp addr)
+	    (cond
+	     ((= (cadr addr) num) ;; inside
+	      (setq addr (assocdr (car (last addr)) labels))
+	      ;;(format t ";inside pc=~A cond=~A addr=~A (assoc ~A labels) ~A, zflag=~A, cflag=~A~%"
+	      ;;pc cond addr (cadr a) (assoc (cadr a) labels) zflag cflag)
+	      )
+	     (t
+	      (when (or (null cond) 
+			(and zflag (member :z cond) (member :z= cond))
+			(and cflag (member :c= cond) (member :c cond)))
+		;;(format t ";outside pc=~A cond=~A mc=~A -> mc=~A addr=~A , zflag=~A, cflag=~A~%"
+		;;pc cond mc (elt rom-table (cadr addr)) addr zflag cflag)
+		(cond
+		 ((elt rom-table (cadr addr))
+		  (return-from :draw-motion-code
+		    (send self :draw-motion-code (elt rom-table (cadr addr)))))
+		 (t (format t "(rom-table ~A)=nil, mc=~A~%" (cadr addr) mc)
+		    (return-from :draw-motion-code nil)
+		    )))))))
+	  (cond
+	   ((null cond) (setq pc addr))
+	   ((and zflag (member :z cond) (member :z= cond))  (setq pc addr))
+	   ((and cflag (member :c= cond) (member :c cond))  (setq pc addr))
+	   ((and zflag (member :z cond))
+	    ;;(format t ":timer skip, cond=~A addr=~A~%" cond addr)
+	    (setq pc (1+ pc)))
+	   (t (setq pc (1+ pc))))
+	  ;;(format t "; after jump pc=~A : ~A~%" pc mc)
+	  )
+	 (:shift
+	  (format t ";; shift instructions!!!! ~%")
+	  )
+	 ((:move :sub :add :mult :div :mod :and :or :xor)
+	  (setq src (pop a)) (setq dest (pop a)) (setq flag (if a (car a)))
+	  (case (pop src)
+	    (:lit (setq data src))
+	    (:ram (setq addr (rcb4-address (car src)))
+		  (setq data nil)
+		  (dotimes (i (cadr src))
+		    (push (elt machine-ram (+ addr i)) data))
+		  (setq data (reverse data)))
+	    (:rom (setq addr (rcb4-address (car src)))
+		  (setq data nil)
+		  (dotimes (i (cadr src))
+		    (push (elt machine-rom (+ addr i)) data))
+		  (setq data (reverse data)))
+	    (:ics ))
+	  (case (car dest)
+	    (:com )
+	    (:ram (setq addr (rcb4-address (cadr dest)))
+		  ;;(format t ";; op=~A, machine-ram[#x~X]=#x~X(~A), data=~A~%"
+		  ;;op addr (elt machine-ram addr) (elt machine-ram addr) data)
+		  (when (and (consp (cadr dest)) (eq (car (cadr dest)) :timer))
+		    ;;(format t ";; :timer ~A, data=~A usleep (* 100000 ~A)~%"
+		    ;; (cadr dest) data (numseq-to-num data 2))
+		    (setq data (list (car data) (logand #x7f (cadr data))))
+		    (unix:usleep (* 100000 (numseq-to-num data 2))))
+		  (dolist (d data)
+		    (if (eq op :move)
+			(setf (elt machine-ram addr) d)
+		      (setf (elt machine-ram addr)
+			    (funcall (rcb4-cmd-operator op) (elt machine-ram addr) d)))
+		    (setq zflag (zerop (elt machine-ram addr)))
+		    (setq cflag (minusp (elt machine-ram addr)))
+		    ;;	    (format t ";; after op=~A, machine-ram[#x~X]=~A, data=~A~%"
+		    ;;		op addr (elt machine-ram addr) data)
+		    ;; (if zflag (warn ";;~A ~A zflag=~A, machine-ram[~X]=#x~X(~A)~%"
+		    ;; mc pc zflag addr
+		    ;; (elt machine-ram addr) (elt machine-ram addr)))
+		    (setq addr (1+ addr)))
+		  )
+	    (:rom  )
+	    (:ics ))
+	  (setq pc (1+ pc)))
+	 (:call
+	  (setq cond (car a)) (setq addr (cadr a))
+	  (cond
+	   ((and (null cond) (symbolp addr))
+	    (setq addr (cadr (rcb4-symbol
+			      (read-from-string (subseq (symbol-string (cadr a)) 1))
+			      :rom)))
+	    (format t ";call mc=~A pc=~A cond=~A, addr=~A(#x~X)~%" mc pc cond a addr addr)
+	    (if (elt rom-table addr)
+		(send self :draw-motion-code (elt rom-table addr) loopmax)
+	      (send self :draw-motion-code (send project-file :mcode addr) loopmax))
+	    (format t "; end-call~%"))
+	   ((and (null cond) (consp addr))
+	    (format t ";call mc=~A pc=~A cond=~A, addr=~A~%" mc pc cond addr)
+	    (if (elt rom-table (cadr addr))
+		(send self :draw-motion-code (elt rom-table (cadr addr)) loopmax)
+	      (send self :draw-motion-code (send project-file :mcode (cadr addr)) loopmax))
+	    (format t "; end-call~%"))
+	   )
+	  (setq pc (1+ pc)))
+	 (:servo
+	  (setq i 0)
+	  (mapc
+	   #'(lambda (x)
+	       (when (derivedp x robot-model)
+		 (when a
+		   (cond
+		    ((numberp (elt a 2))
+		     (let ((svv (send self :servo-vector))
+			   (ii (elt a 0)) (vel (elt a 1)))
+		       (setf (elt svv ii) (elt a 2))
+		       (send x :angle-vector
+			     (send self :servo-vector-to-angle-vector
+				   svv (list mc (incf i) a)))))
+		    (t
+		     (send x :angle-vector
+			   (send self :servo-vector-to-angle-vector
+				 (elt a 2) (list mc (incf i)))))))))
+	   (send viewer :objects))
+	  (send viewer :draw-objects)
+	  (when copy-viewer
+	    (catch
+		:kxr-exit
+	      (send copy-viewer :viewer :viewsurface :putimage
+		    (send (send viewer :viewer :viewsurface :getglimage) :halve)
+		    :depth 24))
+	    )
+	  (if (numberp (elt a 1)) (unix:usleep (* 10000 (elt a 1)))
+	    (unix:usleep (* 10000 (elt (car a) 1))))
+	  (setq pc (1+ pc)))
+	 (t (setq pc (1+ pc))))
+       
+       (send viewer :draw-objects)
+       (send viewer :string 10 (- (send viewer :height) 10)
+	     (format nil "~A: PC:~A OP: ~A" num pc op)
+	     ;;x::font-k12
+	     x::font-timesb14
+	     )
+       (send viewer :string 10 15
+	     (format nil "~A" (send mc :name)) x::font-timesb18)
+       (when copy-viewer
+	 (catch
+	     :kxr-exit
+	   (send copy-viewer :viewer :viewsurface :putimage
+		 (send (send viewer :viewer :viewsurface :getglimage) :halve)
+		 :depth 24))
+	 
+	 )
+       (unix:usleep 200000)
+       (x::window-main-one)	  
+       )))
+
+-----------------------------------------------------------------
+*** 29. euslispプログラムのコンパイル
+-----------------------------------------------------------------
+
+euslispのプログラムのデバッグが終わって高速化するために
+コンパイラが用意されている．
+
+(compile-file "file.l")
+で
+file.so
+というファイルが生成される．
+
+(load "file")
+とすると，
+file.so
+があるとfile.soをロードし，無ければfile.l
+をロードする．
+
+
+コンパイラは
+
+cd $EUSDIR/lisp/comp
+以下にソースコードがある．
+
+C言語のソースプログラムへ変換し，cコンパイラでそれをコンパイルする
+形になっている．
+
+
+-----------------------------------------------------------------
+*** 30. ROS を用いて通信を行う方法
+-----------------------------------------------------------------
+
+2台のPCのそれぞれに1台ずつkxrロボットを接続し，
+一方から他方を操縦するプログラムをROSを用いて行う
+
+
+rosrcb4.l
+
+操縦指令を送るマスターロボット側で
+
+ターミナル1
+roscore
+
+ターミナル2
+roseus rosrcb4.l
+
+(make-kxr-robot "kxrl2w2l5a3h2")
+
+(send *ri* :com-init)
+
+(send *ri* :free :larm :rarm)
+
+(init-publish)
+
+(joint-publish-loop);;publishし続ける場合
+
+(joint-publish);;1回publishする場合
+
+とすると，/puppet_joint_statesトピックがpublishされる．
+
+実機を繋がずに、ロボットモデルのジョイントの情報のみをpublishする場合は以下のようにする
+
+ターミナル1
+roscore
+
+ターミナル2
+roseus rosrcb4.l
+
+(make-kxr-robot "kxrl2w2l5a3h2")
+
+(init-publish)
+
+(joint-publish-loop);;publishし続ける場合
+
+(joint-publish);;1回publishする場合
+
+(defun init-publish nil
+  (ros::roseus "joint_state_publisher" :anonymous nil)
+  (ros::advertise "puppet_joint_states" sensor_msgs::jointstate 1)
+  (unix::sleep 1)
+  )
+
+(defun joint-publish-loop ()
+  (ros::rate 10)
+  (do-until-key
+   (joint-publish)))
+
+(defun joint-publish nil
+  (when
+      (ros::ok)
+    (setq msg (instance sensor_msgs::jointstate :init))
+    ;;(send msg :name (send robot :joint-list :name))                                                 
+    (send msg :name (send *robot* :joint-access-names))
+    ;;(send msg :velocity (send robot :ri :read-velocity-vector))                                     
+    ;;(send msg :effort (send robot :ri :read-effort-vector))                                         
+    (send *robot* :angle-vector (send *robot* :ri :read-angle-vector))
+    (send msg :position (send *robot* :angle-vector))
+    ;;(format t "msg=~A~%" (send msg :name))                                                          
+    ;;(format t "msg=~A~%" msg)                                                                       
+    ;;(format t "msg=~A~%" (send msg :position))                                                      
+
+    (send *robot* :ri :real-orientation)
+    (send *robot* :ri :viewer :draw-objects :flush t)
+    (send *robot* :ri :robot :draw-torque
+          ((send *robot* :ri :viewer) . x::viewer)
+          :torque-vector (send *robot* :ri :read-torque-vector)
+          :flush nil :size 10.0)
+    (send *robot* :ri :viewer :flush)
+    (send *irtviewer* :draw-objects :flush t)
+
+    (ros::publish "puppet_joint_states" msg)
+
+    (ros::sleep))
+  )
+
+
+スレーブロボット側で
+
+(demo-listener2 "kxrl2w2l5a3h2")
+
+とすると，マスターの動きに追従して
+スレーブロボットが動くようになる．
+
+(defun demo-listener2 (&optional (robo-name "kxrl2w2l6a6h2n"))
+  (setq *robot* (make-kxr-robot robo-name))
+  (send *robot* :ri :com-init :interface 0)
+  (send *robot* :ri :arm-hold)
+
+  ;;(rcb4-send-single-servo 20 0 100)                                                                 
+  ;;(rcb4-send-single-servo 21 0 100)                                                                 
+
+  ;;(objects (list *robot*))                                                                          
+  (send *irtviewer* :title "listener2")
+
+  (init-subscribe "joint_state_listen" #'joint-callback2)
+  (subscribe-loop)
+  )
+
+
+-----------------------------------------------------------------
+*** 31. C言語でのエミュレーション
+-----------------------------------------------------------------
+
+マイコンボードでRCB-4をエミュレートするプログラムを
+C言語で準備することを行うためにrcb4emulate.cを
+準備する．
+
+gcc rcb4emulate.c
+
+./a.out
+
+./a.exe
+
+-----------------------------------------------------------------
+*** 32. rcb4interface.l の実装メモ
+-----------------------------------------------------------------
+
+rcb4interface.lは，ftdi.lを利用して，USBシリアルでRCB4ボードと
+通信するためのrcb4-interfaceクラスの定義がある．
+
+
+(defclass rcb4-interface :super propertied-object
+  :slots (name
+          (robot :forward (:head :larm :rarm :arms :lleg :rleg :legs :joint-list :links))
+          com-port
+          analog-neutral
+          config
+          rcb4-dof
+          sv-length  ;; length of servo-vector= rcb4-dof
+          av-length  ;; length of angle-vector
+          angle-vector  ;; size = (length joint-list) -- depends to robot
+          free-vector ;; size = (length angle-vector)
+          torque-vector ;; size = (length angle-vector)
+          servo-vector  ;; 35
+          servo-sorted-ids  ;; size = (length angle-vector)
+          angle-to-servo-index ;; #i(servo-index1 ....) -- angle-vector-size
+          angle-to-servo-sign  ;; #i(1/-1 ...)  --angle-vector-size
+          servo-to-angle-index ;; #i(angle-index1 ....) -- servo-vector-size
+          servo-to-angle-sign  ;; #i(1/-1  ...) -- servo-vector-size
+          servo-vector-joint   ;; #(joint1 ...) -- servo-vector-size
+          servo-vector-method  ;;
+          project-file
+          motion-files
+          rom-jump-vectors
+          gravity-method
+          rcb4machine
+          codes)                ;; buffered codes for motion-table
+  )
+
+ロボットの実身体の状態を読む方法は，RCB4の中で，全サーボの状態をRAM領
+域の20byte x 35の領域に毎周期書き込んでいる．
+その20byteの内容は，RCB-4ファームウェアリファレンス.pdfの16ページ
+に説明されている．
+
+ 0: B: レジスタ配置の内容種別
+ 1: B: サーボID
+ 2: W: 基準値（トリム)
+ 4: W: 実測現在値
+ 6: W: 目標値
+ 8: B: 補間動作時の補間速度
+ 9: W: 補間動作終了時のポジション
+11: B: 補間動作中の補間段数
+12: W: 補間動作時の動作幅
+14: W: ミキシング1の元となるデータのアドレス
+16: B: ミキシング１の計算方法
+17: W: ミキシング2の元となるデータのアドレス
+19: B: ミキシング2の計算方法
+
+
+
+(:read-servo-vector nil)     :servo-vectorにサーボ値を読み出す
+(:read-ref-servo-vector nil) :指定されているサーボ目標値を読み出す
+(:read-servo-error nil)      :目標値と現在角度との差を読み出す
+
+  (:read-servo-vector nil
+   (let ((ary (send self :read-servos-three)))
+     (dotimes (i sv-length)
+       (setf (elt servo-vector i) (elt ary (1+ (* 3 i))))))
+   servo-vector)
+
+  (:read-ref-servo-vector nil
+   (let ((ary (send self :read-servos-three))
+         (sv (instantiate float-vector rcb4-dof)))
+     (dotimes (i rcb4-dof) (setf (elt sv i) (elt ary (+ 2 (* 3 i)))))
+     sv))
+
+  (:read-servo-error nil
+   (let ((ary (send self :read-servos-three))
+         (sv (instantiate float-vector rcb4-dof)))
+     (dotimes (i rcb4-dof)
+       (setf (elt sv i)
+             (if (= 0 (elt ary (1+ (* 3 i)))) 0
+               (- (elt ary (+ 2 (* 3 i)))
+                  (elt ary (1+ (* 3 i)))))))
+     sv))
+
+
+(:read-servos-three nil)     : 20byte x 35のメモリ領域の中の
+３つ（現在値，目標値，エラー）の6バイトを35個読む必要がある．
+
+:ram領域から一度に読み出せる連続領域は最大128バイトになっている
+ので，20x6+6=126で最大7つのサーボの6バイトを読み出すことができる．
+rcb4-dofは35なので，7で割ると5回それを行う必要がある．
+
+
+------------------------------------------------------
+(:read-servos-three
+   ()
+   (let* (ram (size 126) (offset 2) (len (/ size 2)) (vi 0)
+              i2 str (seg (instantiate float-vector len))
+              (ary (instantiate float-vector (* 3 rcb4-dof))))
+     (dotimes (j (/ rcb4-dof 7))
+       (setq ram (+ #x90 (* 20 (* j 7)) offset))
+       (setq str (send self :send-cmd
+              (list :move (list :ram ram size) (list :com)) size "read-servos-three"))
+       (dotimes (i len) (setq i2 (* 2 i))
+                (setf (elt seg i)
+                      (logand #xffff
+                              (logior (ash (elt str (1+ i2)) 8)
+                                      (elt str i2)))))
+       (dotimes (i 7)
+         (setf (elt ary vi) (elt seg (* i 10))) (setq vi (1+ vi))
+         (setf (elt ary vi) (elt seg (1+ (* i 10)))) (setq vi (1+ vi))
+         (setf (elt ary vi) (elt seg (+ 2 (* i 10)))) (setq vi (1+ vi))
+         ))
+     ary))
+------------------------------------------------------
+
+(:send-servo-vector &optiponal (vel 50))
+
+
+-----------------------------------------------------------------
+*** 33. euslispによるロボットの姿勢・動作生成方法
+-----------------------------------------------------------------
+
+euslispでの骨格モデルは，cascaded-linkクラス
+($EUSDIR/irteus/irtmodel.l)で表現し，そのサブクラスでロボットを作って
+ゆくことになっており，robot-modelクラス($EUSDIR/irteus/irtrobot.l)は，
+ヒューマノイドなど四肢と頭部をもつロボットのクラスが用意されている．
+
+KXRのロボットは，robot-modelのサブクラスのkxr-robotクラス
+で作られており，euslispで用意されているrobot-modelのメソッド
+を利用することができるようになっている．
+
+cascaded-linkの使い方,そのクラスの robot-modelのロボットで
+姿勢や動作を生成する方法については，
+jskeus/doc/jmanual.pdf(rcb4eus/pdfs/jmanual.pdfにコピーされている)
+にあるの第III部に説明されている．
+
+
+動作生成法の一つとして，動作系列の途中の代表的な姿勢（キーフレームの姿
+勢,angle-vector）を作ってその姿勢と姿勢の間の時間を指定して全体の
+姿勢列を補間してゆくという方法がある．
+
+姿勢の作り方は，関節ごとに角度を直接指定してゆく方法と，手先や足先の
+位置を指定して関節の角度を逆運動学で解いて指定ゆく方法がある．
+
+----------------------------------------------------------
+(1) 関節を直接指定する方法
+----------------------------------------------------------
+
+関節はrobot-modelの:joint-listに対して:joint-angleを送ると
+角度（degree)の読み書きができる．
+
+(send *robot* :head-neck-y :joint-angle)
+-> 0.0
+(send *robot* :head-neck-y :joint-angle 30)
+-> 30
+(send *robot* :head-neck-y :joint-angle)
+-> 30
+
+となり，ロボットのyaw軸(鉛直軸)周りに30度指定する．これにより
+ロボットの首が鉛直上向きの軸方向に30度回転するため，ロボットは
+正面から左方向を見る姿勢になる．
+
+この
+(send *robot* :head-neck-y :joint-angle 30)
+を行った後，
+IRT viewerのウィンドウをクリックする（表示を更新する）と
+ロボットの首が左方向へ回転していることが確認できる．
+
+:head-neck-yの他に関節の名前はどうなっているかということを
+調べるには:joint-listで返ってくるrotational-jointインスタンス
+の名前を見ることで調べることができる．たとえば，
+
+(setq *robot* (kxr-l2 :l6 :wide :shoulder :cross :wrist :cross :gripper t)
+
+で作られた*robot*では，
+
+(send *robot* :joint-list :name)
+->
+(:head-neck-y :head-neck-p
+ :larm-shoulder-p :larm-shoulder-y :larm-shoulder-r
+ :larm-elbow-p :larm-wrist-p :larm-wrist-r :larm-gripper-r
+ :rarm-shoulder-p :rarm-shoulder-y :rarm-shoulder-r
+ :rarm-elbow-p :rarm-wrist-p :rarm-wrist-r :rarm-gripper-r
+ :lleg-crotch-y :lleg-crotch-r :lleg-crotch-p
+ :lleg-knee-p :lleg-ankle-p :lleg-ankle-r
+ :rleg-crotch-y :rleg-crotch-r :rleg-crotch-p
+ :rleg-knee-p :rleg-ankle-p :rleg-ankle-r)
+
+となっている．
+また，6脚ロボットでは，
+irteusgl rcb4robots.l
+として，
+(make-kxr-robot "kxrl6")
+とすると，２つのウィンドウが表示され，kxrl6というタイトルのウィンドウは
+実機を繋いだ時の実機の状態を表示するためのウィンドウで大域変数
+*ri*が保持するロボットモデル(send *ri* :robot)の状態を表示しており，
+
+IRT viewerというタイトルのウィンドウは大域変数*robot*の状態を表示して
+いるが，この時の*robot*では，
+
+(send *robot* :joint-list :name)
+->
+(:larm-shoulder-y :larm-elbow-p :larm-wrist-p
+ :rarm-shoulder-y :rarm-elbow-p :rarm-wrist-p
+ :lleg-crotch-y :lleg-knee-p :lleg-ankle-p
+ :rleg-crotch-y :rleg-knee-p :rleg-ankle-p
+ :lmarm-shoulder-y :lmarm-elbow-p :lmarm-wrist-p
+ :rmarm-shoulder-y :rmarm-elbow-p :rmarm-wrist-p)
+
+ という関節名を持っており，
+
+(send *robot* :lleg-crotch-y :joint-angle)
+-> -30
+(send *robot* :lleg-crotch-y :joint-angle 0)
+-> 0
+(send *robot* :lleg-crotch-y :joint-angle)
+-> 0
+
+となって後ろ足の左側の足の向きが真後ろの方向に向く姿勢となる．
+
+関節の名前の最後についている-y，-p, -rは，
+回転軸を表しており，-y(YAW軸), -p(PITCH軸), -r(ROLL軸)
+となる．ロボットの正面前方向をX軸，鉛直上方向をZ軸，左手方向をY軸
+とするXYZ座標系となっているが，
+ROLL軸は，X軸，PITCH軸はY軸，YAW軸は，Z軸のこととなっている．
+
+
+----------------------------------------------------------
+(2) 手先・足先の移動位置を指定して姿勢を計算する方法
+----------------------------------------------------------
+
+手先・足先の位置を指定してロボットの関節角度を計算により
+もとめてゆく方法は逆運動学計算と呼ばれる．
+順計算は，関節角度から手先・足先の座標系の位置・姿勢を
+求める計算のことを言う．
+
+euslispのrobot-modelクラスでは，
+ロボットの手先，足先，頭部の末端にはxxx-end-coords
+(larm-end-coords, rarm-end-coords, lleg-end-coords,
+rleg-end-coords, head-end-coords)
+という座標系が定義され，*robot*のスロット変数として記憶されている．
+
+6脚ロボットもあるKXRでは，robot-modelを継承して
+kxr-robotクラス，さらにそれを継承している6脚ロボットの
+kxr-l6-robotクラスでは，
+lmarm-end-coords, rmarm-end-coords
+などをスロット変数として登録している．
+
+それぞれを参照するには，euslisp特有のスロット変数へのアクセス方法
+(*robot* . xxx-end-coords)
+で参照することもできるが，参照メソッドが:xxx-end-coordsのように
+登録されている．
+
+それらの座標系が実際にどこに設定されているかをIRT viewertitleの
+デフォルトビューア(*irtviewer*)に表示するには:draw-on というメソッド
+を座標系へ送ると座標系を表示させることができるようになっており，
+それを使って，
+たとえば，左手先の:larm-end-coordsを表示するには，
+
+(send (send *robot* :larm-end-coords) :draw-on :flush t :size 50
+      :width 5 :color #f(1 0 0))
+
+などとする．そうすると赤い座標系表示がなされる．矢印がついている軸がZ軸で
+右手の親指，人差指，中指で直交軸を作った時の，中指がZ軸で，親指がX軸と
+なる配置になっている．
+
+KXRのモデルでは，
+グリッパのend-coordsは，指が閉じた時の指の先端の位置に
+2本の指が伸びる方向にX軸をとってあり，腕を正面に向けて挙げた時
+に，世界座標系と同じ向きになるようになっている．
+
+KXRでの足では，足首軸から足裏平面へ垂線を下した点に
+世界座標系と同じ向きに配置されている．
+世界座標系は，正面方向がX軸，鉛直上向きがZ軸，左手方向がY軸となってい
+る．
+
+
+これらのend-coordsを空間のどこかへ配置してその配置になるようにロボット
+の関節角度を決めるにはロボットの逆運動学計算が必要となり，euslispでは，
+これらの逆運動学計算ツールが用意されており，robot-modelクラス等を継承
+するとその計算ツールを利用できるようになっている．その計算内容と利用方
+法は，jskeusのマニュアルに説明がなされている．マニュアルは，
+~/prog/rcb4eus/pdfs/jmanual.pdf
+にあり，
+
+$ evince pdfs/jmanual.pdf
+
+などとして表示できる．
+
+robot-modelの手先・足先の位置を指定して逆運動学計算を行う方法は
+１８．2節(193ページ）
+使い方の例は，
+１８．３節(201ページ)
+にある．
+
+逆運動学を用いる場合には，手先の座標系の位置3自由度，姿勢3自由度の6自
+由度を自由に指定すると，必要な関節は6軸必要であることから，
+
+KXRロボットの例として，腕も脚も6軸ずつあるロボットとして
+
+(make-kxr-robot "kxrl2l6a6h2")
+
+とすると，腕と脚がそれぞれ6軸あるロボットのモデルを代入した大域変数
+*robot*と，実機への通信インターフェースを保存した大域変数*ri*が定義さ
+れている．
+
+
+右腕の手先に固定したend-coordsの姿勢を変えずに，位置だけを
+相対敵に移動する場合のためのメソッドとして:move-end-pos
+があり，
+
+(send *robot* :rarm :move-end-pos #f(10 0 0) :local)
+
+とすると，end-coordsの座標系のx軸方向に10mm手先を移動する姿勢
+を指定したことになる．
+
+(send *robot* :rarm :move-end-pos #f(10 0 0) :world)
+
+ロボット本体を定義する世界座標系のX軸方向に10mm相対移動する
+姿勢となる．
+手の姿勢は動作前の姿勢を固定して手先の場所だけを変更する．
+
+次に，手先の場所を変更するが，手の姿勢もて適当に変更していい
+場合には，
+
+(send *robot* :rarm :move-end-pos #f(0 0 30) :world :rotation-axis nil)
+
+とする．
+
+この:move-end-posの定義は，~prog/jskeus/irteus/irtrobot.l
+になされており，
+
+(send *robot* :limb limb :move-end-pos ...)として，
+
+:limbメソッドの中でメソッド振分けをしている形となっている．
+
+　　(:move-end-pos
+       (let ((coords (send self limb :end-coords :copy-worldcoords))
+              (pos (pop args)) (wrt (pop args)))
+          (unless wrt (setq wrt :local))
+          (send* self limb :move-end (send coords :translate pos wrt) args)))
+
+　  (:move-end
+        (send* self limb :inverse-kinematics args))
+
+    (:inverse-kinematics
+       (let* ((link-list (if (memq :link-list args)
+                             (cadr (memq :link-list args))
+                            (send self :link-list
+                                 (send self limb :end-coords :parent)
+                                 (send self limb :root-link))))
+              (collision-avoidance-link-pair
+               (if (memq :collision-avoidance-link-pair args)
+                   (cadr (memq :collision-avoidance-link-pair args))
+                 (send self :collision-avoidance-link-pair-from-link-list link-list
+                       :collision-avoidance-links
+                           (send self limb :collision-avoidance-links)))))
+         (send* self :inverse-kinematics (car args)
+                :move-target (if (memq :move-target args)
+                                 (cadr (memq :move-target args))
+                               (send self limb :end-coords))
+                :collision-avoidance-link-pair collision-avoidance-link-pair
+                :link-list link-list
+                (cdr args))))
+
+などが:limbメソッドの中で定義されている．
+
+この中で使われている:inverse-kinematicsが，limbの逆運動学を計算する
+メソッドとなっており，
+robot-modelクラスに定義されている．
+
+:inverse-kinematicsは，
+
+     (send *robot*
+           :inverse-kinematics
+           target-coords-list
+           :move-target move-target-list
+           :link-list link-list                                                                     
+           :rotational-axis (list nil nil nil)                                                    
+           :revert-if-fail nil                                                                    
+           :debug-view :no-message                                                                
+           )                                                                                      
+
+などの引数を与えるメソッドとなっている．
+
+target-coords-listは，到達したい目標座標系
+move-target-listは，その目標座標系へ移動する座標系
+link-listは，move-target-listのそれぞれに繋がって
+いるリンクのリストをそれぞれに与えたもので，そのリンクを
+駆動する関節角度を変更し，最後に*robot*の全関節の関節角度ベクタ
+であるangle-vectorを返す．
+
+:move-end-posの機能は，
+
+(defmethod robot-model
+  (:end-relmove
+  (&optional (rv #f(0 0 0)) (limb :larm) (wrt :world))
+   (let* ((lc (send self limb :end-coords))
+          (tc-list
+           (list (send (send lc :copy-worldcoords) :translate rv wrt)))
+          (mt-list (list (send self limb :end-coords)))
+          (ll-list (mapcar
+                    #'(lambda (mt) (send self :link-list (send mt :parent)))
+                    mt-list)))
+        (send self
+           :inverse-kinematics
+           tc-list
+           :move-target mt-list
+           :link-list ll-list
+           :rotational-axis (list nil nil nil)
+           :revert-if-fail nil
+           :debug-view :no-message)
+   )))
+
+として書ける．
+
+:inverse-kinematicsのキーワードには，
+
+(send *robot* :inverse-kinematics
+      target-coords
+      :link-list   (link-list1 ... link-list2)
+      :move-target (mt1 ... mt2)
+      :debug-view
+      :warnp     t
+      :rotation-axis     t | nil | list
+      :translation-axis  t | nil | list
+      :revert-if-fail  t
+      :thre    1.0 | list
+      :rthre   (deg2rad 1.0) | list
+      :union-link-list
+      :centroid-thre 1.0
+
+などもあり，jmanual.pdfに書かれているが詳細説明は無い．
+
+この:inverse-kinematicsメソッドは，
+胴体についているlimbとして，:larm, :rarm, :lleg, :lleg, :head, :torsoなどを
+与えて用いるもので，胴体から末端までの逆運動学を計算するものとなってい
+るが，胴体も経由して，腕，脚を組合せて指定して，全身の姿勢を決める
+逆運動学計算メソッドとして，:fullbody-inverse-kinematicsが
+準備されている．
+
+たとえば，
+
+(defun fullbody-inverse-kinematics
+  (tc mt ll)
+  (send *robot*
+        :fullbody-inverse-kinematics
+        (list
+         *taget-coords*
+         (send *robot* :lleg :end-coords :copy-worldcoords)
+         (send *robot* :rleg :end-coords :copy-worldcoords)))
+        :move-target mt :link-list ll
+        :root-link-virtual-joint-weight (float-vector 0.1 0.1 0.1 0.1 0.5 0.5)
+        :target-centroid-pos (apply #'midpoint 0.5 (send *robot* :legs :end-coords :worldpos))
+        :translation-axis (list t t t)
+        :rotation-axis (list nil nil t)
+        :max (float-vector  500  500  0  20  20  10)
+        :min (float-vector  -500  -500  -200  -20  -20  -10)
+        :stop 20
+        )
+  )
+
+(defun generate-motion
+  (target-coords)
+  (let* ((tc nil)
+         (mt nil)
+         (ll nil))
+  (setq tc
+        (list
+         taget-coords
+         (send *robot* :lleg :end-coords :copy-worldcoords)
+         (send *robot* :rleg :end-coords :copy-worldcoords)))
+  (with-move-target-link-list
+   (mt ll *robot* (list :rarm :lleg :rleg))
+   (fullbody-inverse-kinematics tc mt ll))
+  ))
+
+として，
+(send *robot* :fix-leg-to-coords (make-coords))
+
+として，両足の中央を世界座標系の原点に配置した後，
+(generate-motion)を実行すると，
+両足の位置は固定とし，右腕をtarget-coordsに
+指定する全身姿勢の計算がなされる．
+指定するtarget-coordsによっては，解が出ない場合もあり，
+画面にその旨の多くのメッセージが表示される．
+
+:fullbody-inverse-kinematicsの
+定義は，以下のようになっている．
+
+  (:fullbody-inverse-kinematics
+    (target-coords
+     &rest args
+     &key (move-target) (link-list)
+          (min (float-vector -500 -500  -500 -20 -20 -10))
+          (max (float-vector  500  500   25  20  20  10))
+          (root-link-virtual-joint-weight #f(0.1 0.1 0.1 0.1 0.5 0.5))
+          ;; default cog-jacobian parameters
+          ;;  : target-centroid-pos, cog-gain, and centroid-thre                
+          (target-centroid-pos
+             (apply #'midpoint 0.5 (send self :legs :end-coords :worldpos)))
+             ;; <- target centroid position. 
+          (cog-gain 1.0) ;; <- cog gain for null-space calculation.
+                         ;;  cog-gain should be over zero.              
+          (cog-translation-axis :z) ;; translation-axis of cog
+          (centroid-offset-func nil) ;; offset function for cog
+          (centroid-thre 5.0) ;; cog convergence threshould [mm]
+          (additional-weight-list)
+          (joint-args nil)
+          (cog-null-space nil)
+          (min-loop 2) ;; 2 is minimum loop count
+     &allow-other-keys)
+    "fullbody inverse kinematics for legged robot.
+     necessary args : target-coords, move-target,
+     and link-list must include legs' (or leg's) parameters       
+      ex. (send *robot* :fullbody-inverse-kinematics (list rarm-tc rleg-tc lleg-tc)
+                        :move-target (list rarm-mt rleg-mt lleg-mt)
+                        :link-list (list rarm-ll rleg-ll lleg-ll))"
+    (with-append-root-joint ;; inverse-kinematics with root-link
+     (link-list-with-robot-6dof self link-list
+                                :joint-class 6dof-joint
+                                :joint-args (append (list :min min :max max) joint-args))
+     (send* self :inverse-kinematics target-coords
+            :move-target move-target :link-list link-list-with-robot-6dof
+            :cog-gain cog-gain
+            :centroid-thre centroid-thre
+            :target-centroid-pos target-centroid-pos
+            :cog-translation-axis cog-translation-axis
+            :centroid-offset-func centroid-offset-func
+            :cog-null-space cog-null-space
+            :min-loop min-loop
+            :additional-weight-list
+            (append
+             additional-weight-list
+             (list (list (car (send self :links))
+                         root-link-virtual-joint-weight)))
+            args)
+     ))
+
+
+-----------------------------------------------------------------
+*** 34. emulaterに送る動作プログラムの例
+-----------------------------------------------------------------
+
+irteusgl rcb4robots.l
+
+(make-kxr-robot "kxrl2w2l5a3h2")
+
+の後の
+
+(send *ri* :draw-project-file)
+
+で，実機が無くても，このロボットのモーションとして登録されている
+動作をWindowsで作られるプロジェクトファイルから読み出して
+その中の動作テーブルを0番目から１１９番まで動作が定義されていれば
+それをアニメーションする．
+
+この辺りは
+kxr-document.txt
+の
+12. 節  *** 12. 動作プログラムのエミュレート
+13. 節 *** 13. プロジェクトファイル内の動作プログラムの確認
+に説明がある．
+
+(setq mc (send *ri* :project-file :mcodes 10))
+とすると，プロジェクトファイルの中の
+10番目の動作テーブルのプログラムをmotion-codeインスタンス
+として取り出し，この動作プログラム mcの中の
+アセンブリプログラム acodesは，
+(send mc :acodes)
+で取り出すことができる．
+
+これをアセンブルした機械語コードは
+(send mc :bcodes)
+で取り出すことができ，
+acodesは，:servo命令を使っていますが，
+角度(deg)のベクトルで各関節の角度を指定する
+:angle-vector
+命令に変換するには，
+
+(send mc :deconversion)
+でできます．そうすれば，
+(send mc :ccodes)
+で
+:servo命令が:angle-vector命令に置き換わったものが
+mcのccodesに入る．
+(pprint (send mc :ccodes))
+でその内容を見ることができ，これが
+エミュレータに渡すサンプルコードの実体になる．
+ccodesをコンパイルしてアセンブルコードにする
+メソッドが:conversionで
+
+(send mc :conversion)
+
+とすると，mcのacスロットとbcスロットにそれぞれアセンブリプログラムとバ
+イナリプログラムが創られもともとのmcにはbcodesスロットにはプロジェクト
+ファイルに書かれているプログラムのバイナリコードが書かれていてそれを読
+んで，:disassembleしたものがacodesになっている．
+
+この辺りのことは，
+kxr-document.txtの
+26. 節　*** 26. assemble, disassemble, conversion, deconversion
+
+に書いてある．
+
+エミュレータへのプログラムの例としては，この
+プロジェクトファイルの動作プログラムを逆アセンブル
+した，acodesがそれになり，
+(send *ri* :draw-motion-code mc)
+とすると，mcの中のacodesを順に
+実行してゆく．
+
+なので実機がなくてもよいプログラム例はこの
+プロジェクトファイルから読み出した動作プログラム
+がそれになる．
+
+ただ，acodesでは，
+:servo命令が使われ，これはサーボパルス値のレベルの命令なので
+角度(deg)の列のレベルの命令である:angle-vector命令を
+もったccodesのプログラムを作ることを行うが，
+
+:angle-vectorは，
+33.節 *** 33. euslispによるロボットの姿勢・動作生成方法
+にあるように，
+身体モデルの関節の角度(deg)を
+(send *robot* :head-neck-y :joint-angle 30)
+のように指定し，
+その:angle-vectorを
+(setq av (send *robot* :angle-vector))
+とすると得ることができ，
+:angle-vector命令は
+`(:angle-vector ,av  5)
+のような形式で，5msecでavの関節角度列へ動くという
+命令になる．
+
+これを順に並べてゆけば動作列を作ることができるようになる．
+
+
+-----------------------------------------------------------------
+*** 35. rcb4lisp rcb4へのコンパイラ
+-----------------------------------------------------------------
+
+千葉先生により2019.5.2に作成された．
+rcb4lisp.lの冒頭に以下の説明がある．
+
+(rcb4lisp::compile <program>) 
+
+により，RCB4命令セットのプログラムへコンパイルする．
+
+<program> は，lisp形式の言語でかかれたプログラムで，たとえば
+
+(rcb4lisp::compile '(let ((i 5))
+                      (while (> i 0)
+                        (setq i (- i 1)))))
+
+とすると，
+
+  ((:move (:lit 5 0) (:ram (:user 2)))
+   (:jump nil |l2|)
+   |l1|
+   (:sub (:lit 1 0) (:ram (:user 2)))
+   |l2|
+   (:move (:lit 0 0) (:ram (:user 0)))
+   (:sub (:ram (:user 2) 2) (:ram (:user 0)) t)
+   (:jump (:c :c=) |l1|)
+   (:return))
+
+というコードが生成される．
+
+この言語は，
+ let, if, while, progn, return, setq,
++, -, *, /, mod, and, or, xor, <<, >>, not, servo, speed, stretch,
+read-ad
+を用いることができる．
+
+算術演算　+, -, *, /, mod, and, or, xor, <<, >>
+は，２つの引数のみを受ける．(+ x y z)はダメで，
+(+ x (+ y z))と書く必要がある．
+
+(let ((<variable> <expression>) ...) <expression> ...)
+は，局所変数を宣言でき，この式の結果はvoidとなり値を返す
+ことはできない．
+
+(setq <variable> <expression>)
+
+によって変数<variable>に値<expression>を代入する．
+変数はletで宣言されている必要がある．
+setqの結果は値を返すので，(setq x (setq y (+ i 1)))も有効．
+
+(if <condition> <then-expression>)
+または
+(if <condition> <then-expression> <else-expression>)
+を用いることができる．
+
+条件 <condition> は，計算式 <, >, <=, >=, = (or ==), or !=.
+でないといけない．論理式 AND or OR などは使えない．
+ifの結果は voidとなるので，算術式の引数に与えることはできない．
+
+(return)
+
+実行を終える．プログラムの最後に自動的に付加される．
+
+(servo (ids) time #f(values))
+
+サーボ命令を生成する．ids, time, valuesは数値でないと
+いけない．
+
+(speed (ids) #f(values))
+(stretch (ids) #f(values))
+も対応している．
+
+(read-ad <offset>)
+ 16bit A/D port (:ram (:ad <offset>))
+を出力する．
+
+16bit マシン，little endian という仮定で作ってある．
+zflag と cflag の挙動が資料からははっきりしないので要確認となっている．
+little endian の 16bit マシンとして動くように修正してある．
+
+
+(load "rcb4lisp_test.l")
+によって自動でテストが実行され，エラーがなければ問題がない．
+
+たとえば，
+(setq hello-code
+      '(let ((count 10))
+         (servo (2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19) 30
+                #f(7500.0 7500.0 8700.0 6300.0 8000.0 8000.0 10500.0
+                   10500.0 7500.0 9400.0 8700.0 8700.0 11300.0 11300.0
+                   6300.0 8700.0 8000.0 8000.0 10500.0 10500.0 7500.0
+                   7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0
+                   7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0))
+         (servo (2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19) 30
+                #f(7500.0 7500.0 8700.0 6300.0 8000.0 8000.0 10500.0 10500.0
+                   7500.0 9400.0 7500.0 7500.0 11300.0 11300.0 6300.0 8700.0
+                   8000.0 8000.0 10500.0 10500.0 7500.0 7500.0 7500.0 7500.0
+                   7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0
+                   7500.0 7500.0 7500.0 7500.0))
+         (servo (2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19) 30
+                #f(7500.0 7500.0 8700.0 7500.0 5300.0 10000.0 9160.0 10700.0
+                   7500.0 9400.0 6800.0 5000.0 11300.0 8300.0 6300.0 8700.0
+                   9300.0 7720.0 11300.0 11300.0 7500.0 7500.0 7500.0 7500.0
+                   7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0
+                   7500.0 7500.0 7500.0 7500.0))
+         (while (< 0 count)
+           (setq count (- count 1))
+           (servo (2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19) 20
+                  #f(7500.0 7500.0 8700.0 5700.0 5300.0 10000.0 9160.0
+                     10700.0 7500.0 9400.0 6800.0 5000.0 11300.0 8300.0
+                     6300.0 8700.0 9300.0 7720.0 11300.0 11300.0 7500.0
+                     7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0
+                     7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0))
+           (servo (2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19) 20
+                  #f(7500.0 7500.0 8700.0 7500.0 5300.0 10000.0 9160.0
+                     10700.0 7500.0 9400.0 6800.0 5000.0 11300.0 8300.0
+                     6300.0 8700.0 9300.0 7720.0 11300.0 11300.0 7500.0
+                     7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0
+                     7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0)))
+         (servo (2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19) 30
+                #f(7500.0 7500.0 8700.0 6300.0 8000.0 8000.0 10500.0
+                   10500.0 7500.0 7500.0 8000.0 8000.0 10500.0 10500.0
+                   6300.0 8700.0 8000.0 8000.0 10500.0 10500.0 7500.0
+                   7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0
+                   7500.0 7500.0 7500.0 7500.0 7500.0 7500.0 7500.0)))
+
+(load “rcb4lisp.l”)
+(setq acode (rcb4lisp::compile hello-code))
+
+により，acode にアセンブリコードがセットされる．
+
+
+-----------------------------------------------------------------
+*** 36. kxrmodels.l モデルの作り方
+-----------------------------------------------------------------
+
+2020.3月まではlinkとjointをlとjに代入し，linkを覚えるスタックlstと
+jointを覚えるスタックjlstにpushをしてリムの構造を作成する書き方を
+していたが，これらを:push-jointというメソッドでできるように
+改造を行った．
+
+:push-jointは，リンクをlinkをもらって，そのlinkの場所を，
+リンクスタックlstのトップのリンクにparent-nameで指定される
+接続場所へ移動したあと，それをjointのchild-linkとし，
+リンクスタックlstのトップのリンクをjointのparent-linkとする
+jointを生成し，ジョイントスタックjlstにpushする．
+child-linkもリンクスタックlstにpushする．
+
+:push-joint
+の引数は，
+(&optional limb i-str axis min max
+  &key parent-link child-link (active t) (parent-name :joint-coord) joint-coord)
+
+となっている．
+limb : :larm, :rarm, :lleg, :rleg, :torso, :head, :lmarm, :rmarmなどで，
+i-strは，リムを球関節としての順番0,1,3かまたは名前文字列を指定する．
+limbが腕であれば，i-str=0は，shoulder, 1 はelbow, 2はwristになる．
+limbが脚であれば，i-str=0は，crotch, 1 はknee, 2はankleになる．
+axisは，jointの軸方向を示すキーワード，
+min,maxは，jointの可動範囲の角度(deg)
+parent-linkは，指定されなければリンクスタックのトップlinkを使う．
+child-linkは，parent-linkに接続する場所へ移動されるリンクで
+	ここで生成されるjointのchild-linkとなる．
+activeは，リンクが受動車輪リンクの場合にnilで駆動される場合にはt
+parent-nameは，parent-linkのparent-name属性に座標系が設定されているとして
+	どの属性の場所へchild-linkが移動される．parent-nameがnilの場合
+	にはchild-linkは移動しない．
+
+この:push-jointの中では，生成したjointの名前を
+	:larm-shoulder-p
+	:lleg-knee-p
+	:head-neck-y
+	:head-neck-p
+	:head-head-p
+などのように３つの指定子をもつキーワードシンボルとし，
+与えられたlinkの名前もそれと同じに設定する．
+
+:bodyで指定される:l4dなどの土台に最初のjointを接続する場合には，
+parent-linkにもbody-linkを与える必要がある．
+
+kxr-robotの指定において:gripperや:footなどリムの末端に
+生成されるものの指定が無い場合には，gripperやfootを装着する
+土台となるリンクだけをリムの末端リンクとして一旦登録する
+ことになり，gripperやfoot指定があった場合には，そのリム
+を延長するような形でgripperの駆動サーボと２本の指や
+footを装着する必要があるが，その処理を行うために
+:add-link
+を用意してある．
+
+:add-link (link &key parent-name)
+
+となっており，追加するlinkを与え，リンクスタックlstのトップ
+のリンクのparent-name属性の場所へlinkを移動し，
+linkの中のbodiesをリンクスタックのトップlinkのbodies
+に追加し，リンクスタックトップのlinkへassocする．
+ジョイントスタックは変わらず，ジョイントスタックトップの
+jointのchild-linkのbodiesが更新されることになる．
+
+:setup-head
+
+で準備しているものはいくつかある．
+:h0,:h1,:h2, :d, :d1, :d2, :e, :m5, :m5sなど
+がある．
+これは頭部に付けるものと軸配置とを分けて指定
+できるようにいずれ変更してゆく必要がある．
+
+-----------------------------------------------------------------
+*** 37. ニューラルネットモデル生成，計算 cblaslib.l, nn.l
+-----------------------------------------------------------------
+
+nn.lファイルには，Perceptronクラス，MultiLayerPerceptronクラスを定義し
+てあり，2019年度創造情報学専攻修士修了伊藤秀朗君が学部講義での課題を
+MNISTを解くプログラムをPythonで数値演算ライブラリNumPyを利用して実装した
+時の多層パーセプトロンをベースにeuslispで実装したものである．
+PythonのNumPyは，数値計算を効率的に行うライブラリ
+
+euslispでは，過去ニューラルネットの計算を行うサンプルは
+euslib/jsk/neurolib.l,backprop.lなどにある．ここでは，NumPyでも利用し
+ているようである行列演算ライブラリopenblasを利用する例としてある．行列
+計算には，他言語インタフェース(FFI: Foreign Function Interface) により
+openblasライブラリをlisp関数として宣言することで利用している．openblas
+は，BLAS(Basic Linear Algebra Subprograms)のオープンソース版のライブラ
+リであり，マルチスレッド，マルチコアプロセッサ上では自動的に複数スレッ
+ドを利用して行列演算を行っている．
+
+行列演算ライブラリにはcblas, openblas, cublasなどがあり，
+それぞれのライブラリが使えるようであればeuslispからそれを
+load-foreignし，内部にあるモジュールをeuslispの関数として
+defforeignすればeuslispで利用できるようになる．
+そのサンプルが
+rcb4eus/cblaslib.l
+である．
+ここでは，openblasを使うために
+/usr/lib/openblas-base/libblas.soをload-foreignし，
+cblas_dnrm2
+cblas_ddot
+cblas_dcopy
+cblas_dger
+cblas_daxpy
+cblas_dgemv
+cblas_dgemm
+をdefforeignしており，nn.lで使えるように
+cblas-dgemv, cblas-dgemm, cblas-mat-, cblas-mat+
+cblas-daxpy, cblas-dger, cblas-dcopy, cblas-ddot, cblas-dnrm2
+などの関数を準備してある．
+
+nn.lのサンプルを作ってテストするために
+MNISTのオリジナルデータを読み込んでeuslispの大域変数
+*train-images*, *train-labels*, *test-images*, *test-labels*
+を作るためのmnist.lも用意してある．
+
+MNISTのデータは，http://yann.lecun.com/exdb/mnist/から
+train-images-idx3-ubyte.gz:  training set images (9912422 bytes)
+train-labels-idx1-ubyte.gz:  training set labels (28881 bytes)
+t10k-images-idx3-ubyte.gz:   test set images (1648877 bytes)
+t10k-labels-idx1-ubyte.gz:   test set labels (4542 bytes)
+
+をダウンロードしてxx.txtファイルを作ってそこから
+各自４種類のデータを作って学習実験がなされている．
+
+ここでは，それらをeuslispでダンプして，ロードする
+だけで４つの大域変数を生成できるようにもなっている．
+ファイルには
+-rw-rw-r-- 1 semi2018 semi2018 269963842 Apr  4 17:26 mnist-datasets.l
+-rw-r--r-- 1 semi2018 semi2018  43632294 Apr  4 17:26 mnist-mlp-19.l
+-rw-rw-r--  1 semi2018 semi2018  38518692 Apr  4 17:26 mnist-test-images.l
+-rw-rw-r--  1 semi2018 semi2018  38598716 Apr  4 17:26 mnist-test-labels.l
+-rw-rw-r--  1 semi2018 semi2018 230885101 Apr  4 17:26 mnist-train-images.l
+-rw-rw-r--  1 semi2018 semi2018    480025 Apr  4 17:26 mnist-train-labels.l
+などがあり，
+サイズが大きいためsvnやgitに置けないようなのでmnist-lisp-data.tgz
+としてもってきて展開するようにする．
+
+(load "mlp/mnist-datasets.l")
+とすると，時間がかかるが，
+*train-images*, *train-labels*, *test-images*, *test-labels*
+が用意される．
+それぞれの大域変数は大きいので値を見ると画面に表示終わるまで
+時間がかかりすぎるので
+(boundp '*train-images*)
+(length *train-images) => 60000
+(boundp '*test-images*)
+(length *test-images) => 10000
+などとして確認するとよい．
+
+画像を確認するために
+(draw-train-images)
+とすると，学習用データの画像とラベルが
+do-until-keyで順に表示される．
+表示を止めるにはキーボードからリターンを入れる．
+
+(draw-test-images)
+とすればテスト用データも同様に順に表示される．
+
+
+nn.lでは，多層ニューラルネットは，たとえば
+
+(setq mlp
+   (instance MultiLayerPerceptron :init
+             (list (instance Perceptron :init 784 1000 1.0 'mReLU)
+                   (instance Perceptron :init 1000 1000 1.0 'mReLU)
+                   (instance Perceptron :init 1000 10 1.0 'mSoftmax))))
+
+のようにすると３層ネットワークmlpを生成できる．
+
+各層のPerceptronインスタンスは，入力，出力のニューロン数，ドロップアウ
+ト選択率，活性化関数を受け取る．ドロップアウトとは過学習を防ぐために，
+ランダムに有効にするノードを選んでゆく仕組みであるが，現状はそれを実装
+していないものとなっている．
+
+このmlpでは，
+第１層，入力784(28 x 28)，出力1000，ドロップアウト選択率1.0, 活性化関数
+ReLU，第２層，入力1000, 出力1000，ドロップアウト選択率1.0, 活性化関数
+ReLU，第３層，入力1000, 出力10，ドロップアウト選択率1.0, 活性化関数
+Softmaxというものとなっており，28x28画素の手書き文字画像を学習する
+MNISTを試す時の例となっている．
+
+irteusgl nn.l
+として，
+MNISTの学習を行うには，*train-images*, *train-labels*
+のデータを準備した後
+
+(test-mnist-batch 200)
+とすると学習が始まる．
+
+学習が終わると，大域変数*mlp*に
+そのネットワークが代入され，*mlp*をダンプした
+mlp/mnist-mlp-エポック数.l
+のファイルが作られる．
+
+
+学習時間はけっこうかかるので，
+すでに学習が終わったニューラルネットモデルが入ったファイルが
+mlp/mnist-mlp-19.l
+がある．
+(load "mlp/mnist-mlp-19.l")
+とすると，*mlp*に上記のmlpと同じ３層モデルで学習後の
+ニューラルネットが入るため，学習プロセスをスキップした
+環境を作ることができる．
+
+大域変数*mlp*が無い場合に，mnist-mlp-19.lをロードして
+
+(test-mnist-test)
+
+とすると，*mlp*に対して，*test-images*の画像を順に
+認識させて結果をviewerに表示する．
+
+内部では，
+(send *mlp* :test (elt *test-images* i))
+
+の計算結果に基づいてviewerに結果を表示する．
+(array-dimensions (send *mlp* :test (elt *test-images* i)))
+=> 
+(1 10)
+となり，10個の文字のそれぞれの活性度合いが列要素に入っている．
+
+たとえば，
+テスト画像で
+(elt *test-labels* 200)は
+#f(1.0)
+となっており，文字１の画像になっているはずであるが，
+
+(send *mlp* :test (elt *test-images* 200))
+=>
+#2f((2.490355e-11 0.999893 1.107028e-07 8.941586e-09 1.437898e-06
+   3.128844e-10 8.480515e-11 0.000106 1.918428e-08 7.047272e-09))    
+
+となり，1の文字に対応する要素が0.999893となり，
+他は0に近い値であることから，この画像は1の文字であると
+認識していることがわかる．
+
+
+
+-----------------------------------------------------------------
+*** 38. BVHアニメーション　kxranimate.l
+-----------------------------------------------------------------
+
+研究室には，rbrain時代から，モーションキャプチャデータをロボット
+モデルで読み込みアニメーション表示するための環境がある．
+そのための関数として
+
+(objects (list (kxr-robot "kxrl2l5a3h2")))
+などとし，
+(animate)
+とすると，viewerの中でモーションキャプチャデータの
+再生アニメーションが始まる形になっている．
+
+その環境を利用するためには，
+$EUSDIR/bvh
+にモーションキャプチャデータがある
+ことを想定している．
+
+その環境を準備するには，
+cd ~/prog
+svn up bvh
+cd $EUSDIR
+ln -s ~/prob/bvh .
+とすればよい．
+
+cd ~/prog/rcb4eus
+irteusgl makabe.l
+(make-kxr-robot "kxrl2makabe")
+(animate)
+とすると，真壁ロボットが歩くアニメーションが始まる．
+ファイルが順にスキャンされいろいろな歩き方や
+座ったりする動作が再生されてゆくが，
+止めるにはキーボードからリターンを入れると
+再生が止まる．
+
+-----------------------------------------------------------------
+*** 39. 動力学シミュレーション環境　odedyna.l, kxrdyna.l
+-----------------------------------------------------------------
+
+odedyna.lは，2007年に博士課程修了した小倉崇君が博士論文で作成した
+eusdynaから動力学計算ライブラリODEを用いてirteus/irtrobot.lで
+動くようにしたものである．eusdynaは，euslib/rbrain環境の
+ロボットモデルで動くようにしてあり，ODEの他，Physixライブラリ
+などを切り替えて使える一般化がなされていたものである．現在も
+euslib環境を持ってきて，jskrbeusglを使えるようにした後，
+cd ~/prog
+svn up eusdyna
+cd prog/eusdyna
+make
+で動くようになっている．
+
+odedyna.lは，ODEライブラリの宣言から，eusdynaでのクラスを
+定義し，１つのファイルに集めたものとなっている．
+
+kxrdyna.lは，eusdynaと同じように，objectsにkxr-robotのロボットモデルと
+環境モデルを入れた後，動力学モデルへ変換して動力学計算をスタート，ストッ
+プする形で利用するためのものである．
+
+たとえば，
+
+(kxr-dyna "kxrl4d")
+
+とすると，kxrl4dロボットモデルと目の前に柱状の物体が作られ，
+kxrl4dのプロジェクトファイル内にある動作テーブルの動作を
+順に実行してゆく．
+
+(make-kxr-robot xxx)
+
+で作ることができて，プロジェクトファイルを持っているもの
+であれば
+
+(kxr-dyna xxx)
+
+とするとことで，プロジェクトファイル内のモーションテーブルを
+実行してゆく．
+
+実行を止めるには，
+
+(setq *loop* nil)
+
+とキーボードから入力する必要がある形になっている．
+
+-----------------------------------------------------------------
+*** 42. /dev/tty*** としてのopen/read/write方法 uart.l 2022.5.22
+-----------------------------------------------------------------
+
+libftdiをFFIすればいろいろなことができるが，ftdi USBシリアル変換を行わ
+ずにraspberryPiなど UARTをデバイスをもったホスト計算機のUARTから通信し
+てゆく方法があるとよいということで，unixのopen/read/write/ioctlを用い
+て行える．
+
+unixでは，termios.hなどで定義されている構造体があり，その構造体を
+通して端末の設定を行うようになっている．
+
+これらを行うために，uart.lを追加し，
+
+(defcstruct termios
+  (c_iflag :integer)
+  (c_oflag :integer)
+  (c_cflag :integer)
+  (c_lflag :integer)
+  (c_line :byte)
+  (c_cc :byte 32)
+  (c_ispeed :integer)
+  (c_ospeed :integer)
+  )
+
+などの構造体を定義し，
+euslispのunixパッケージにすでに使えるようになっている
+
+unix::tcgets, unix::tcsets
+
+を用いている．
+C言語でどのようなフラグの値になっているかを調べて
+通信できることを確認するためのテストプログラムを
+rcb4eus/cprog/uart.c
+においてある．
+
+  newtio.c_cflag &= ~(PARENB | CSTOPB | CSIZE | CRTSCTS);
+  newtio.c_cflag |= (CLOCAL | CREAD | CS8);
+  newtio.c_cflag = 0x1cbd;
+  newtio.c_cflag = 0x1cb7;
+  newtio.c_lflag &= ~(ICANON | ECHO | ECHOE | ISIG);
+  newtio.c_iflag &= ~(IXON | IXOFF | IXANY);
+  newtio.c_oflag &= ~OPOST;
+  newtio.c_ispeed = B921600;
+  newtio.c_ospeed = B921600;
+
+  ret=ioctl(fd, TCSETS, &newtio);
+
+のようなことで，構造体で値を設定することを
+rcb4eus/uart.lの中で
+
+    (unix::tcgets fdio tios)
+    (send tios :set #x1cb7 'c_cflag)
+    (send tios :set #x8a20 'c_lflag)
+    (send tios :set #x100 'c_iflag)
+    (send tios :set #x4   'c_oflag)
+    ;;
+    (send tios :set #x1007 'c_ispeed) ;; B921600
+    (send tios :set #x1007 'c_ospeed) ;; B921600
+
+のように行っている．
+
+(send *ri* :com-init :devname "/dev/ttyS1")
+
+とすると，/dev/ttyS1のUARTの先にARMH7ボードを
+接続するとftdiでの通信と同じように利用できるように
+なっている．
+
+ftdi USBシリアルのシリアル番号ごとに/dev/を作るためには
+udev ruleファイルとして，
+
+SUBSYSTEMS=="usb", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6001", ATTRS{serial}=="AR0K7CYE", SYMLINK+="$attr{serial}", MODE="0666"
+
+というような内容を/etc/udev/rules.d
+に置いておくと，
+
+/dev/AR0K7CYE
+
+というデバイスファイルが作られる．
+ls -la で見ると
+bus/.../
+というデバイスに接続されている状態だとttyとして認識されていない
+ことになり，エラーが出るので，
+
+sudo udevadm trigger
+
+を行ってttyとしての認識になっていることの確認が必要である．
+
+rcb4eus/99-my-ftdi.rulesの内容として，
+
+SUBSYSTEMS=="usb", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6001", SYMLINK+="ftdi-$attr{serial}", MODE="0666"
+
+SUBSYSTEMS=="usb", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6015", SYMLINK+="aki-$attr{serial}", MODE="0666"
+SUBSYSTEMS=="usb", ATTRS{idVendor}=="165c", ATTRS{idProduct}=="0008", SYMLINK+="rcb4-$attr{serial}", MODE="0666"
+
+#SUBSYSTEMS=="usb", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6001", ATTRS{serial}=="AR0K7CYE", SYMLINK+="$attr{serial}", MODE="0666"
+#SUBSYSTEMS=="usb", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6001", ATTRS{serial}=="AO007VJN", SYMLINK+="$attr{serial}", MODE="0666"
+#SUBSYSTEMS=="usb", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6001", ATTRS{serial}=="AO007WLK", SYMLINK+="$attr{serial}", MODE="0666"
+
+というようにしたファイルを置いてあるが，これを
+/etc/udev/rules.d
+へ置いて
+sudo udevadm control --reload-rules
+sudo udevadm trigger
+すると，
+接続しているFTDI USBシリアルのiSerial番号名(AR0K7CYEなど）を調べて
+
+/dev/ftdi-AR0K7CYE
+/dev/ftdi-xxxxxxxx
+
+というようなファイルができあがるので，
+これらを
+
+(send *ri* :com-init :devname "/dev/ftdi-AR0K7CYE")
+
+すると利用できるようになる．
+
+raspberryPiの40pinポートのUARTや
+M5UnitV2のGroveコネクタUARTは，どちらも/dev/ttyS1として
+登録されているようで，
+
+(send *ri* :com-init :devname "/dev/ttyS1")
+
+とするとlibftdiでopenした時と同じように
+ARMH7ボードとの双方向通信ができるようになる．
+
+-----------------------------------------------------------------
+*** 43. メッシュの削減方法 2022.10.11
+-----------------------------------------------------------------
+solidworksから直接出力したSTLをstl2eusでeusモデルとして扱う場合、
+一番荒い設定で出力してもファイルサイズが大きく読み込みに時間がかかる
+https://github.com/start-jsk/rtmros_hrp2/tree/master/jsk_modelsを参考に、
+meshを削減する方法を記す
+
+1. solidworksからvrml形式でファイルを生成
+URLに従い、ドキュメントプロパティでイメージ品質を最低にしてVRML97で出力する
+STLで出力する場合、イメージ品質に依存しない形状で出力されるため、
+一旦VRMLを挟んでいる
+solidworks内部で必要に応じて参照ジオメトリから座標系を定義することが可能で、
+eusの場合上がZ軸、前方がX軸の右手系にすれば良い
+
+2.meshlabのインストール
+meshlabをaptで入れる
+sudo apt install meshlab
+
+3.filter.mlxを準備する
+URLのようにfilter.mlxを用意する
+メッシュを荒くしすぎるとstl2eusでうまく変換できなくなったため、
+現状vrmls/filter.mlxではTargerPercの値を0.75にしているがファイルに依存するかも？
+
+4.meshにフィルタを通す
+cd vrmls
+meshlabserver -i [input].wrl -o ../stls/reduction/[output].stl -s filter.mlx -om fc
+makeコマンドに追加しても良いかもしれない
+
+-----------------------------------------------------------------
+*** 48. rcb4robotconfig.lのロボットモデル記述  2023.7.12
+-----------------------------------------------------------------
+rcb4robotconfig.lにあるkxrl2l2a6h2の定義に:file 指定とkxr-robotモデル
+指定を共存させてもkxr-robotのインスタンスやrobot-modelのインスタンスを
+make-kxr-robotで生成分けできるようにした．これにより，:fileのみを指定
+したロボット名とkxr-robot用のロボット名の２種類を考えて定義しておく必
+要がなくなった．
+
+
+(make-kxr-robot "kxrl2l2a6h2")
+rcb4robotconfig.lにあるkxrl2l2a6h2の定義に:file 指定があると
+そのfile指定を優先する．
+
+(make-kxr-robot "kxrl2l2a6h2" :model nil)
+rcb4robotconfig.lにあるkxrl2l2a6h2の定義に:file 指定があっても
+そのfile指定ではなく，kxr-robot用のモデル構成指定の方を利用して
+kxr-robotのインスタンスを生成する．
+
+(make-kxr-robot "kxrl2l2a6h2" :model t)
+rcb4robotconfig.lにあるkxrl2l2a6h2の定義に:file 指定がなくても
+models/kxrl2l2a6h2.lのファイルがあると思って実行する．
+
+(make-kxr-robot "kxrl2l2a6h2" :generate t)
+rcb4robotconfig.lにあるkxrl2l2a6h2のkxr-robotのモデル定義を
+用いてeus2collada-robotを呼び出してrobot-modelのインスタンスを
+生成する．
+
+以下のように，:file記述とkxr-robotモデル用の記述の両方を
+書いてある．:model tは，:file :formの記述が無いロボット定義でも
+models/kxrl2l2a6h2.l を読み込み(kxrl2l2a6h2)を呼び出すので
+:file :formの記述が無くても:file, :formを記述してあるのと
+同じ処理がなされる．:file :formの記述は標準のロボットモデルの
+loadと実行以外の場合に使えばよくなった．
+
+ (("kxrl2l2a6h2") 		;; 28
+  (
+   :file "models/kxrl2l2a6h2.l" :form (kxrl2l2a6h2)
+   ;; (progn (load "additional-settings.l") (kxrl2l2a6h2))
+   :com-init-method (:com-init :devname "ttyAML1")
+   :body :l2l6 :type :l2 :sole t
+   :project-file "kxrl2l6a6h2"
+   :shoulder :pry-cross :shoulder-front t :shoulder-low t
+   :flat-shoulder nil ;;:shoulder :ly-p-rb
+   :shoulder-p-sensor :horn-mag-
+   :elbow :angle :wrist :cross-pr :upper-arm-length 38 
+   :elbow-p-sensor :mag-7
+   :wrist-sensor :mag-7
+   :crotch-p t :crotch-low t :crotch-front t :flat-crotch t
+   :leg :j2-pr :sole t 
+   :crotch-r-sensor :mag-7
+   :crotch-y-sensor :rev-a
+   :gripper t :gripper-straight t :gripper-axis :y
+   :head :d405cam :3eye-front t :head-length 20
+   :reset-pose-alist ((:larm-shoulder-p . 0) (:rarm-shoulder-p . 0)
+                      (:larm-shoulder-r . 0) (:rarm-shoulder-r . 0)
+                      (:lleg-crotch-r . 0) (:rleg-crotch-r . 0)
+                      (:larm-elbow-p . 0) (:rarm-elbow-p . 0)
+                      (:larm-wrist-p . 0) (:rarm-wrist-p . 0)
+                      (:larm-wrist-r . 0) (:rarm-wrist-r .  0)
+                      )
+   ;;      :init-form (print (list 'self= self 'args= args))
+   )
+  (2 :rarm-shoulder-p 1)     (3 :larm-shoulder-p -1)
+  (4 :rarm-shoulder-r 1)     (5 :larm-shoulder-r 1)
+  (6 :rarm-elbow-p 1)        (7 :larm-elbow-p 1)
+  (16 :rleg-crotch-r -1)     (17 :lleg-crotch-r -1)
+
+  (18 :rarm-gripper-r 1/2)   (19 :larm-gripper-r 1/2)
+  (18 :rarm-gripper2-r 1/2)  (19 :larm-gripper2-r 1/2)
+
+  (22 :rarm-shoulder-y 1)    (23 :larm-shoulder-y 1)
+  (24 :rleg-crotch-y 1)      (25 :lleg-crotch-y 1)
+  (26 :rarm-wrist-p 1)       (27 :larm-wrist-p -1)
+  (28 :rarm-wrist-r -1)      (29 :larm-wrist-r -1)
+  (32 :head-neck-y -1)       (34 :head-neck-p -1)
+  
+  )
+
+-----------------------------------------------------------------
+*** 49. kxr-robotset クラスとモジュールロボットを統合　2024.1.8
+-----------------------------------------------------------------
+
+kxr-robotのサブクラスとしてkxr-robotsetクラスを設けてkxr-robot
+のインスタンスとして定義される脱着モジュールを統合したロボット
+を記述できるようにするクラスを設けた．
+
+    (("kxrrobosetl4t")
+     (:project-file
+      "kxra6g"
+      :robotset ("kxrl2body" ;; "kxrl2a6h2body"
+		 (:neck "d405echos")
+		 (:larm "la6" "lg1sx") (:rarm "ra6" "rg1sx")
+		 (:mbase "kxrl4tbase")
+		 ))
+     )
+
+のようにrcb4robotconfig.lに記述する．
+      :robotset ("kxrl2body" ;; "kxrl2a6h2body"
+		 (:neck "d405echos")
+		 (:larm "la6" "lg1sx") (:rarm "ra6" "rg1sx")
+		 (:mbase "kxrl4tbase")
+
+
+:robotset に対して，"kxrl2body"，"d405echos"，"la6"，"lg1sx"，"ra6"，"rg1sx"，"kxrl4tbase"
+のロボットモジュールからなるkxr-robotsetのインスタンスを作る．
+
+"kxrl2body" が土台のロボットモジュールで，
+		 (:neck "d405echos")
+		 (:larm "la6" "lg1sx") (:rarm "ra6" "rg1sx")
+		 (:mbase "kxrl4tbase")
+の先頭のキーワード変数のメソッドか、座標系の値をもった属性リストを
+持つものと思って各文字列の名前のモジュールロボットを生成して
+順にそれぞれのメソッドや属性が示す場所へ:attachしてゆくことがなされる．
+
+
+"kxrl2body"，"d405echos"，"la6"，"lg1sx"，"ra6"，"rg1sx"，"kxrl4tbase"
+は，rcb4robotconfig.lのロボット定義の中に通常のロボット定義を記述しておく
+必要がある．
+
+    (("kxrl2body")
+     (:body :l2l5m :type :module :noleg t :noarm t :end :mag-7)
+     )
+
+    (("d405echos")
+     (:body :mag+7 :type :module :noarm t :noleg t
+	    :head :d405echos :3eye-front t :head-length 20
+	    )
+     (32 :head-neck-y -1)       (34 :head-neck-p -1)
+     )
+
+    (("la6")
+     (:body :mag+7 :noleg t :limb :larm :type :module 
+	    :shoulder :pry-cross :shoulder-front t :shoulder-low t :flat-shoulder nil ;;:shoulder :ly-p-rb
+	    :elbow :angle :wrist :cross-pr :upper-arm-length 38 
+	    :end :horn-mag-
+	    )
+     (3 :larm-shoulder-p -1)
+     (5 :larm-shoulder-r 1)
+     (7 :larm-elbow-p 1)
+     (23 :larm-shoulder-y 1)
+     (27 :larm-wrist-p -1)
+     (29 :larm-wrist-r -1)
+     )
+
+    (("lg1sx")
+     (:body :mag+7 :type :module :noleg t :arm :g1 :limb :larm
+	    :gripper t :gripper-straight t :gripper-axis :y)
+     (19 :larm-gripper-r 1/2) (19 :larm-gripper2-r 1/2))
+
+    (("ra6")
+     (:body :mag+7 :noleg t :limb :rarm :type :module
+	    :shoulder :pry-cross :shoulder-front t :shoulder-low t :flat-shoulder nil ;;:shoulder :ly-p-rb
+	    :elbow :angle :wrist :cross-pr :upper-arm-length 38 
+	    :end :horn-mag-
+	    )
+     (2 :rarm-shoulder-p 1)
+     (4 :rarm-shoulder-r 1)
+     (6 :rarm-elbow-p 1)   
+     (22 :rarm-shoulder-y 1)
+     (26 :rarm-wrist-p 1)   
+     (28 :rarm-wrist-r -1)
+     )
+
+    (("rg1sx")
+     (:body :mag+7 :type :module :noleg t :arm :g1 :limb :rarm
+	    :gripper t :gripper-straight t :gripper-axis :y)
+     (18 :rarm-gripper-r 1/2) (18 :rarm-gripper2-r 1/2))
+
+    (("kxrl4tbase")
+     (:body :l4tbase :type :module :leg0 :j2-2m :leg1 :j2-2m
+	    :project-file "kxrl4tm" :noarm t ;; :battery-box t :neck nil
+	    )
+     (24 :rleg0-crotch-y -1)   (25 :lleg0-crotch-y -1)
+     (8  :rleg0-crotch-r -1)   (9 :lleg0-crotch-r 1)
+     (20 :rleg1-crotch-y -1)   (21 :lleg1-crotch-y -1)
+     (16 :rleg1-crotch-r -1)   (17 :lleg1-crotch-r 1)
+     )
+
+のように定義されている．
+サーボの定義もそれぞれのモジュールの中で定義しておく．
+
+(make-kxr-robot "kxrrobosetl4t")
+
+とすると，kxrrobosetl4t.l のrobot-modelファイルが見つからない
+場合には，eus2collada-robotにより生成するプロセスが始まる．
+
+内部では，ベースとなる:attach メソッドを:robotsetで
+(*base-robot*
+  (*prop1* *robot1*)
+  (*prop2* *robot21* *robot22*)
+ )
+としてあれば，
+
+(send *base-robot* :attach *robot1* *prop1*)
+(send *base-robot* :attach *robot21* *prop2*)
+(send *base-robot* :attach *robot22* *prop2*)
+
+を行ってkxr-robotsetのインスタンスを作り，
+kxr-robosetのインスタンスはkxr-robotのインスタンスでもあるため
+eus2collada-robotは，eus2wrlでvrmlファイルを生成し，
+ロボットモデルからyamlファイルを生成し，colladaファイル，urdfファイルを
+順次生成し，最後にeuscollada-robotのインスタンスとなる
+robot-modelファイルをmodels/以下に生成する．
+
+一度生成されたらば，次回以降はこの生成されたrobot-modelファイルを読み込む
+*robot*が生成される．
+
+
