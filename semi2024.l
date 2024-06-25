@@ -33,6 +33,57 @@
   (send *ri* :angle-vector (send *robot* :angle-vector) 2000)
   )
 
+
+(defmethod robot-model
+  (:walk-motion
+   nil
+   "walking motion using preview-control, gait-generator, and fullbody ik"
+   (let ((default-step-height 5)
+	 (test1-scale 0.25)
+	 footstep-list)
+     (send self :reset-pose)
+     (send self :fix-leg-to-coords (make-coords))
+     (send self :legs :move-end-pos #f(0 0 20))
+     (setq footstep-list
+	   (list (make-coords :coords (send self :rleg :end-coords :copy-worldcoords) :name :rleg)
+		 (make-coords :coords (send (send self :lleg :end-coords :copy-worldcoords)
+					    :translate (scale test1-scale #f(100 0 0))) :name :lleg)
+		 (make-coords :coords (send (send self :rleg :end-coords :copy-worldcoords)
+					    :translate (scale test1-scale #f(200 0 0))) :name :rleg)
+		 (make-coords :coords (send (send self :lleg :end-coords :copy-worldcoords)
+					    :translate (scale test1-scale #f(300 0 0))) :name :lleg)
+		 (make-coords :coords (send (send self :rleg :end-coords :copy-worldcoords)
+					    :translate (scale test1-scale #f(400 0 0))) :name :rleg)
+		 (make-coords :coords (send (send self :lleg :end-coords :copy-worldcoords)
+					    :translate (scale test1-scale #f(400 0 0))) :name :lleg)))
+     (warn ";; test1 ;; specify footstep-list~%")
+     (objects (append (list self) footstep-list))
+     ;; footstep-list is coordinates list.
+     ;; This should have :l/r method or :l/r name.
+     (send self :calc-walk-pattern-from-footstep-list
+	   footstep-list :debug-view :no-message :default-step-height default-step-height)
+     (setq *footstep-list* footstep-list)
+     (length footstep-list)))
+  (:walk-motion2
+   nil
+   (let* ((default-step-height 5))
+     (send self :reset-pose)
+     (send self :legs :move-end-pos #f(0 0 20))
+     (send self :fix-leg-to-coords (make-coords))
+     (warn ";; test2 ;; calc footstep-list from go pos param~%")
+     (objects (list self
+		    (apply #'midcoords 0.5 (send self :legs :end-coords))
+		    (send (send (apply #'midcoords 0.5 (send self :legs :end-coords))
+				:translate (float-vector 100 30 0))
+			  :rotate (deg2rad 45) :z)))
+     (send self :gen-footstep-parameter :ratio 0.3)
+     (setq *walk-pattern-list*
+	   (send self :calc-walk-pattern-from-footstep-list
+		 (send self :go-pos-params->footstep-list 100 30 45) ;; x[mm] y[mm] th[deg]
+		 :debug-view :no-message :default-step-height default-step-height))
+     (length *walk-pattern-list*)))
+  )
+
 ;; semi2023 2023.12.29
 ;;
 ;;	toshima_ws/devel/setup.bash
