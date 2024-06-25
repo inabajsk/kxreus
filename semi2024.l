@@ -35,53 +35,58 @@
 
 
 (defmethod robot-model
-  (:walk-motion
-   nil
+  (:walk-forward
+   (&key (step-height 5) (step 25) (n 3) (th 0))
    "walking motion using preview-control, gait-generator, and fullbody ik"
-   (let ((default-step-height 5)
-	 (test1-scale 0.25)
-	 footstep-list)
+   (let (footstep-list)
      (send self :reset-pose)
-     (send self :fix-leg-to-coords (make-coords))
      (send self :legs :move-end-pos #f(0 0 20))
-     (setq footstep-list
-	   (list (make-coords :coords (send self :rleg :end-coords :copy-worldcoords) :name :rleg)
-		 (make-coords :coords (send (send self :lleg :end-coords :copy-worldcoords)
-					    :translate (scale test1-scale #f(100 0 0))) :name :lleg)
-		 (make-coords :coords (send (send self :rleg :end-coords :copy-worldcoords)
-					    :translate (scale test1-scale #f(200 0 0))) :name :rleg)
-		 (make-coords :coords (send (send self :lleg :end-coords :copy-worldcoords)
-					    :translate (scale test1-scale #f(300 0 0))) :name :lleg)
-		 (make-coords :coords (send (send self :rleg :end-coords :copy-worldcoords)
-					    :translate (scale test1-scale #f(400 0 0))) :name :rleg)
-		 (make-coords :coords (send (send self :lleg :end-coords :copy-worldcoords)
-					    :translate (scale test1-scale #f(400 0 0))) :name :lleg)))
-     (warn ";; test1 ;; specify footstep-list~%")
+     (send self :fix-leg-to-coords (make-coords))
+     (dotimes (i n)
+       (push (make-coords :coords
+			  (send
+			   (send (send self (if (evenp i) :rleg :lleg)
+				       :end-coords :copy-worldcoords)
+				 :rotate (deg2rad th) :z)
+			   :translate (float-vector (* i step) 0 0))
+			  :name (if (evenp i) :rleg :lleg))
+	     footstep-list))
+     (push
+      (make-coords :coords
+		   (send (send (send self (if (evenp n) :rleg :lleg)
+				     :end-coords :copy-worldcoords)
+			       :rotate (deg2rad th) :z)
+			 :translate (float-vector (* n step) 0 0))
+		   :name (if (evenp n) :rleg :lleg))
+      footstep-list)
+     (push
+      (make-coords :coords
+		   (send (send (send self (if (evenp n) :lleg :rleg)
+				     :end-coords :copy-worldcoords)
+			       :rotate (deg2rad th) :z)
+			 :translate (float-vector (* n step) 0 0))
+		   :name (if (evenp n) :lleg :rleg))
+      footstep-list)
+     (setq footstep-list (reverse footstep-list))
      (objects (append (list self) footstep-list))
-     ;; footstep-list is coordinates list.
      ;; This should have :l/r method or :l/r name.
      (send self :calc-walk-pattern-from-footstep-list
-	   footstep-list :debug-view :no-message :default-step-height default-step-height)
-     (setq *footstep-list* footstep-list)
+	   footstep-list :debug-view :no-message :default-step-height step-height)
      (length footstep-list)))
-  (:walk-motion2
-   nil
-   (let* ((default-step-height 5))
-     (send self :reset-pose)
-     (send self :legs :move-end-pos #f(0 0 20))
-     (send self :fix-leg-to-coords (make-coords))
-     (warn ";; test2 ;; calc footstep-list from go pos param~%")
-     (objects (list self
-		    (apply #'midcoords 0.5 (send self :legs :end-coords))
-		    (send (send (apply #'midcoords 0.5 (send self :legs :end-coords))
-				:translate (float-vector 100 30 0))
-			  :rotate (deg2rad 45) :z)))
-     (send self :gen-footstep-parameter :ratio 0.3)
-     (setq *walk-pattern-list*
-	   (send self :calc-walk-pattern-from-footstep-list
-		 (send self :go-pos-params->footstep-list 100 30 45) ;; x[mm] y[mm] th[deg]
-		 :debug-view :no-message :default-step-height default-step-height))
-     (length *walk-pattern-list*)))
+  (:walk-motion
+   (&key (x 100) (y 50) (th 45) (ratio 1.0) (step-height 5))
+   (send self :reset-pose)
+   (send self :legs :move-end-pos #f(0 0 20))
+   (send self :fix-leg-to-coords (make-coords))
+   (setq *footstep-list*
+	 (send self :go-pos-params->footstep-list x y th))
+   (objects (cons self *footstep-list*))
+   (send self :gen-footstep-parameter :ratio ratio)
+   (setq *walk-pattern-list*
+	 (send self :calc-walk-pattern-from-footstep-list
+	       *footstep-list*
+	       :debug-view :no-message :default-step-height step-height))
+   (length *walk-pattern-list*))
   )
 
 ;; semi2023 2023.12.29
