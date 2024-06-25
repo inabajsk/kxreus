@@ -31,6 +31,8 @@ How to use:
 14) Ctrl-C ;; in case hang up in :timer-on continuous viewer update
 15) (exit) ;; exit from roseus
 
+ ;; details are in kxr-document.txt
+
 Rcb4lisp sample:
 1) roseus semi2024.l
 2) (semi-comp-jswing) ;; define comp-jswing for :head-neck-y swing motion
@@ -57,7 +59,7 @@ Real robot example:
   It has 2 2DOF legs, 6DOF arm, 2DOF head, magnet modular robot.
 
 Robot-model generation:
-1) roseus rcb4robots
+1) roseus semi2024.l
 2) (make-kxr-robot "kxrl2l2a6h2m") ;; when if no kxreus/models/kxrl2l2a6h2m.l
     ;; it generates the model file through installing several ros packages
 3) (make-kxr-robot "kxrl2l2a6h2m" :generate t) ;; overwrite models/kxrl2l2a6h2m.l
@@ -69,8 +71,30 @@ Robot-model generation:
     ;; When you want to generate new robot, you define it with a body
     ;; in kxrbody.l, a bodyset in kxrbodyset.l, a robot-link in kxrlinks.l,
     ;; extends the definition of :setup-xxxx in kxreus.
+4) (make-kxr-robot "kxrl2l6a6h2m") ;; generate 6DOF biped, 6DOF arms, 2DOF head
+5) (send *robot* :walk-motion) ;; walk forward ported from irteus/demo/walk-motion.l
+6) (send *robot* :walk-motion2) ;; another walk sample ported from irteus/demo/walk-motion.l
+
 
 Other robot model generation software:
     https://github.com/agent-system/robot_assembler
 
-
+Roseus basics:
+   Roseus is an extention of a subset of CommonLisp: Euslisp
+   https://github.com/euslisp/euslisp.
+   UTokyo JSK provides extentions jskeus
+   https://github.com/euslisp/jskeus
+   with robot programming,
+   and roseus with ROS extentions.
+   https://github.com/jsk-ros-pkg/jsk_roseus
+   euslisp < jskeus < roseus.
+1) roseus
+2) (load "irteus/demo/demo.l") ;; show sample programs
+3) (particle)   ;; interval timer sample used in :timer-on
+4) (hand-grasp) ;; Object distances with :inverse-kinematics-loop
+5) (hanoi-arm)  ;; Hanoi tower task :inverse-kinematics
+6) (dual-arm-ik) ;; Bloom manipulation with :inverse-kinematics
+7) (crank-motion) ;; Humanoid crank rotation with :fullbody-inverse-kinematics
+8) (head-look-at-ik) ;; Humanoid head motion with :fullbody-inverse-kinematics
+9) (walk-motion-for-sample-robot) ;; walk motion sample robot
+10) (walk-motion-for-robots) ;; walk motion for H7, H6, Kaz3, Darwin
