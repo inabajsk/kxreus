@@ -902,16 +902,28 @@
 	  ((null hc) (setq hc (get (car lst) :joint-coord))))
 	 (if (null hc)
 	     (format t ";; alarm! head-end-coords becomes body-link origin~%"))
-	 (setq head-end-coords (make-cascoords :pos (if hc (send hc :worldpos) (float-vector 0 0 0))
-					       :rot (m*
-						     (rotation-matrix pi/2 :y)
-						     (rotation-matrix -pi/2 :z))
-					       :name :head-end-coords)))
+	 (setq head-end-coords
+	       (make-cascoords :pos (if hc (send hc :worldpos) (float-vector 0 0 0))
+			       :rot (m*
+				     (rotation-matrix pi/2 :y)
+				     (rotation-matrix -pi/2 :z))
+			       :name :head-end-coords)))
        (unless cameras
 	 (setq cameras (get (car lst) :cameras)))
+
+       (when cameras
+	 (format t ";;; debug inaba cameras=~A~%" cameras)
+	 (setq head-end-coords
+	       (make-cascoords :pos
+			       (apply #'midpoint 0.5 (send-all cameras :worldpos))
+			       :rot (m*
+				     (rotation-matrix pi/2 :y)
+				     (rotation-matrix -pi/2 :z))
+			       :name :head-end-coords))
+	 )
        (cond
 	((and cameras (cdr lst) (caddr lst))
-	 (send (caddr lst) :assoc head-end-coords))	  
+	 (send (caddr lst) :assoc head-end-coords))	 
 	(lst
 	 (send (car lst) :assoc head-end-coords))
 	((get body-link :neck)
