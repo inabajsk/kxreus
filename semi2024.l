@@ -290,7 +290,7 @@
       )
      ))
   (:dual-manip-ik
-   (&key (n 0) (obj (make-cube 20 40 50))
+   (&key (n 10) (obj (make-cube 20 40 50))
 	 (obj-pos (float-vector 150 0 240))
 	 &rest args)
    "dual-armed object manipulation"
@@ -313,7 +313,6 @@
    (let ((i 0))
      (do-until-key
       ;; rotate target coords
-      #|
       (when (/= i 0)
 	(let ((l (cond
 		  ((or (= (mod i 4) 1) (= (mod i 4) 2)) :rarm)
@@ -325,7 +324,6 @@
 	  (if (oddp (mod i 4))
 	      (send (send obj :get l) :rotate rot :x))
 	  (send (send obj :get l) :translate trs)))
-      |#
       (with-move-target-link-list
        (mt robot-ll self '(:rarm :larm))
        (let* ((ret
