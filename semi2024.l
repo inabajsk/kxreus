@@ -156,11 +156,62 @@
   (:handle () handle)
   )
 
-(unless (boundp '*robot*)
+(when (and (not (boundp '*robot*))
+	   (probe-file "models/kxrl2l6a6h2m.l"))
   (load "models/kxrl2l6a6h2m.l")
   (setq *robot* (instance kxrl2l6a6h2m-robot :init)))
 
 (defmethod robot-model
+  (:shake-cocktail
+   (&key (target-pos (float-vector 120 0 0))
+	 (offset-z 50)
+	 (swing-x 30)
+	 (swing-y 5)
+	 (obj (make-cylinder 15 100)))
+   (send self :reset-pose)
+   (send self :newcoords (make-coords))
+   
+   (setq *obj* obj)
+   (send obj :set-color (float-vector 1 1 0))
+   (send self :reset-pose)
+   (objects (list self obj))
+   
+   (send self :inverse-kinematics
+	 (list (make-coords :pos target-pos))
+	 :move-target
+	 (list (send self :larm :end-coords))
+	 :link-list
+	 (list (send self :link-list
+		     (send (send self :larm :end-coords) :parent)
+		     (car (send self :larm :links))))
+	 :translation-axis (list t)
+	 :rotation-axis (list nil))
+   (let* ((cnt 0.0))
+     (do-until-key
+      (incf cnt 0.1)
+      (send self
+	    :inverse-kinematics
+	    (list (make-coords :pos target-pos)
+		  ;;:pos (v+ target-pos
+		  ;;(float-vector (* swing-x (sin cnt))
+		  ;;(* swing-y (cos cnt)) 0)))
+		  #'(lambda ()
+		      (send (send (send self :larm :end-coords) :copy-worldcoords)
+			    :translate (float-vector 0 0 offset-z) :local)))
+	    :move-target
+	    (list (send self :larm :end-coords)
+		  (send self :rarm :end-coords))
+	    :link-list
+	    (list (send self :link-list
+			(send (send self :larm :end-coords) :parent)
+			(car (send self :larm :links)))
+		  (send self :link-list
+			(send (send self :rarm :end-coords) :parent)
+			(car (send self :rarm :links))))
+	    :translation-axis (list :z t)
+	    :rotation-axis (list nil :z))
+      (send obj :newcoords (send (send self :larm :end-coords) :copy-worldcoords))
+      (send *irtviewer* :draw-objects))))
   (:crank-motion
    ()
    "crank motion using full body ik"
@@ -201,11 +252,11 @@
 	(mapcar #'(lambda (act ref)
 		    (send act :draw-on :flush nil :size 100)
 		    (send ref :draw-on :flush nil :color #f(1 0 0)))
-		(append (list (let ((ac (send *robot* :centroid)))
+		(append (list (let ((ac (send self :centroid)))
 				(setf (elt ac 2) 0) ac))
 			(send-all move-target :worldpos))
 		(append (list cog-target-pos) target-coords))
-	(send *robot* :draw-torque *viewer*)
+	(send self :draw-torque *viewer*)
 	(send *irtviewer* :flush)
 	(x::window-main-one)
 	))
@@ -231,6 +282,7 @@
 		  (use-torso (send self :torso :root-link))
 		  (t (send self :larm :root-link))))))
      (objects (list self))
+     (setq *viewer* (send *irtviewer* :viewer))
      (do-until-key
       (let ((dif-pos (send move-target :difference-position target
 			   :translation-axis t))
@@ -266,13 +318,14 @@
      (send self :fix-leg-to-coords (make-coords))
      (send self :update-descendants)
     ;; setup move-target and link-list
-     (setq move-target (send *robot* :arms :end-coords))
-     (setq link-list (mapcar #'(lambda (mt) (send *robot* :link-list mt)) (send-all move-target :parent)))
+     (setq move-target (send self :arms :end-coords))
+     (setq link-list (mapcar #'(lambda (mt) (send self :link-list mt)) (send-all move-target :parent)))
      ;;
      (setq *broom* (instance sample-broom :init))
      (send *broom* :locate #f(100 0 0))
+     (setq *viewer* (send *irtviewer* :viewer))
      (send self :head :look-at (apply #'midpoint 0.5 (send-all (send *broom* :handle) :worldpos)))
-     (objects (list self *broom* (send *robot* :head :end-coords)
+     (objects (list self *broom* (send self :head :end-coords)
 		    (apply #'midcoords 0.5 (send-all (send *broom* :handle) :worldcoords))))
      (do-until-key
       (send self :inverse-kinematics (send *broom* :handle)
@@ -296,6 +349,7 @@
    "dual-armed object manipulation"
    (send obj :newcoords (make-coords :pos obj-pos))
    (objects (append (list obj self) (send self :head :end-coords)))
+   (setq *viewer* (send *irtviewer* :viewer))
    (send self :reset-pose)
    (send self :fix-leg-to-coords (make-coords))
    (send self :update-descendants)
@@ -408,6 +462,7 @@
      (setq footstep-list (reverse footstep-list))
      (objects (append (list self) footstep-list))
      ;; This should have :l/r method or :l/r name.
+     (setq *viewer* (send *irtviewer* :viewer))
      (send self :calc-walk-pattern-from-footstep-list
 	   footstep-list :debug-view :no-message :default-step-height step-height)
      (length footstep-list)))
@@ -420,6 +475,7 @@
 	 (send self :go-pos-params->footstep-list x y th))
    (objects (cons self *footstep-list*))
    (send self :gen-footstep-parameter :ratio ratio)
+   (setq *viewer* (send *irtviewer* :viewer))
    (setq *walk-pattern-list*
 	 (send self :calc-walk-pattern-from-footstep-list
 	       *footstep-list*
@@ -596,11 +652,8 @@
 	 (setq pidx (- idx (/ l 2.0)))
 	 (setq x (+ x0 (* (- x1 x0) (/ pidx llen))))
 	 (setq y (+ y0 (* (- y1 y0) (/ pidx llen))))
-	 ;;(sprint (list 'idx= idx 'pidx= pidx 'len= len 'llen= llen 'l= l 'xc= xc 'yc= yc 'x= x 'y= y
-	 ;;'x0= x0 'y0= y0 'x1= x1 'y1= y1))
 	 (setq tpos (instance target-pos :init x y (elt li0 (round pidx))))
 	 (setq *3dpos* (send tpos :3dpos))
-	 ;;(sprint (list 'tpos-3dpos= *3dpos*))
 	 (setq (tpos . scan-angle) deg)
 	 (setq (tpos . bar-2dwidth) l)
 	 ;;(push tpos ret)

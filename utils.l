@@ -947,15 +947,18 @@
    (&optional (ration 0.7))
    ;; (send self :walk-vel #f(0 0 0)) ;; x y theta
    )
-  (:walk-forward
-   (&optional len)
+  (:walk-fore
+   (&optional (len 100))
    (if len
-       (setf (get self :forward-walk) (send self :go-pos-params->footstep-list len 0 0)))
+       (setf (get self :forward-walk)
+	     (send self :go-pos-params->footstep-list len 0 0)))
+   (unless (get self :default-step-height)
+     (setf (get self :default-step-height) 5))
    (send self :calc-walk-pattern-from-footstep-list
 	 (get self :forward-walk) :debug-view :no-message
 	 :default-step-height (get self :default-step-height)))
   (:walk-turn
-   (&optional angle)
+   (&optional (angle 30))
    (if angle 
        (setf (get self :turn-walk) (send self :go-pos-params->footstep-list 0 0 angle)))
    (send self :calc-walk-pattern-from-footstep-list
