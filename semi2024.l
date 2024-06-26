@@ -33,8 +33,348 @@
   (send *ri* :angle-vector (send *robot* :angle-vector) 2000)
   )
 
+(defclass sample-crank
+  :super cascaded-link
+  :slots (handle crank-joint)
+  )
+
+(defmethod sample-crank
+  (:init
+   (&rest args
+	  &key (root-bar-height 150) (handle-base-radius 30) (handle-bar-height 70)
+	  &allow-other-keys)
+   (send-super* :init args)
+   (setq handle nil)
+   ;; 1. make links links and assoc all links
+   (let ((rl (send self :make-root-link root-bar-height))
+	 (cl (send self :make-crank-link handle-base-radius handle-bar-height)))
+     (send cl :translate (float-vector 0 0 root-bar-height) :world)
+     ;; 2. assoc links
+     ;;    Root link should be associated with "self".
+     (send self :assoc rl)
+     (send rl :assoc cl)
+     ;; 3. make all joints
+     ;;    Before making joints, you should :assoc all links.
+     (setq crank-joint (instance rotational-joint :init
+				 :parent-link rl :child-link cl
+				 :name :crank-joint :axis :z
+				 :min *-inf* :max *inf*))
+     ;; 4. define slots for robot class
+     ;;    links and joint-list for cascaded-link.
+     (setq links (list rl cl))
+     (setq joint-list (list crank-joint))
+     ;; 5. call :init-ending after defining links and joint-list and return "self"
+     (send self :init-ending)
+     self))
+  ;; Methods to define robot links
+  (:make-root-link
+   (root-bar-height)
+   (instance bodyset-link :init (make-cascoords)
+	     :bodies (list (make-cylinder 5 root-bar-height))
+	     :name :crank-root-link))
+  (:make-crank-link
+   (handle-base-radius handle-bar-height)
+   (let* ((handle-base-thickness 10)
+	  (handle-bar-radius 5)
+	  (handle-base (make-cube (* handle-bar-radius 2) handle-base-radius handle-base-thickness))
+	  (handle-bar (make-cylinder handle-bar-radius handle-bar-height)))
+     (send handle-bar :translate
+	   (float-vector 0 (- handle-bar-radius handle-base-radius) (/ handle-base-thickness 2.0)))
+     (send handle-base :translate (float-vector 0 (/ handle-base-radius -2.0) 0))
+     (send handle-base :assoc handle-bar)
+     (send handle-base :translate (float-vector 0 0 (/ handle-base-thickness 2.0)))
+     (let* ((br (instance bodyset-link :init (make-cascoords)
+			  :bodies (list handle-base handle-bar) :name :crank-handle-link))
+	    (ahandle
+	     (make-cascoords :coords
+			     (send (send handle-base :copy-worldcoords)
+				   :translate (float-vector 0 (* -0.5 handle-base-radius) (/ handle-bar-height 2.0)))
+			     :name :crank-handle)))
+       (send br :assoc ahandle)
+       (push ahandle handle)
+       br)))
+  (:handle () handle)
+  (:crank-handle () (car handle))
+  (:crank-joint (&rest args) (forward-message-to crank-joint args))
+  )
+
+(defclass sample-broom
+  :super cascaded-link
+  :slots (handle)
+  )
+
+(defmethod sample-broom
+  (:init
+   (&rest args
+	  &key (sweep-height 50) (sweep-width 26) (sweep-thickness 20)
+          (bar-length 300) (bar-width 10)
+	  &allow-other-keys)
+    (send-super* :init args)
+    (setq handle nil)
+    ;; 1. make links links and assoc all links
+    (let ((rl (send self :make-broom-link
+                    sweep-height sweep-width sweep-thickness
+                    bar-length bar-width)))
+      ;; 2. assoc links
+      ;;    Root link should be associated with "self".
+      (send self :assoc rl)
+      ;; 3. make all joints
+      ;;    Before making joints, you should :assoc all links.
+
+      ;; 4. define slots for robot class
+      ;;    links and joint-list for cascaded-link.
+      (setq links (list rl))
+      (setq joint-list nil)
+      ;; 5. call :init-ending after defining links and joint-list and return "self"
+      (send self :init-ending)
+      self))
+  ;; Methods to define robot links
+  (:make-broom-link
+    (sh ;; sw = Sweep Height
+     sw ;; sw = Sweep Width
+     st ;; st = Sweep Thickness
+     bl ;; bl = Bar Length
+     bw) ;; bw = Bar Width
+   (let* ((bar (make-cylinder (/ bw 2.0) bl))
+	  (sweep (make-prism (list (float-vector sw (- sh) 0)
+				   (float-vector (- sw) (- sh) 0)
+				   (float-vector (* -0.5 bw) 0 0)
+				   (float-vector (* 0.5 bw) 0 0))
+                             st)))
+     (send bar :locate (float-vector 0 0 sh) :world)
+     (send sweep :rotate pi/2 :x)
+     (send sweep :locate (float-vector 0 10 sh) :world)
+     (send bar :set-color :brown)
+     (send sweep :set-color :red)
+     (send bar :assoc sweep)
+     (let ((br (instance bodyset-link :init (make-cascoords)
+			 :bodies (list bar sweep))))
+       (dolist (rate (list 0.8 0.6))
+	 (push (make-cascoords :pos (float-vector 0 0 (+ (* rate bl) sh))) handle))
+       (dolist (hc handle) (send br :assoc hc))
+       br)))
+  (:handle () handle)
+  )
+
+(unless (boundp '*robot*)
+  (load "models/kxrl2l6a6h2m.l")
+  (setq *robot* (instance kxrl2l6a6h2m-robot :init)))
 
 (defmethod robot-model
+  (:crank-motion
+   ()
+   "crank motion using full body ik"
+   (send self :reset-pose)
+   (send self :newcoords (make-coords))
+   (send self :fix-leg-to-coords (make-coords))
+   (send self :update-descendants)
+   (setq *crank* (instance sample-crank :init))
+   (send *crank* :locate #f(100 70 0) :world)
+   (objects (list *crank* self))
+   (let* ((cog-target-pos
+	   (if (some #'null (send self :legs))
+	       (send (car (send self :links)) :worldpos)
+	     (apply #'midpoint 0.5 (send self :legs :end-coords :worldpos))))
+	  (fix-leg-coords
+	   (unless (some #'null (send self :legs))
+	     (send self :legs :end-coords :copy-worldcoords)))
+	  ;; append legs' parameters for move-target, link-list, thre, rotation-axis, and target-coords
+	  ;;  all parameter list -> (list larm rleg lleg)
+	  (move-target (append (list (send self :larm :end-coords))
+			       (send self :legs :end-coords)))
+	  (link-list (mapcar #'(lambda (l) (send self :link-list (send l :parent)))
+			     move-target))
+	  (thre (list 15 1 1))
+	  (rotation-axis (list nil t t))
+	  (fp (apply #'midpoint 0.5 (send-all fix-leg-coords :worldpos))))
+     (do-until-key
+      (send *crank* :crank-joint :joint-angle 15 :relative t)
+      (let* ((target-coords (append (list (send *crank* :crank-handle)) fix-leg-coords)))
+	(send self :fullbody-inverse-kinematics target-coords
+	      :move-target move-target :link-list link-list
+	      :rotation-axis rotation-axis :thre thre
+	      :look-at-target t :centroid-thre 10.0
+	      :dump-command nil)
+	;; draw
+	(send *irtviewer* :draw-objects :flush nil)
+	(send (send self :support-polygon '(:rleg :lleg)) :draw-on :flush nil :width 4)
+	(mapcar #'(lambda (act ref)
+		    (send act :draw-on :flush nil :size 100)
+		    (send ref :draw-on :flush nil :color #f(1 0 0)))
+		(append (list (let ((ac (send *robot* :centroid)))
+				(setf (elt ac 2) 0) ac))
+			(send-all move-target :worldpos))
+		(append (list cog-target-pos) target-coords))
+	(send *robot* :draw-torque *viewer*)
+	(send *irtviewer* :flush)
+	(x::window-main-one)
+	))
+     ))
+  (:full-body-ik
+   (&key (target-pos (float-vector 0 0 400))
+	 (target (make-coords :pos target-pos))
+	 (use-torso t) (use-leg) (debug-view :no-flush))
+   "full body ik"
+   (send self :reset-pose)
+   (if (= (length (car (send self :legs))) 6)
+       (send self :legs :angle-vector #f(0 0 -10 20 0 -10)))
+   (if (some #'null (send self :legs))
+       (send self :newcoords (make-coords))
+     (send self :fix-leg-to-coords (make-coords) :lleg))
+   (send self :update-descendants)
+   (let* ((move-target (send self :larm :end-coords))
+	  (link-list
+	   (send self :link-list
+		 (send move-target :parent)
+		 (cond
+		  (use-leg (send self :lleg :end-coords :parent))
+		  (use-torso (send self :torso :root-link))
+		  (t (send self :larm :root-link))))))
+     (objects (list self))
+     (do-until-key
+      (let ((dif-pos (send move-target :difference-position target
+			   :translation-axis t))
+	    (dif-rot (send move-target :difference-rotation target
+			   :rotation-axis nil)))
+	(send* self :inverse-kinematics-loop dif-pos dif-rot
+               :link-list link-list
+               :target-coords target
+               :move-target (send self :larm :end-coords)
+               :rotation-axis nil :translation-axis t
+               :manipulability-gain 0.05
+               :debug-view debug-view
+               (if use-leg '(:manipulability-limit 0.5)))
+       (send self :head :look-at
+             (send self :larm :end-coords :worldpos))
+       (if (some #'null (send self :legs))
+           (send self :newcoords (make-coords))
+         (send self :fix-leg-to-coords (make-coords) :lleg))
+       (if use-leg (send *irtviewer* :draw-objects :flush nil))
+       (send *irtviewer* :viewer :viewsurface :color #f(1 1 1))
+       (send *irtviewer* :viewer :viewsurface :line-width 2)
+       (send *irtviewer* :viewer :viewsurface :3d-line
+             (send self :larm :end-coords :worldpos)
+             (send self :rarm :end-coords :worldpos))
+       (send *irtviewer* :flush)
+       )
+      ))
+   )
+  (:dual-arm-ik
+   nil
+   (let ((i 0) link-list move-target target-coords)
+     (send self :reset-pose)
+     (send self :fix-leg-to-coords (make-coords))
+     (send self :update-descendants)
+    ;; setup move-target and link-list
+     (setq move-target (send *robot* :arms :end-coords))
+     (setq link-list (mapcar #'(lambda (mt) (send *robot* :link-list mt)) (send-all move-target :parent)))
+     ;;
+     (setq *broom* (instance sample-broom :init))
+     (send *broom* :locate #f(100 0 0))
+     (send self :head :look-at (apply #'midpoint 0.5 (send-all (send *broom* :handle) :worldpos)))
+     (objects (list self *broom* (send *robot* :head :end-coords)
+		    (apply #'midcoords 0.5 (send-all (send *broom* :handle) :worldcoords))))
+     (do-until-key
+      (send self :inverse-kinematics (send *broom* :handle)
+	    :link-list link-list :move-target move-target
+	    :stop 500 :thre '(10 10)
+	    :rotation-axis '(nil nil) :debug-view nil :dump-command nil)
+      (send self :head :look-at
+	    (apply #'midpoint 0.5 (send-all (send *broom* :handle) :worldpos))
+	    )
+      (send *broom* :orient (* 0.2 (sin (/ i 10.0))) :x :world)
+      (send *broom* :locate (float-vector 100 (* 100 (sin (/ (incf i) 10.0))) 0) :world)
+      (send *irtviewer* :draw-objects)
+      (x::window-main-one)
+      (incf i)
+      )
+     ))
+  (:dual-manip-ik
+   (&key (n 0) (obj (make-cube 20 40 50))
+	 (obj-pos (float-vector 150 0 240))
+	 &rest args)
+   "dual-armed object manipulation"
+   (send obj :newcoords (make-coords :pos obj-pos))
+   (objects (append (list obj self) (send self :head :end-coords)))
+   (send self :reset-pose)
+   (send self :fix-leg-to-coords (make-coords))
+   (send self :update-descendants)
+   (setq *obj* obj)
+   (dolist (l '(:rarm :larm))
+     (send obj :put l ;; generate target coords
+	   (make-cascoords
+	    :coords
+	    (send (send (send obj :copy-worldcoords)
+			:rotate (case l (:rarm pi/2) (:larm -pi/2)) :z)
+		  :translate (float-vector -20 0 0))))
+     (send obj :assoc (send obj :get l)))
+   (send obj :set-color :blue)
+   (send self :head :look-at (send obj :worldpos))
+   (let ((i 0))
+     (do-until-key
+      ;; rotate target coords
+      #|
+      (when (/= i 0)
+	(let ((l (cond
+		  ((or (= (mod i 4) 1) (= (mod i 4) 2)) :rarm)
+		  ((or (= (mod i 4) 3) (= (mod i 4) 0)) :larm)))
+	      (rot (if (oddp (mod i 4)) (* (case (mod i 4) (1 1) (3 -1)) (deg2rad 90))))
+	      (trs (float-vector (* (expt -1 (mod i 2)) 10) 0 0)))
+	  (send obj :dissoc (send obj :get l))
+	  (send obj :assoc (send obj :get l))
+	  (if (oddp (mod i 4))
+	      (send (send obj :get l) :rotate rot :x))
+	  (send (send obj :get l) :translate trs)))
+      |#
+      (with-move-target-link-list
+       (mt robot-ll self '(:rarm :larm))
+       (let* ((ret
+	       (append-obj-virtual-joint
+		robot-ll (mapcar #'(lambda (l) (send obj :get l)) '(:rarm :larm))
+		:joint-class 6dof-joint))
+	      (ll (car ret)) (ot (cadr ret))
+	      (rotation-axis
+	       (cond
+		((= (mod i 4) 1) '(:x t))
+		((= (mod i 4) 3) '(t :x))
+		(t '(t t))))
+	      (weight
+	       (fill (instantiate float-vector
+				  (send self :calc-target-joint-dimension ll))
+		     1.0)))
+	 (dotimes (i 3)
+	   (setf (elt weight (+ (- (send self :calc-target-joint-dimension ll) 6) i)) 0.001))
+	 (send (send (car ot) :parent) :assoc obj)
+	 (send* self :inverse-kinematics ot
+		:link-list ll :move-target mt
+		:rotation-axis rotation-axis
+		:weight weight
+		:union-link-list
+		#'(lambda (tmp-ll)
+		    (apply #'append
+			   (mapcar
+			    #'(lambda (f)
+				(send self :calc-union-link-list
+				      (mapcar #'(lambda (l)
+						  (funcall
+						   f
+						   #'(lambda (x) (member x (send self :links))) l))
+					      tmp-ll)))
+			    (list #'remove-if-not #'remove-if))))
+		:jacobi #'(lambda (tmp-ll tmp-mt tmp-ta tmp-ra)
+			    (calc-jacobian-from-link-list-including-robot-and-obj-virtual-joint
+			     tmp-ll tmp-mt ot self :rotation-axis tmp-ra))
+		;;:debug-view t
+		:debug-view :no-message
+		:dump-command nil
+		(append (if (= i 0) '(:stop 100)) args))
+	 (send (send (car ot) :parent) :dissoc obj)
+	 ))
+      (incf i)
+      (send self :head :look-at (send obj :worldpos))
+      (when (> i n) (return-from :dual-manip-ik nil))
+      )
+     ))
   (:walk-forward
    (&key (step-height 5) (step 25) (n 3) (th 0))
    "walking motion using preview-control, gait-generator, and fullbody ik"
