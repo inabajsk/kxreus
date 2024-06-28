@@ -1,3 +1,74 @@
+;;
+
+(in-package "X")
+
+(defmethod irtviewer
+  (:view-scale-event
+   (event)
+   (if (null previous-cursor-pos)
+       (setq previous-cursor-pos (event-pos event)))
+   (let* ((current-pos (event-pos event))
+	  (x (elt current-pos 0))
+	  (y (elt current-pos 1))
+	  (dx (- x (elt previous-cursor-pos 0)))
+	  (dy (- y (elt previous-cursor-pos 1)))
+	  (vtp (v- viewpoint viewtarget))
+	  )
+     ;;(send self :move-viewing-around-viewtarget event x y dx dy viewer)
+     (send self :viewpoint
+	   (v+ viewpoint
+	       (scale (* 0.01 (if (> (abs dx) (abs dy)) dx dy) (1+ (norm vtp)))
+		      (normalize-vector vtp))))
+     (send self :look1)
+     (send self :draw-objects)
+     (setq previous-cursor-pos current-pos)))
+  (:view-slide-event
+   (event)
+   (if (null previous-cursor-pos)
+       (setq previous-cursor-pos (event-pos event)))
+   (let* ((current-pos (event-pos event))
+	  (x (elt current-pos 0))
+	  (y (elt current-pos 1))
+	  (dx (- x (elt previous-cursor-pos 0)))
+	  (dy (- y (elt previous-cursor-pos 1)))
+	  (vtp (v- viewpoint viewtarget))
+	  (v (send viewer :viewing :transform-vector
+		   (scale (* 0.001 (norm vtp))
+			  (float-vector (* -1 dx) dy 0))))
+	  (tp (send self :viewtarget))
+	  (dv (v- v viewpoint)))
+     (send self :viewpoint v)
+     (send self :viewtarget (v+ tp dv))
+     (send self :look1)
+     (send self :draw-objects)
+     (setq previous-cursor-pos current-pos)))
+  (:keyed-move-coords-event
+   (event)
+   (let ((state (event-state event)))
+     ;;(print-event event)
+     (when (memq :left state)
+       (cond
+	((memq :shift state)
+	 (send self :view-slide-event event))
+	((memq :control state)
+	 (send self :view-scale-event event))
+	(t (send self :move-coords-event event))))
+     ))
+  (:new-ui
+   nil
+   (let ((viewer (send self :viewer)))
+     (send viewer :viewsurface :set-event-proc
+	   :buttonrelease-left :draw-event self)
+     (send viewer :viewsurface :set-event-proc
+	   :buttonpress :set-cursor-pos-event self)
+     (send viewer :viewsurface :set-event-proc
+	   :motionnotify-left :keyed-move-coords-event self)
+     t)
+   )
+  )
+
+(in-package "USER")
+
 (defun free-arms nil
   (send *ri* :free :larm-elbow-p :rarm-elbow-p)
   )
@@ -159,7 +230,10 @@
 (when (and (not (boundp '*robot*))
 	   (probe-file "models/kxrl2l6a6h2m.l"))
   (load "models/kxrl2l6a6h2m.l")
-  (setq *robot* (instance kxrl2l6a6h2m-robot :init)))
+  (setq *robot* (instance kxrl2l6a6h2m-robot :init))
+  (objects (list *robot*))
+  (send *irtviewer* :new-ui)
+  )
 
 (defmethod robot-model
   (:shake-cocktail
@@ -466,7 +540,7 @@
      (send self :calc-walk-pattern-from-footstep-list
 	   footstep-list :debug-view :no-message :default-step-height step-height)
      (length footstep-list)))
-  (:walk-motion
+  (:walk-motion2 ;; same as :walk-motion in utils.l
    (&key (x 100) (y 50) (th 45) (ratio 1.0) (step-height 5))
    (send self :reset-pose)
    (send self :legs :move-end-pos #f(0 0 20))

@@ -947,23 +947,28 @@
    (&optional (ration 0.7))
    ;; (send self :walk-vel #f(0 0 0)) ;; x y theta
    )
+  (:walk-motion
+   (&key (x 100) (y 0) (angle 0) (height 5) (from-origin t))
+   (let ((*viewer* (send *irtviewer* :viewer)))
+     (send self :reset-pose)
+     (send self :legs :move-end-pos #f(0 0 20))
+     (when from-origin
+       (send self :fix-leg-to-coords (make-coords)))
+     (setf (get self :walk-motion)
+	   (send self :go-pos-params->footstep-list x y angle))
+     (unless (get self :default-step-height)
+       (setf (get self :default-step-height) height))
+     (setf (get self :walk-pattern-list)
+	   (send self :calc-walk-pattern-from-footstep-list
+		 (get self :walk-motion) :debug-view :no-message
+		 :default-step-height (get self :default-step-height))))
+   t)
   (:walk-fore
    (&optional (len 100))
-   (if len
-       (setf (get self :forward-walk)
-	     (send self :go-pos-params->footstep-list len 0 0)))
-   (unless (get self :default-step-height)
-     (setf (get self :default-step-height) 5))
-   (send self :calc-walk-pattern-from-footstep-list
-	 (get self :forward-walk) :debug-view :no-message
-	 :default-step-height (get self :default-step-height)))
+   (send self :walk-motion :x len :y 0 :angle 0))
   (:walk-turn
    (&optional (angle 30))
-   (if angle 
-       (setf (get self :turn-walk) (send self :go-pos-params->footstep-list 0 0 angle)))
-   (send self :calc-walk-pattern-from-footstep-list
-	 (get self :turn-walk) :debug-view :no-message
-	 :default-step-height (get self :default-step-height)))
+   (send self :walk-motion :x 0 :y 0 :angle angle))
   (:joint-possible-methods
    nil
    (remove-if-not
