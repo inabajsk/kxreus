@@ -1,5 +1,7 @@
 ;;
 
+(require :rcb4robots)
+
 (in-package "X")
 
 (defmethod irtviewer
@@ -227,12 +229,20 @@
   (:handle () handle)
   )
 
-(when (and (not (boundp '*robot*))
-	   (probe-file "models/kxrl2l6a6h2m.l"))
-  (load "models/kxrl2l6a6h2m.l")
+(when (not (boundp '*robot*))
+  (if (probe-file "models/kxrl2l6a6h2m.l")
+      (load "models/kxrl2l6a6h2m.l")
+    (make-kxr-robot "kxrl2l6a6h2m"))
   (setq *robot* (instance kxrl2l6a6h2m-robot :init))
   (objects (list *robot*))
   (send *irtviewer* :new-ui)
+  (send *irtviewer* :draw-objects)
+  (send *irtviewer* :look-all)
+  (send *irtviewer* :draw-objects)
+  (send *robot* :walk-motion)
+  (send *irtviewer* :look-all)
+  (send *irtviewer* :draw-objects)
+  (send *robot* :walk-motion :angle 30 :y 50)
   )
 
 (defmethod robot-model
@@ -567,7 +577,6 @@
 ;; Semi2022 2022.5.4
 ;; Semi2021 2021.10.24
 ;;	
-(require :rcb4robots)
 
 (in-package "IMAGE")
 
