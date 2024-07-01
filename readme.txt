@@ -88,6 +88,9 @@ Roseus basics:
    and roseus with ROS extentions.
    https://github.com/jsk-ros-pkg/jsk_roseus
    euslisp < jskeus < roseus.
+   see slide for euslisp:
+      https://www.slideshare.net/slideshow/euslisp/53487698
+
 1) roseus
 2) (load "irteus/demo/demo.l") ;; show sample programs
 3) (particle)   ;; interval timer sample used in :timer-on
