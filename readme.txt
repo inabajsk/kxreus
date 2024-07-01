@@ -33,27 +33,6 @@ How to use:
 
  ;; details are in kxr-document.txt
 
-Rcb4lisp sample:
-   Connect real kxrl2g robot to PC.
-1) roseus rcb4robots
-2) (make-kxr-robot "kxrl2g")
-3) (send *ri* :com-init)
-4) (semi-comp-jswing) ;; define comp-jswing for :head-neck-y swing motion
-5) (comp-jswing) ;; execute comp-jswing :head-neck-y joint swing
-6) (semi-comp-remocon) ;; define a motion for a robot with 2DOF neck joints
-7) (comp-remocon) ;; execute the motion defined by semi-comp-remocon
-   ;; remocon <shift-3 (:r-shift-u)> button for :head-neck-y joint
-   ;; remocon <shift-1 (:l-shift-u)> button for :head-neck-p joint
-   ;; remocon <r-forward> button to exit from comp-remocon motion
-8) (semi-comp-squat) ;; for kxrl2g with 5DOF leg example defined
-9) (comp-squat) ;; execute comp-squat motion defined by semi-comp-squat
-      ;; remocon <shift-3> button to execute squat motion
-      ;; remocon <r-forward> button to exit this motion loop
-10) (semi-comp-iksquat) ;; for kxrl2g inverse-kinematics squat motion
-11) (comp-iksquat) ;; execute the IK squat motion defined by semi-comp-iksquat
-      ;; remocon <shift-3> button to execute squat motion
-      ;; remocon <r-forward> button to exit this motion loop
-
 Real robot example:
   Rubik cube demo
   https://www.youtube.com/watch?v=CVYYmKJGDNQ
@@ -85,6 +64,28 @@ Robot-model generation:
 
 Other robot model generation software:
     https://github.com/agent-system/robot_assembler
+
+Rcb4lisp sample:
+   Connect real kxrl2g robot to PC.
+1) roseus semi2024.l
+2) (make-kxr-robot "kxrl2g")
+3) (send *ri* :com-init)
+4) (semi-comp-jswing) ;; define comp-jswing for :head-neck-y swing motion
+5) (comp-jswing) ;; execute comp-jswing :head-neck-y joint swing
+6) (semi-comp-remocon) ;; define a motion for a robot with 2DOF neck joints
+7) (comp-remocon) ;; execute the motion defined by semi-comp-remocon
+   ;; remocon <shift-3 (:r-shift-u)> button for :head-neck-y joint
+   ;; remocon <shift-1 (:l-shift-u)> button for :head-neck-p joint
+   ;; remocon <r-forward> button to exit from comp-remocon motion
+8) (semi-comp-squat) ;; for kxrl2g with 5DOF leg example defined
+9) (comp-squat) ;; execute comp-squat motion defined by semi-comp-squat
+      ;; remocon <shift-3> button to execute squat motion
+      ;; remocon <r-forward> button to exit this motion loop
+10) (semi-comp-iksquat) ;; for kxrl2g inverse-kinematics squat motion
+11) (comp-iksquat) ;; execute the IK squat motion defined by semi-comp-iksquat
+      ;; remocon <shift-3> button to execute squat motion
+      ;; remocon <r-forward> button to exit this motion loop
+
 
 Roseus basics:
    Roseus is an extention of a subset of CommonLisp: Euslisp
