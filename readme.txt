@@ -34,20 +34,23 @@ How to use:
  ;; details are in kxr-document.txt
 
 Rcb4lisp sample:
-1) roseus semi2024.l
-2) (semi-comp-jswing) ;; define comp-jswing for :head-neck-y swing motion
-3) (comp-jswing) ;; execute comp-jswing :head-neck-y joint swing
-4) (semi-comp-remocon) ;; define a motion for a robot with 2DOF neck joints
-5) (comp-remocon) ;; execute the motion defined by semi-comp-remocon
+   Connect real kxrl2g robot to PC.
+1) roseus rcb4robots
+2) (make-kxr-robot "kxrl2g")
+3) (send *ri* :com-init)
+4) (semi-comp-jswing) ;; define comp-jswing for :head-neck-y swing motion
+5) (comp-jswing) ;; execute comp-jswing :head-neck-y joint swing
+6) (semi-comp-remocon) ;; define a motion for a robot with 2DOF neck joints
+7) (comp-remocon) ;; execute the motion defined by semi-comp-remocon
    ;; remocon <shift-3 (:r-shift-u)> button for :head-neck-y joint
    ;; remocon <shift-1 (:l-shift-u)> button for :head-neck-p joint
    ;; remocon <r-forward> button to exit from comp-remocon motion
-6) (semi-comp-squat) ;; for kxrl2g with 5DOF leg example defined
-7) (comp-squat) ;; execute comp-squat motion defined by semi-comp-squat
+8) (semi-comp-squat) ;; for kxrl2g with 5DOF leg example defined
+9) (comp-squat) ;; execute comp-squat motion defined by semi-comp-squat
       ;; remocon <shift-3> button to execute squat motion
       ;; remocon <r-forward> button to exit this motion loop
-8) (semi-comp-iksquat) ;; for kxrl2g inverse-kinematics squat motion
-9) (comp-iksquat) ;; execute the IK squat motion defined by semi-comp-iksquat
+10) (semi-comp-iksquat) ;; for kxrl2g inverse-kinematics squat motion
+11) (comp-iksquat) ;; execute the IK squat motion defined by semi-comp-iksquat
       ;; remocon <shift-3> button to execute squat motion
       ;; remocon <r-forward> button to exit this motion loop
 
@@ -59,10 +62,11 @@ Real robot example:
   It has 2 2DOF legs, 6DOF arm, 2DOF head, magnet modular robot.
 
 Robot-model generation:
+  No requirements of real robot connections.
 1) roseus semi2024.l
-2) (make-kxr-robot "kxrl2l2a6h2m") ;; when if no kxreus/models/kxrl2l2a6h2m.l
-    ;; it generates the model file through installing several ros packages
-3) (make-kxr-robot "kxrl2l2a6h2m" :generate t) ;; overwrite models/kxrl2l2a6h2m.l
+   automatically generate "kxrl2l2a6h2m" robot by
+   (make-kxr-robot "kxrl2l2a6h2m")
+   This requires answers for installing several ros packages.
     ;; you can find the robot config of kxrl2l2a6h2m in a global variable
     ;; *kxr-body-config-alist* in rcb4robotconfig.l.
     ;; Each config has robot-name, model-param, servo-id and joint-name params.
@@ -71,10 +75,13 @@ Robot-model generation:
     ;; When you want to generate new robot, you define it with a body
     ;; in kxrbody.l, a bodyset in kxrbodyset.l, a robot-link in kxrlinks.l,
     ;; extends the definition of :setup-xxxx in kxreus.
-4) (make-kxr-robot "kxrl2l6a6h2m") ;; generate 6DOF biped, 6DOF arms, 2DOF head
-5) (send *robot* :walk-motion) ;; walk forward ported from irteus/demo/walk-motion.l
-6) (send *robot* :walk-motion2) ;; another walk sample ported from irteus/demo/walk-motion.l
-
+2)  Drag the green viewer of robot kxrl2l2a6h2m to show.
+    ;; check new mouse operation(:new-ui to *irtviewer*)
+    ;;  left-button: changes view angle.
+    ;;  Shift + left-button: slide view
+    ;;  Ctrl + left-button: scale view
+3) (send *robot* :walk-motion :x 200 :y 200 :angle 10)
+    ;; walk forward ported from irteus/demo/walk-motion.l
 
 Other robot model generation software:
     https://github.com/agent-system/robot_assembler
