@@ -3,8 +3,8 @@
 ;;;
 (provide :utils)
 
-(defun objects+ (blist &key base (des t)
-			 (coords t) (prop t) ((:viewer vwer)) &allow-other-keys)
+(defun objects+ (blist &key base (des t) show-name
+		       (coords t) (prop t) ((:viewer vwer)) &allow-other-keys)
   (let ((bs blist))
     (if (or coords base)
 	(setq bs
@@ -40,15 +40,18 @@
 		       blist))))
     (cond
      (vwer
-       (send vwer :objects bs)
-       (send vwer :look-all)
-       (dolist (b bs) 
-	 (if (send b :name) (send vwer :format-at-3dpos (send b :worldpos) "~A" (send b :name))))
-       )
-     (t (objects bs)
+      (send vwer :objects bs)
+      (send vwer :look-all)
+      (when show-name
 	(dolist (b bs) 
-	  (if (send b :name) (send *irtviewer* :format-at-3dpos (send b :worldpos) "~A" (send b :name))))
-	))
+	  (if (send b :name) (send vwer :format-at-3dpos (send b :worldpos) "~A" (send b :name)))))
+      )
+     (t (objects bs)
+	(when show-name
+	  (dolist (b bs) 
+	    (if (send b :name)
+		(send *irtviewer* :format-at-3dpos (send b :worldpos) "~A" (send b :name))))
+	  )))
     ;; red: base
     ;; yellow: :joint-coord   #f(1 1 0) in bodyset in kxrbodyset.l, link in kxrlinks.l
     ;; purple: :origin-coord  #f(1 0 1)
