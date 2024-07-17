@@ -89,18 +89,21 @@ all: dir $(LIBOBJECTS)
 	install -m 0644 rcb4robotconfig.l $(LIBDIR)
 	touch glbodies/*
 
+gen:
+	irteusgl kxranimate.l "(progn (kxr-all-robots :generate t) (exit))"
+
 libs:	
-	sudo apt-get install libftdi-dev
-	sudo apt-get install libopenblas-dev
-	sudo apt-get install cmake
-	sudo apt-get install gifsicle
-	sudo apt-get install binutils-arm-none-eabi
+	sudo apt-get install -y libftdi-dev
+	sudo apt-get install -y libopenblas-dev
+	sudo apt-get install -y cmake
+	sudo apt-get install -y gifsicle
+	sudo apt-get install -y binutils-arm-none-eabi
 	sudo install -m 0755 udevs/99-my-rcb4.rules /etc/udev/rules.d/
 	sudo install -m 0755 udevs/99-my-ftdi-akizuki.rules /etc/udev/rules.d/
 	sudo install -m 0755 udevs/99-my-ftdi-future.rules /etc/udev/rules.d/
 	sudo install -m 0755 udevs/99-my-m5stack.rules /etc/udev/rules.d/
 	sudo udevadm control --reload-rules && sudo udevadm trigger
-	sudo apt-get install ros-$(ROS_DISTRO)-roseus
+	sudo apt-get install -y ros-$(ROS_DISTRO)-roseus
 dir:
 	install -m 0755 -d $(ARCHDIR)
 	install -m 0755 -d $(LIBDIR)
