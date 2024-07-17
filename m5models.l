@@ -1063,7 +1063,8 @@
 	)
       (when (and front (< num 10))
 	(setq front (stl2eus (format nil "~A_front.~A" str (if (= num 9) "stl" "STL"))
-			     :scale scale :offset #f(0 -22.5 -16)))
+			     :scale scale))
+	(send front :translate #f(0 22.5 16))
 	(send base :assoc front)
 	(when
 	    (= num 9)
