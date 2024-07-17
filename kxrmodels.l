@@ -912,10 +912,12 @@
 	 (setq cameras (get (car lst) :cameras)))
 
        (when cameras
-	 (format t ";;; debug inaba cameras=~A~%" cameras)
+	 ;;(format t ";;; debug inaba cameras=~A~%" cameras)
 	 (setq head-end-coords
 	       (make-cascoords :pos
-			       (apply #'midpoint 0.5 (send-all cameras :worldpos))
+			       (if (> (length cameras) 1)
+				   (apply #'midpoint 0.5 (send-all cameras :worldpos))
+				 (car (send-all cameras :worldpos)))
 			       :rot (m*
 				     (rotation-matrix pi/2 :y)
 				     (rotation-matrix -pi/2 :z))

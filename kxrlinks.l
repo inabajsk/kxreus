@@ -1912,10 +1912,10 @@
        ;;(eq-memq gripper-sensor (list t l/r :finger2))))
        ;;(and (not (assoc :finger2 gripper-sensor)) gripper-sensor)
        (setq l1 (kxr-finger-bodyset :sensor (assocdr :finger2 gripper-sensor)
-				    :attachment (if (eq attachment :up) :larm :rarm)
+				    :attachment (when attachment (if (eq attachment :up) :larm :rarm))
 				    :sensor-z-rotation -pi/2)) ;; inside
        (setq l0 (kxr-finger-bodyset :sensor (assocdr :finger1 gripper-sensor)
-				    :attachment (if (eq attachment :up) :rarm :larm)
+				    :attachment (when attachment (if (eq attachment :up) :rarm :larm))
 				    :with-wheel (eq-memq :gripper passive-wheel)
 				    :sensor-z-rotation -pi/2  ;; outside
 				    ))
@@ -1924,14 +1924,14 @@
 	 (send l0 :assoc l2)))
       (t
        (setq l1 (kxr-finger-bodyset :sensor (assocdr :finger1 gripper-sensor)
-				    :attachment (if (eq attachment :up) :larm :rarm)
+				    :attachment (when attachment (if (eq attachment :up) :larm :rarm))
 				    :sensor-z-rotation -pi/2 ;; outside
 				    :with-wheel (eq-memq :gripper passive-wheel)))
        (when (eq-memq :gripper passive-wheel)
 	 (setq l2 (kxr-passive-wheel-link :l/r :larm))
 	 (send l1 :assoc l2))
        (setq l0 (kxr-finger-bodyset :sensor (assocdr :finger2 gripper-sensor)
-				    :attachment (if (eq attachment :up) :rarm :larm)
+				    :attachment (when attachment (if (eq attachment :up) :rarm :larm))
 				    :sensor-z-rotation -pi/2
 				    ))))
     (send l1 :rotate pi :z :world)
@@ -2294,13 +2294,13 @@
 			       attachment with-wheel)
   (let ((f1 (kxr-finger1-link
 	     :l/r l/r :with-wheel with-wheel :gripper-axis gripper-axis
-	     :attachment (if (eq attachment :up) :rarm :larm)
+	     :attachment (when attachment (if (eq attachment :up) :rarm :larm))
 	     :sensor
 	     (or (member sensor (list t l/r :finger1 '(:finger1)) :test #'equal)
 		 (and (memq :finger1 sensor) (memq l/r sensor)))))
 	(f2 (kxr-finger2-link 
 	     :l/r l/r :gripper-axis gripper-axis
-	     :attachment (if (eq attachment :up) :larm :rarm)
+	     :attachment (when attachment (if (eq attachment :up) :larm :rarm))
 	     :sensor (or (member sensor (list t l/r :finger2 '(:finger2)) :test #'equal)
 			 (and (memq :finger2 sensor) (memq l/r sensor))))))
     (if (or (eq gripper-inner t) (eq-memq l/r gripper-inner))
