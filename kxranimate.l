@@ -32,22 +32,43 @@
 	))
 
 (defun kxr-all-robot-names nil
-  (list "kxrl4t"	"kxrl6"		
-	"kxrl4r"	"kxrl4d" "kxrl4n" "kxrl4ct2a7h2"
-	"kxrl2l5a3h2"	"kxrl2w2l5a4h2"
-	"kxrl2w2l6a5h2"	"kxrl2w2l6a6h2n" "kxrl2w2l6a7h2w"
-	"kxrl2l6a6h2"	"kxrl2l6a7h2" "kxrl2t2l6a7h2yprb"
-	"kxrl2makabe"	"kxrl2l6anzaifly"))
+  (list 
+   "kxrl4t"
+   "kxrl6"		
+   "kxrl4r"	"kxrl4d" "kxrl4n" "kxrl4ct2a7h2"
+   "kxrl2g"
+   "kxrl2l5a3h2"	"kxrl2w2l5a4h2"
+   "kxrl2w2l6a5h2"
+   ;;"kxrl2w2l6a6h2n"
+   "kxrl2w2l6a7h2w"
+   "kxrl2semi2022s"
+   "kxrl2l2a6h2m"
+   "kxrl2l6a6h2"
+   "kxrl2l6a6h2m"
+   ;;"kxrl2l6a7h2"
+   "kxrl2t2l6a7h2yprb"
+   "kxrl2t2l6a7h2d405"
+   ;;"kxrl2makabe"
+   ;;"kxrl2l6anzaifly"
+   ))
 
 (defun make-robot (name) (funcall (read-from-string name)))
-(defun kxr-all-robots nil (mapcar #'kxr-create-robot (kxr-all-robot-names)))
+(defun kxr-all-robots (&optional (model 0) generate)
+  (setq *kxr-all-robots*
+	(mapcar #'(lambda (r) 
+		    (warn " kxr-all-robots ~A~%" r)
+		    (kxr-create-robot r :model model :generate generate)
+		    )
+		(kxr-all-robot-names))))
 
 (defun objects-kxr-robots (&rest args
-			   &key (robots (reverse (kxr-all-robots)))
-			     (n 4) (xs 400) (ys 400)
-			     (spos #f(0 -600 0))
-			     &allow-other-keys)
-  (apply #'show-2d-arrange robots :n n :xs xs :ys ys :spos spos args))
+				 &key (robots (reverse (kxr-all-robots)))
+				 (n 4) (xs 400) (ys 400)
+				 (spos #f(0 -600 0))
+				 base coords
+				 &allow-other-keys)
+  (apply #'show-2d-arrange robots :n n :xs xs :ys ys :spos spos :coords coords
+	 :base base args))
 
 (format t "; (kxr-robots-animate)~%")
 (defun kxr-robots-animate (&optional (robots (reverse (kxr-all-robots))))
@@ -105,18 +126,18 @@
   )
 
 (defun show-2d-arrange (&optional (objs (objects))
-			&key
-			  ;;(n (if (< (length objs) 40) 5 (round (sqrt (length objs)))))
-			  coords
-			  (base t)
-			  (des coords)
-			  (prop t)
-			  n
-			  (xs 100)
-			  (ys 100)
-			  spos
-			  ((:viewer vwer))
-			  &allow-other-keys)
+				  &key
+				  ;;(n (if (< (length objs) 40) 5 (round (sqrt (length objs)))))
+				  coords
+				  (base t)
+				  (des coords)
+				  (prop t)
+				  n
+				  (xs 100)
+				  (ys 100)
+				  spos
+				  ((:viewer vwer))
+				  &allow-other-keys)
   (if (null n) (setq n (round (sqrt (/ (length objs) 1.4)))))
   (if (null spos) (setq spos (float-vector 0 (- (* ys (/ n 2))) 0)))
   (let ((res objs) (len (length objs)) (x 0) obj)
