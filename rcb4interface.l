@@ -1475,11 +1475,12 @@
 		      (no (pop l)) (joint-name (pop l)) ;; joint-name ("larm" "palm" "gripper-"))
 		      (flag (pop l)) (offset (pop l)) (servo-type (pop l))
 		      (kjs-idx (pop l)) (magenc-offset (pop l)) (upper-limit (pop l)))
-		 (cond
-		   ((< no rcb4-dof)
-		    (push ls servo-config-list)
-		    (send self :set-servo-vector-joint no joint-name flag offset servo-type kjs-idx magenc-offset upper-limit))
-		   (t (send self :set-sensor-board-list no joint-name))))) ;; was (/ no 2) 2023.2.11
+		 (when joint-name
+		   (cond
+		    ((< no rcb4-dof)
+		     (push ls servo-config-list)
+		     (send self :set-servo-vector-joint no joint-name flag offset servo-type kjs-idx magenc-offset upper-limit))
+		    (t (send self :set-sensor-board-list no joint-name)))))) ;; was (/ no 2) 2023.2.11
 	   cf)
      (setq servo-sorted-ids
 	   (sort (remove-duplicates (mapcar #'car servo-config-list)) #'<))
@@ -1608,8 +1609,10 @@
 	  (rotate-config-lst nil))
      ;; (format t "joint-method-name:~A~%" joint-method-name)
      ;; (format t "sign:~A, offset:~A, servo-type:~A, kjs-idx:~A, magenc-offset:~A~%" sign offset servo-type pair-kjs-idx magenc-offset)
+     (unless j
+       (warn " Alarm!! joint-name ~A is not usable in ~A !!!~%" joint-method-name self))
      (when
-	 (numberp sv-index) 
+	 (and j (numberp sv-index))
        (when
 	   (numberp offset)
 	 (setf (aref trim-vector sv-index) (- (aref trim-vector sv-index) (* deg-to-servovector sign offset)))
