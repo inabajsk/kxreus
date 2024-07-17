@@ -114,7 +114,7 @@
   (unless (unix::getenv "ROS_DISTRO")
     (error ";; You need ROS environment. install ROS and do again"))
   (unless (read (piped-fork "rospack find openhrp3") nil nil)
-    (system-format "sudo apt-get install ros-~A-openhrp3" (unix::getenv "ROS_DISTRO")))
+    (system-format "sudo apt-get install -y ros-~A-openhrp3" (unix::getenv "ROS_DISTRO")))
   (mkdir-unless "daes")
   (system-format "export-collada -i ~A -o ~A" wrl dae))
 
@@ -2049,9 +2049,9 @@ PROTO ~A [
 			  (model (format nil "models/~A.l" fname)))
   (unless (read (piped-fork "bash which export-collada") nil nil)
     (system-format
-     "sudo apt-get install ros-~A-openhrp3" (unix::getenv "ROS_DISTRO")))
+     "sudo apt-get install -y ros-~A-openhrp3" (unix::getenv "ROS_DISTRO")))
   (unless (read (piped-fork "rospack find euscollada") nil nil)
-    (system-format "sudo apt-get install ros-~A-euscollada" (unix::getenv "ROS_DISTRO")))
+    (system-format "sudo apt-get install -y ros-~A-euscollada" (unix::getenv "ROS_DISTRO")))
   (mkdir-unless "models")
   (system-format "rosrun euscollada collada2eus ~A ~A ~A" dae yaml model))
 
