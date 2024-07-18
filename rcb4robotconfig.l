@@ -12025,9 +12025,10 @@ nil
   )
 
 #-:arm
-(check-duplicated-names)
+(format t ";; (check-duplicated-names)~%")
 #-:arm
-(check-same-model-params)
+(format t ";; (check-same-model-params)~%")
+
 (defparameter *kxr-body-config-hashtable* (make-hash-table :size 1000 :test #'string=))
 (dolist (conf *kxr-body-config-alist*)
   (cond

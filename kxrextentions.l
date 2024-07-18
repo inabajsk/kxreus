@@ -1,8 +1,7 @@
 ;;;
 ;;;	2020.6.11 Ducted fan thruster
 ;;;
-(require :kxranimate)
-;;(require :read-stl)
+;;(require :kxranimate)
 (require :eus2wrl)
 (provide :kxrextentions)
 
