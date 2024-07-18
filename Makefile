@@ -123,10 +123,17 @@ clean-objects:
 	cd work; rm -f $(addsuffix .h,$(OBJS))
 	cd work; rm -f $(addsuffix .o,$(OBJS))
 
+clean-models:
+	rm -rf models
+
 clean:
 	make clean-objects
 	rm -f $(BMODULES) $(BMODULESOBJ) eusrc.l
 	rm -rf $(ARCHDIR) meshes daes glbodies urdf work wrls yamls models
+
+clean-all:
+	make clean
+	make clean-models
 
 get-eus:
 	wget http://www.dh.aist.go.jp/~t.matsui/ftp/eus826/eus826.tar.gz
