@@ -90,6 +90,9 @@ all: dir $(LIBOBJECTS)
 	touch glbodies/*
 
 gen:
+	irteusgl kxranimate.l "(progn (kxr-all-robots) (exit))"
+
+regen:
 	irteusgl kxranimate.l "(progn (kxr-all-robots :generate t) (exit))"
 
 libs:	
