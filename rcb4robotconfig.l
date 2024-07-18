@@ -1347,20 +1347,9 @@ nil
      (16 :rleg-crotch-w  1)      (17 :lleg-crotch-w 1)
      )
     ;;
-    (("kxrl4t")		;; 9
-     (:body :l4t :type :l4 :arm :j2 :leg :j2 :head :h2s
-	    :project-file "kxrl4t"
-	    :board :armh7)
-     (1 :head-neck-y -1)
-     (2 :rarm-shoulder-y -1)  (3 :Larm-shoulder-y -1)
-     (4 :rarm-shoulder-r -1)  (5 :larm-shoulder-r 1)
-     (6 :rleg-crotch-y -1)    (7 :lleg-crotch-y -1)
-     (8 :rleg-crotch-r -1)    (9 :lleg-crotch-r 1)
-     )
     (("kxrl4tm")
      (:body :l4t :type :l4 :arm :j2 :leg :j2 :head :h2s
-	    :project-file "kxrl4tm"
-	    :board :armh7)
+	    :project-file "kxrl4tm")
      (32 :head-neck-y -1)
      (24 :rarm-shoulder-y -1)  (25 :Larm-shoulder-y -1)
      (8  :rarm-shoulder-r -1)  (9 :larm-shoulder-r 1)
@@ -7820,53 +7809,6 @@ nil
      (0 :head-neck-y -1 )       (20 :head-neck-p   -1)
      )
     ("kxrl2semi2022s"
-     (
-      :file "models/kxrl2semi2022s.l" :form (kxrl2semi2022s)
-      )
-     ;; (
-     ;;  :body :l2l6b :type :l2 
-     ;;  :crotch-p t :crotch-low t :crotch-front t :flat-crotch t :leg :j2-pr :sole t 
-     ;;  :shoulder :pry-cross :shoulder-front t :shoulder-low t :flat-shoulder nil ;;:shoulder :ly-p-rb
-     ;;  :elbow :angle :wrist :cross-pr :upper-arm-length 38 
-     ;;  :gripper t :gripper-straight t :gripper-axis :y
-     ;;  :gripper-sensor :rev-a ;; (:finger1 :rev-a) 
-     ;;  :head :m3deye :3eye-rev 8 :3eye-front t :3eye-cover t :head-length 20
-     ;;  :m5stickv t
-     ;;  :board :armh7 :com-init-method (:arm2-open)
-     ;;  :reset-pose-alist ((:larm-shoulder-p 0) (:rarm-shoulder-p 0)
-     ;; 			 (:larm-shoulder-r 0) (:rarm-shoulder-r 0)
-     ;; 			 (:lleg-crotch-r 0) (:rleg-crotch-r 0)
-     ;; 			 (:larm-elbow-p 0) (:rarm-elbow-p 0)
-     ;; 			 (:larm-wrist-p 0) (:rarm-wrist-p 0)
-     ;; 			 (:larm-wrist-y 0) (:rarm-wrist-y  0)
-     ;; 			 )
-     ;;  )
-     (2 :rarm-shoulder-p 1)     (3 :larm-shoulder-p -1 )
-     (4 :rarm-shoulder-r 1)    (5 :larm-shoulder-r 1)
-     (6 :rarm-elbow-p 1)        (7 :larm-elbow-p 1)
-     
-     (18 :rarm-gripper-r 1/2)   (19 :larm-gripper-r 1/2)
-     (18 :rarm-gripper2-r 1/2)  (19 :larm-gripper2-r 1/2)
-     
-     (14 :rleg-crotch-y 1)      (15 :lleg-crotch-y 1)
-     (16 :rleg-crotch-r 1)      (17 :lleg-crotch-r 1)
-     
-     (8 :rarm-shoulder-y 1)     (9 :larm-shoulder-y  1)
-     (10 :rarm-wrist-p 1)       (11 :larm-wrist-p -1)
-     (12 :rarm-wrist-r -1)       (13 :larm-wrist-r -1)
-     (0 :head-neck-y -1 )       (20 :head-neck-p   -1)
-
-     (38 larm-gripper2-r-KJS-01) ;; sensor-board 19
-     (40 rarm-gripper2-r-KJS-01) ;; sensor-board 20
-     (42 larm-gripper-r-KJS-01) ;; sensor-board 21
-     (44 rarm-gripper-r-KJS-01) ;; sensor-board 22
-     ;;
-     ;; (38 ("larm-wrist" "gripper2-" "KJS")) ;; sensor-board 19
-     ;; (40 ("rarm-wrist" "gripper2-" "KJS")) ;; sensor-board 20
-     ;; (42 ("larm-wrist" "gripper-" "KJS")) ;; sensor-board 21
-     ;; (44 ("rarm-wrist" "gripper-" "KJS")) ;; sensor-board 22
-     )
-    ("kxrl2semi2022ups"
      (
       :body :l2l6b :type :l2 
       :crotch-p t :crotch-low t :crotch-front t :flat-crotch t :leg :j2-pr :sole t 
