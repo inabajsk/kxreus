@@ -5167,9 +5167,9 @@ nil
      )
     (("kxrl2l6a7h2")
      (:body :l2l6 :type :l2 :sole t
-	    :project-file "kxrl2l6a6h2"
+	    ;;:project-file "kxrl2l6a6h2"
 	    :shoulder :ypry-cross :shoulder-front t :shoulder-low t :flat-shoulder nil
-	    :shoulder-p-sensor :horn-mag-
+	    ;;:shoulder-p-sensor :horn-mag-
 	    :elbow :angle :wrist :cross-pr :upper-arm-length 38 
 	    ;;:elbow-p-sensor :mag-7      :wrist-sensor :mag-7
 	    ;;:crotch-p-sensor :rev-a      :crotch-r-sensor :mag-7
