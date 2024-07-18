@@ -6,35 +6,54 @@ How to install:
 3) sudo reboot
 4) cd kxreus
 5) make libs
+    ;; setup usb drivers
 6) make
-7) connect USB dual adapter to PC
-8) lsusb ;; to show names of USB devices. check the name Kondo Kagaku...
+7) make gen
+    ;; generate typical robot models into kxreus/models directory
+8) connect USB dual adapter to PC
+9) lsusb ;; to show names of USB devices. check the name Kondo Kagaku...
 
 How to use:
-1) connect USB dual adapter with serial LED from PC to a robot (kxrl2g)
-2) cd kxreus
-3) roseus rcb4robots
-4) (make-kxr-robot "kxrl2g") ;; generates *robot*, *ri*, two viewers
+1) cd kxreus
+2) roseus semi2024
+3) (semi-init)  ;; demo program new UI setup
+4) Drag the green viewer of robot kxrl2l2a6h2m to show.
+    ;; check new mouse operation(:new-ui to *irtviewer*)
+    ;;  left-button: changes view angle.
+    ;;  Shift + left-button: slide view
+    ;;  Ctrl + left-button: scale view
+5) (pf semi-init)
+6) (send *robot* :walk-motion :x 200 :y 200 :angle 10)
+    ;; walk forward ported from irteus/demo/walk-motion.l
+7) (load "kxranimate.l")
+8) (objects-kxr-robots)
+    ;; show typical robot models in a viewer.
+
+<img src="./images/all-robots.png" height=400px>
+
+How to move real robot ex. kxrl2g:
+1) connect USB dual adapter with serial LED from PC to a robot
+2) roseus semi2024
+3) (make-kxr-robot "kxrl2g") ;; generates *robot*, *ri*, two viewers
      ;; other robots "kxrl4t", "kxrl4d", "kxrl6" etc. in kxreus/models
      ;; green viewer for *robot*, purple viewer for *ri*
-5) (send *ri* :timer-on) ;; call :com-init, and start itimer to update *ri* viewer
-6) (send *ri* :free :larm :rarm :head) ;; servo off uppder body joints
+4) (send *ri* :timer-on) ;; call :com-init, and start itimer to update *ri* viewer
+5) (send *ri* :free :larm :rarm :head) ;; servo off uppder body joints
      ;; you can move upper body of kxrl2g. 
      ;; (send *ri* :free) to servo off all the joints
-7) (setq a (send *ri* :read-angle-vector)) ;; store current pose to variable a
-8) (send *ri* :hold) ;; servo on all joints
-9) (send *ri* :angle-vector a 2000) ;; move to a posture in 2000[msec]
-10) (send *ri* :call-motion 22) ;; call No. 22 motion in 0-119 motion table in ROM
-11) (send *ri* :timer-off) ;; stop continuous viewer update
-12) (send *ri* :draw-project-file) ;; show animation of motion-table
-13) (reset) ;; when get error in roseus
-14) Ctrl-C ;; in case hang up in :timer-on continuous viewer update
-15) (exit) ;; exit from roseus
+6) (setq a (send *ri* :read-angle-vector)) ;; store current pose to variable a
+7) (send *ri* :hold) ;; servo on all joints
+8) (send *ri* :angle-vector a 2000) ;; move to a posture in 2000[msec]
+9) (send *ri* :call-motion 22) ;; call No. 22 motion in 0-119 motion table in ROM
+10) (send *ri* :timer-off) ;; stop continuous viewer update
+11) (send *ri* :draw-project-file) ;; show animation of motion-table
+12) (reset) ;; when get error in roseus
+13) Ctrl-C ;; in case hang up in :timer-on continuous viewer update
+14) (exit) ;; exit from roseus
 
  ;; details are in kxr-document.txt
 
-Real robot example:
-  Rubik cube demo
+ ;; Rubik cube demo
   https://www.youtube.com/watch?v=CVYYmKJGDNQ
   described in https://github.com/fkanehiro/kxr_cube_solver
   the robot is named kxrl2l2a6h2m in rcb4robotconfig.l
@@ -42,11 +61,16 @@ Real robot example:
 
 Robot-model generation:
   No requirements of real robot connections.
-1) roseus semi2024.l
-   automatically generate "kxrl2l2a6h2m" robot by
-   (make-kxr-robot "kxrl2l2a6h2m")
-   This requires answers for installing several ros packages.
-    ;; you can find the robot config of kxrl2l2a6h2m in a global variable
+1) roseus semi2024
+2) (make-kxr-robot "kxrl2l6a6h2m" :generate t)
+    ;; when already models/kxrl2l6a6h2m.l exists, :generate key generates again.
+3) (make-kxr-robot "kxrkamakiri")
+    ;; when no models/kxrkamakiri.l, generates it.
+4) (make-kxr-robot "kxrkamakiri" :model nil)
+    ;; generates *robot* as an instance of kxr-robot model not models/kxrkamakiri.l
+    ;; that is an instance of euscollada-robot model
+
+    ;; you can find the robot config of kxr-robot models in a global variable
     ;; *kxr-body-config-alist* in rcb4robotconfig.l.
     ;; Each config has robot-name, model-param, servo-id and joint-name params.
     ;; You can specify a robot name in this alist to generate model.
@@ -54,16 +78,11 @@ Robot-model generation:
     ;; When you want to generate new robot, you define it with a body
     ;; in kxrbody.l, a bodyset in kxrbodyset.l, a robot-link in kxrlinks.l,
     ;; extends the definition of :setup-xxxx in kxreus.
-2)  Drag the green viewer of robot kxrl2l2a6h2m to show.
-    ;; check new mouse operation(:new-ui to *irtviewer*)
-    ;;  left-button: changes view angle.
-    ;;  Shift + left-button: slide view
-    ;;  Ctrl + left-button: scale view
-3) (send *robot* :walk-motion :x 200 :y 200 :angle 10)
-    ;; walk forward ported from irteus/demo/walk-motion.l
+
 
 Other robot model generation software:
     https://github.com/agent-system/robot_assembler
+
 
 Rcb4lisp sample:
    Connect real kxrl2g robot to PC.
