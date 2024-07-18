@@ -129,7 +129,7 @@ clean-models:
 clean:
 	make clean-objects
 	rm -f $(BMODULES) $(BMODULESOBJ) eusrc.l
-	rm -rf $(ARCHDIR) meshes daes glbodies urdf work wrls yamls models
+	rm -rf $(ARCHDIR) meshes daes glbodies urdf work wrls yamls
 
 clean-all:
 	make clean
