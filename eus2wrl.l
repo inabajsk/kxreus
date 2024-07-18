@@ -9,7 +9,6 @@
 (provide :eus2wrl)
 
 (require :rcb4robots)
-(require :kxrmodels)
 
 (eval-when (eval load)
   (require :kxrextentions))
@@ -2075,10 +2074,11 @@ PROTO ~A [
 (defun rviz-robot (name)
   (system-format "roslaunch kxr_models display.launch model:=~A &" name))
 ;;
-
+#|
 (format t "; (gen-khrh2u) ;; to generate khr with m5unitv-stereo head~%")
 (format t "; (gen-khrh2u2) ;; to generate khr with m5unitv-stereo head~%")
 (format t "; (gen-khrh2u3) ;; to generate khr with m5unitv-stereo + m5unitv2 head~%")
 (format t "; (gen-khrh2v) ;; to generate khr with m5stickv-stereo head~%")
 (format t "; (gen-khrh2v3) ;; to generate khr with m5stickv-stereo with m5unitv2 head~%")
 (format t "; (khr2model \"khrh2\") ;; to generate KHR/khrh2.l from KHR/khrh2main.wrl~%")
+|#
