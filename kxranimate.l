@@ -2,7 +2,6 @@
 ;;;	bvh animation M.I.
 ;;;	2017.9.1  created as :animate-demo
 ;;;
-(require :kxrmodels)
 (require :rcb4robots)
 
 (when (probe-file (format nil "~A/bvh/bvh-demo.l" (unix::getenv "EUSDIR")))
@@ -35,20 +34,24 @@
   (list 
    "kxrl4t"
    "kxrl6"		
-   "kxrl4r"	"kxrl4d" "kxrl4n" "kxrl4ct2a7h2"
+   "kxrl4r"
+   "kxrl4d"
+   "kxrl4n"
+   "kxrl4ct2a7h2"
    "kxrl2g"
-   "kxrl2l5a3h2"	"kxrl2w2l5a4h2"
+   "kxrl2l5a3h2"
+   "kxrl2w2l5a4h2"
    "kxrl2w2l6a5h2"
-   ;;"kxrl2w2l6a6h2n"
+   "kxrl2w2l6a6h2"
    "kxrl2w2l6a7h2w"
    "kxrl2semi2022s"
    "kxrl2l2a6h2m"
    "kxrl2l6a6h2"
    "kxrl2l6a6h2m"
-   ;;"kxrl2l6a7h2"
+   "kxrl2l6a7h2"
    "kxrl2t2l6a7h2yprb"
    "kxrl2t2l6a7h2d405"
-   ;;"kxrl2makabe"
+   "kxrl2makabe"
    ;;"kxrl2l6anzaifly"
    ))
 
