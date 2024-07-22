@@ -2152,7 +2152,7 @@ nil
     (("kxrl4ct2a3h2")
      (:body :l4t :type :l2 :marm :j1w :leg :j1w 
 	    :torso :y-p :shoulder :p
-	    :head :h2s :neck-jf :b :gripper-inner t)
+	    :head :d405eyes :neck-jf :b :gripper-inner t) ;; :h2s :d405
      (0 :head-neck-y 1)   (1 :head-neck-p 1)
      (2 :rarm-shoulder-p -1)  (3 :larm-shoulder-p -1)
      (6 :rarm-shoulder-r -1)  (7 :larm-shoulder-r -1)
@@ -2260,8 +2260,8 @@ nil
     (("kxrl4ct2a7h2")
      (:body :l4t :type :l4 :marm :j1w :leg :j1w 
 	    :torso :y-p :shoulder :cross :wrist :y-cross
-	    :head :m3eye :neck :y-r-p ;; :m5sh
-	    :3eye-rev 3
+	    :neck :y-r-p ;; :m5sh
+	    :head :m3eye :3eye-rev 3 ;; :head :d405eyes 
 	    :neck-jf :b :gripper-inner t)
      (0 :head-neck-y 1)      (1 :head-neck-p 1)
      (2 :rarm-shoulder-p -1)  (3 :larm-shoulder-p -1)
@@ -2344,7 +2344,8 @@ nil
      (14 :rleg-knee-p -1)     (15 :lleg-knee-p -1)
      (16 :rleg-ankle-p -1)    (17 :lleg-ankle-p -1)
      ;;
-     (1 :tail-roll-r 1)      (19 :tail-roll-p 1)
+     ;;(1 :tail-roll-r 1) 
+     (19 :tail-roll-p 1)
      ;;
      (0 :head-neck-y -1)  
      (32 :head-neck-p -1)
@@ -7150,7 +7151,8 @@ nil
 	    :gripper t :gripper-inner t :torso :ly-p-high
 	    :neck-axis :p :head-length 20  ;; :head :m5s
 	    ;;:head :h2sn ;; :head :h2s :head :m5sh
-	    :head :m3deye :3eye-rev 6
+	    :head :h2sn
+	    ;;:head :m3deye :3eye-rev 6
 	    :board :armh7
 	    ;; :wrist-sensor t :gripper-inner t :gripper-sensor ((:finger1 . :rev-a))
 	    :sole t       ;; :sole-sensor t
@@ -7183,7 +7185,9 @@ nil
      (:body :dyp-z :type :l2 :active-wheel :knee 
 	    :shoulder :ly-p-r :wrist :r :passive-wheel :wrist :crotch-z t
 	    :gripper t :gripper-inner t :torso :ly-p   ;; :torso :ly-p-high
-	    :neck-axis :p :head :m3deye :3eye-rev 8 :head-length 20  ;; :head :m5 :h2s :m5sh
+	    :neck-axis :p
+	    :head :d405cam
+	    ;;:head :m3deye :3eye-rev 8 :head-length 20  ;; :head :m5 :h2s :m5sh
 	    :board :armh7
 	    :wrist-sensor t
 	    ;; :gripper-inner t :gripper-sensor :finger1
