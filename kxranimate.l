@@ -40,11 +40,20 @@
    "kxrl6"
    "kxrl4t"
    "kxrl4r"
-   "kxrl4d"
    "kxrl4n"
-   "kxrmw4a6h2m"
-   "kxrow4a7h2m"
+   "kxrl4d"
+   "kxrl4b3" ;;
+   "kxrl4b4" ;;
+   "kxrl4b2sn" ;;
+   "kxrl4b1" ;;
+   "kxrl4b2" ;;
+   "kxrl4b22" ;;
+   "kxrow4a6h2m"
+   "kxrmw4a7h2m"
+   "kxrl4c2"
    "kxrl4ct2a7h2"
+   "kxrl4c3"
+   "kxrl4c"
    "kxrl2semi2022s"
    "kxrl2l2a6h2m"
    "kxrl2g"
@@ -57,7 +66,12 @@
    "kxrl2l6a7h2"
    "kxrl2t2l6a7h2yprb"
    "kxrl2t2l6a7h2d405"
-   ;;"kxrl2makabe"
+   "kxrl2l7a7w"
+   "kxrkamakiri"
+   "kxrl2makabe"
+   "kxrl2makabels"
+   "kxrl2makabelc"
+   "kxrl2makabelcw"
    ;;"kxrl2l6anzaifly"
    ))
 
@@ -72,7 +86,7 @@
 
 (defun objects-kxr-robots (&rest args
 				 &key (robots (reverse (kxr-all-robots)))
-				 (n 4) (xs 600) (ys xs)
+				 (n 5) (xs 600) (ys xs)
 				 (spos #f(0 -600 0))
 				 base coords (color (float-vector 0.7 1.0 1.0))
 				 &allow-other-keys)

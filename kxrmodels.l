@@ -823,7 +823,7 @@
   (:setup-head ;; kxr-robot
    (&rest args &key stand neck-jf ((:body bod)) torso (eye-length 26) (eye-y-rotate 3) (lego-bar 13)
 	  head-sensor (neck-axis :p) head-b head-b-front (3eye-rev 8) (3eye-front t) (3eye-cover t)
-	  head-lidar (head-length 26) ((:head hd)) m5stack m5stickv &allow-other-keys)
+	  head-lidar (head-length 26) ((:head hd)) m5stack (m5stickv t) &allow-other-keys)
    (let (l hc hl leye reye)
      (case
 	 hd
