@@ -4,8 +4,13 @@
 ;;;
 (require :rcb4robots)
 
-(when (probe-file (format nil "~A/bvh/bvh-demo.l" (unix::getenv "EUSDIR")))
-  (load "bvh/bvh-demo.l"))
+(defun bvh-exists? nil
+  (or
+   (probe-file "bvh/bvh-demo.l")
+   (probe-file (format nil "~A/bvh/bvh-demo.l" (unix::getenv "EUSDIR")))))
+
+(when (bvh-exists?) (load "bvh/bvh-demo.l"))
+
 
 (format t "; (objects-kxr-robots)~%")
 
@@ -75,7 +80,10 @@
 
 (format t "; (kxr-robots-animate)~%")
 (defun kxr-robots-animate (&optional (robots (reverse (kxr-all-robots))))
-  (objects-kxr-robots robots) (animate))
+  (objects-kxr-robots :robots robots)
+  (if (bvh-exists?)
+      (animate)
+    (warn ";; no bvh-files~%")))
 
 (defun kxr-defun-form (robot)
   (let* ((name-string (read-from-string (send robot :name)))

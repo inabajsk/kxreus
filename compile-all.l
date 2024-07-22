@@ -16,8 +16,7 @@
 		 (pushnew ,odir *load-path* :test #'equal)
 		 (format t ";; .eusrc executed!! ~A=~A added, *load-path* updated!!~%"
 			 ',var-name ,var-name)
-		 (format t ";; *load-path*=")
-		 (pprint *load-path*)
+		 ;;(format t ";; *load-path*=") (pprint *load-path*)
 		 (require :tiny-xml)
 		 ))
 	 l)
