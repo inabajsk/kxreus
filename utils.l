@@ -1042,7 +1042,7 @@
        (setq key (pop plist))
        (setq value (pop plist))
        (cond
-	 ((member key '(:larm :rarm :lleg :rleg :head :torso :arms :legs))
+	 ((member key '(:larm :rarm :lleg :rleg :head :torso :tail :arms :legs))
 	  (setq keys (append (send-all (flatten (send self key)) :joint :method-name) keys)))
 	 ((null value) (push key keys))
 	 ((symbolp value) (push key keys) (push value plist))

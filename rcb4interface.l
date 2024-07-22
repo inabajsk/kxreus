@@ -1603,6 +1603,9 @@
 	   jl)))
   (:set-servo-vector-joint
    (sv-index joint-method-name &optional (sign 1) offset servo-type pair-kjs-idx magenc-offset upper-limit)
+   (unless (find-method robot joint-method-name)
+     (warn "!! ~A has no method ~A in :set-servo-vector-joint~%" robot joint-method-name)
+     (return-from :set-servo-vector-joint nil))
    (let* ((j (send robot joint-method-name))
 	  (jl (send robot :joint-list))
 	  (av-index (position j jl))
