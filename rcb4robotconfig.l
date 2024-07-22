@@ -388,8 +388,8 @@ nil
 		 ))
      )
     (("kxrkamakiri") ;; same as kxrrobosetkamakiri
-     (:project-file
-      "kxrkamakiri" ;; "kxrl4tm"
+     (
+      :project-file "kxrkamakiri" ;; "kxrl4tm"
       :body :t1l4tbase :torso :y :type :l4 :head :d405eyes
       :shoulder :pry-cross :shoulder-front t :shoulder-low t :flat-shoulder nil
       :elbow :angle :wrist :cross-pr :upper-arm-length 38 
