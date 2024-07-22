@@ -10,9 +10,9 @@
    (probe-file (format nil "~A/bvh/bvh-demo.l" (unix::getenv "EUSDIR")))))
 
 (when (bvh-exists?) (load "bvh/bvh-demo.l"))
+(load "bvh/sfu-demo.l")
 
-
-(format t "; (objects-kxr-robots)~%")
+(format t "; (objects-kxr-robots)~%; (animate)~%")
 
 (defun kxr-operation ()
   (let* ((s (kxr-operation-stand :offset 0))
@@ -37,26 +37,27 @@
 
 (defun kxr-all-robot-names nil
   (list 
+   "kxrl6"
    "kxrl4t"
-   "kxrl6"		
    "kxrl4r"
    "kxrl4d"
    "kxrl4n"
+   "kxrmw4a6h2m"
+   "kxrow4a7h2m"
    "kxrl4ct2a7h2"
+   "kxrl2semi2022s"
+   "kxrl2l2a6h2m"
    "kxrl2g"
    "kxrl2l5a3h2"
    "kxrl2w2l5a4h2"
    "kxrl2w2l6a5h2"
    "kxrl2w2l6a6h2"
    "kxrl2w2l6a7h2w"
-   "kxrl2semi2022s"
-   "kxrl2l2a6h2m"
-   "kxrl2l6a6h2"
    "kxrl2l6a6h2m"
    "kxrl2l6a7h2"
    "kxrl2t2l6a7h2yprb"
    "kxrl2t2l6a7h2d405"
-   "kxrl2makabe"
+   ;;"kxrl2makabe"
    ;;"kxrl2l6anzaifly"
    ))
 
@@ -71,19 +72,15 @@
 
 (defun objects-kxr-robots (&rest args
 				 &key (robots (reverse (kxr-all-robots)))
-				 (n 4) (xs 400) (ys 400)
+				 (n 4) (xs 600) (ys xs)
 				 (spos #f(0 -600 0))
-				 base coords
+				 base coords (color (float-vector 0.7 1.0 1.0))
 				 &allow-other-keys)
   (apply #'show-2d-arrange robots :n n :xs xs :ys ys :spos spos :coords coords
-	 :base base args))
-
-(format t "; (kxr-robots-animate)~%")
-(defun kxr-robots-animate (&optional (robots (reverse (kxr-all-robots))))
-  (objects-kxr-robots :robots robots)
-  (if (bvh-exists?)
-      (animate)
-    (warn ";; no bvh-files~%")))
+	 :base base args)
+  (send *irtviewer* :change-background color)
+  (send *irtviewer* :draw-objects)
+  )
 
 (defun kxr-defun-form (robot)
   (let* ((name-string (read-from-string (send robot :name)))
