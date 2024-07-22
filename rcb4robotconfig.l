@@ -5168,7 +5168,7 @@ nil
     (("kxrl2l6a7h2")
      (:body :l2l6 :type :l2 :sole t
 	    ;;:project-file "kxrl2l6a6h2"
-	    :shoulder :ypry-cross :shoulder-front t :shoulder-low t :flat-shoulder nil
+	    :shoulder :ypry-cross :shoulder-front t
 	    ;;:shoulder-p-sensor :horn-mag-
 	    :elbow :angle :wrist :cross-pr :upper-arm-length 38 
 	    ;;:elbow-p-sensor :mag-7      :wrist-sensor :mag-7
@@ -8671,9 +8671,9 @@ nil
      )
     (("kxrl2makabe" "kxrl2w2t2l6a7h1")		;; 33
      (:body :dyp :type :l2 :active-wheel :knee
-	    :shoulder :y-p-r :wrist :r :passive-wheel :wrist :board :armh7
+	    :shoulder :y-p-r :wrist :r :passive-wheel :wrist
 	    :board :armh7
-	    :wrist-sensor t
+	    :wrist-sensor t :gripper t
 	    :gripper-inner t ;;:gripper-sensor ((:finger1 . :rev-a))
 	    :gripper-sensor (:finger1 :rev-a)
 	    :sole t :ankle-sensor t
