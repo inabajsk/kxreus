@@ -1237,7 +1237,8 @@
 	  noarm chest-worm (waist-len 38) &allow-other-keys)
    (let (l j)
      (setq lst nil jlst nil)
-     (case
+     (when trso
+       (case
 	 trso
        ((:ly-pfy) 	;; pitch-yaw torso link
 	(send self :push-joint :torso "chest" :z -181 181 :parent-link body-link
@@ -1351,32 +1352,32 @@
 		:add-props '(:larm :rarm :neck)))
 	)
        )
-     (when (and (not trso) (not (member type '(:l4 :module :l6))))
-       ;;(format t ";; trso=~A bod=~A~%" trso bod)
-       (send self :add-link
-	     (kxr-l2l5-body-link
-	      :leg-arms nil
-	      :backpack t :neck-front neck-front
-	      :mag-plate t :shoulder-servo (not (eq shoulder :ypry-cross))
-	      :shoulder-center shoulder-center :shoulder-front shoulder-front)
-	     :target-link body-link
-	     :add-props '(:larm :rarm :neck)))
-     (setq torso-end-coords (get (car lst) :joint-coord))
-     (push (cons :torso torso-end-coords) end-coords-alist)
-     (setq torso (reverse lst))
-     (push (cons :torso (car torso)) root-link-alist)
-     (push (cons :torso torso) lst-alist)
-     (push (cons :torso (reverse jlst)) jlst-alist)
-     (when (and wing trso)
-       (let ((wing-pos (float-vector -18 0 0)))
-         (when (memq :wing-pos args)
-           (setq wing-pos (cadr (memq :wing-pos args))))
-	 (require :kxrextentions)
-         (send self :add-link (main-shaft-link wing-pos) :parent-name :back-panel
-               :target-link body-link
-               :add-props (list :left-joint-coord :right-joint-coord))
-       ))
-     ))
+       (when (and (not trso) (not (member type '(:l4 :module :l6))))
+	 (warn ";; :setup-torso trso=~A bod=~A type=~A~%" trso bod type)
+	 (send self :add-link
+	       (kxr-l2l5-body-link
+		:leg-arms nil
+		:backpack t :neck-front neck-front
+		:mag-plate t :shoulder-servo (not (eq shoulder :ypry-cross))
+		:shoulder-center shoulder-center :shoulder-front shoulder-front)
+	       :target-link body-link
+	       :add-props '(:larm :rarm :neck)))
+       (setq torso-end-coords (get (car lst) :joint-coord))
+       (push (cons :torso torso-end-coords) end-coords-alist)
+       (setq torso (reverse lst))
+       (push (cons :torso (car torso)) root-link-alist)
+       (push (cons :torso torso) lst-alist)
+       (push (cons :torso (reverse jlst)) jlst-alist)
+       (when (and wing trso)
+	 (let ((wing-pos (float-vector -18 0 0)))
+	   (when (memq :wing-pos args)
+	     (setq wing-pos (cadr (memq :wing-pos args))))
+	   (require :kxrextentions)
+	   (send self :add-link (main-shaft-link wing-pos) :parent-name :back-panel
+		 :target-link body-link
+		 :add-props (list :left-joint-coord :right-joint-coord))
+	   ))
+       )))
   (:add-link-to-limb
    (add-child-link &key limb (offset (float-vector 0 0 0))
 		   add-props replace &aux llinks)

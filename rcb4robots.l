@@ -155,10 +155,11 @@
 
 (defun kxr-project-file-name (name-str &optional (dir (rcb4-robot-project-dir name-str))
 				       (project-file-keystr "") (ext "h4p"))
-  (let* ((path (car (find-files :dir dir :subseq project-file-keystr :ext ext)))
-	 (pfs (kxr-body-config-key name-str :project-file)))
-    (if (probe-file path) path
-      (if pfs (kxr-project-file-name pfs) nil))))
+  (when (probe-file dir)
+    (let* ((path (car (find-files :dir dir :subseq project-file-keystr :ext ext)))
+	   (pfs (kxr-body-config-key name-str :project-file)))
+      (if (probe-file path) path
+	(if pfs (kxr-project-file-name pfs) nil)))))
 
 (defun create-robot-model-from-file (name-str &optional form)
   (let* ((bconfig (kxr-body-config name-str))

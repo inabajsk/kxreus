@@ -2046,7 +2046,7 @@
   (:set-project-file
    (&optional (name-str (send robot :config-name)))
    (let ((name (kxr-project-file-name name-str)))
-     (when (and name (probe-file name))
+     (when (and name-str name (probe-file name))
        (setq project-file (instance rcb4-project-file :init self name))
        (dolist (mc (send project-file :mcodes))
 	 (send rcb4machine :set-rom-table (send mc :number) mc))
@@ -2212,11 +2212,12 @@
   (:set-motion-files
    (&optional (name-str (send robot :config-name)))
    (let ((pdir (rcb4-robot-project-dir name-str)))
-     (if (null motion-files)
-	 (setq motion-files
-	       (mapcar #'(lambda (x) (instance rcb4-motion-file :init self x))
-		       (find-files :dir pdir :ext "xml"))))
-     motion-files))
+     (when (probe-file pdir)
+       (if (null motion-files)
+	   (setq motion-files
+		 (mapcar #'(lambda (x) (instance rcb4-motion-file :init self x))
+			 (find-files :dir pdir :ext "xml"))))
+       motion-files)))
   (:motion-files
    (&rest args)
    (mapcar
