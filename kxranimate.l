@@ -23,69 +23,52 @@
     (send r :move-coords j b)
     (objects (list s r))))
 
-(defun kxr-all-robot-names-old nil
-  (list "kxrl4t"	"kxrl4th"
-	;;"kxrl6"		;; "kxrr4ll"
-	"kxrl4r"	"kxrl4d"	"kxrl4n"	"kxrl4rh"
-	;;"khr3sl5a3h2" 		"khr3"
-	"kxrl2l5a3"	"kxrl2w2l5a3h2"
-	"kxrl2w2l6a4h2"	"kxrl2w2l6a5h2"	"kxrl2w2l6a6h2n"	"kxrl2w2l6a7h2w"
-	"kxrl2l5a3h2"	"kxrl2l6a3"	"kxrl2l6a4"	"kxrl2l6a4h2"
-	"kxrl2l6a6"	"kxrl2l6a6h2"	"kxrl2l6a7"	"kxrl2l6a7h2"
-	"kxrl2l6a5h2"	"kxrl2l6a6h2n"	"kxrl2l6a7h2n"	"kxrl2l6a7h2w"
-	))
+(defun n-sample (seq &optional (scale 1.0))
+  (let* ((len (length seq))
+	 (n len) cof lst)
+    (if (> scale 1.0)
+	(if (< scale len) (setq n (round scale)))
+      (setq n (round (* len scale))))
+    (setq cof (/ len (float n)))
+    (dotimes (i n)
+      (push (elt seq (round (* i cof))) lst))
+    (reverse lst)))
 
-(defun kxr-all-robot-names nil
-  (list 
-   "kxrl6"
-   "kxrl4t"
-   "kxrl4r"
-   "kxrl4n"
-   "kxrl4d"
-   "kxrl4b3" ;;
-   "kxrl4b4" ;;
-   "kxrl4b2sn" ;;
-   "kxrl4b1" ;;
-   "kxrl4b2" ;;
-   "kxrl4b22" ;;
-   "kxrow4a6h2m"
-   "kxrmw4a7h2m"
-   "kxrl4c2"
-   "kxrl4ct2a7h2"
-   "kxrl4c3"
-   "kxrl4c"
-   "kxrl2semi2022s"
-   "kxrl2l2a6h2m"
-   "kxrl2g"
-   "kxrl2l5a3h2"
-   "kxrl2w2l5a4h2"
-   "kxrl2w2l6a5h2"
-   "kxrl2w2l6a6h2"
-   "kxrl2w2l6a7h2w"
-   "kxrl2l6a6h2m"
-   "kxrl2l6a7h2"
-   "kxrl2t2l6a7h2yprb"
-   "kxrl2t2l6a7h2d405"
-   "kxrl2l7a7w"
-   "kxrkamakiri"
-   "kxrl2makabe"
-   "kxrl2makabels"
-   "kxrl2makabelc"
-   "kxrl2makabelcw"
-   ;;"kxrl2l6anzaifly"
-   ))
+(defun kxr-sample-names (&optional count)
+  (setq *kxr-sample-names*
+	(n-sample *kxr-all-robot-names* count)))
+
+(setq *kxr-all-robot-names*
+      (list 
+       "kxrl6"	 "kxrl4t"	 "kxrl4r"	 "kxrl4n"	 "kxrl4d"
+       "kxrl4b3" 	 "kxrl4b4" 	 "kxrl4b2sn" 	 "kxrl4b1" 	 "kxrl4b2"
+       "kxrl4b22"	 "kxrow4a6h2m"	 "kxrmw4a7h2m"	 "kxrl4c2"	 "kxrl4ct2a7h2"
+       "kxrl4c3"	 "kxrl4c"	 "kxrl2semi2022s"	 "kxrl2l2a6h2m"	 "kxrl2g"
+       "kxrl2l5a3h2"	 "kxrl2w2l5a4h2"	 "kxrl2w2l6a5h2"	 "kxrl2w2l6a6h2"
+       "kxrl2w2l6a7h2w"	 "kxrl2l6a6h2m"	 "kxrl2l6a7h2"	 "kxrl2t2l6a7h2yprb"
+       "kxrl2t2l6a7h2d405"	 "kxrl2l7a7w"	 "kxrkamakiri"	 "kxrl2makabe"
+       "kxrl2makabels" "kxrl2makabelc"	 "kxrl2makabelcw"
+       ;;"kxrl2l6anzaifly"
+       ))
 
 (defun make-robot (name) (funcall (read-from-string name)))
 (defun kxr-all-robots (&optional (model 0) generate)
-  (setq *kxr-all-robots*
-	(mapcar #'(lambda (r) 
-		    (warn " kxr-all-robots ~A~%" r)
-		    (kxr-create-robot r :model model :generate generate)
-		    )
-		(kxr-all-robot-names))))
+  (unless (boundp '*kxr-all-robots*)
+    (setq *kxr-all-robots*
+	  (mapcar #'(lambda (r) 
+		      (warn " kxr-all-robots ~A~%" r)
+		      (kxr-create-robot r :model model :generate generate)
+		      )
+		  *kxr-all-robot-names*)))
+  *kxr-all-robots*)
+
+(defun kxr-sample-robots (&optional (count 1.0))
+  (setq *kxr-sample-robots* (n-sample (kxr-all-robots) count)))
 
 (defun objects-kxr-robots (&rest args
-				 &key (robots (reverse (kxr-all-robots)))
+				 &key
+				 (sample 1.0)
+				 (robots (reverse (kxr-sample-robots sample)))
 				 (n 5) (xs 600) (ys xs)
 				 (spos #f(0 -600 0))
 				 base coords (color (float-vector 0.7 1.0 1.0))

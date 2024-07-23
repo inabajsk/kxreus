@@ -3,8 +3,9 @@
 ;;;
 (require :rcb4robots)
 
-(defun sfu-bvh2eus (fname &rest args)
-  (apply #'bvh2eus fname :scale 10 :bvh-robot-model-class sfu-bvh-robot-model args))
+(defun sfu-bvh2eus (fname &rest args &key (scale 10) ((:objects obj) nil))
+  (apply #'bvh2eus fname :scale scale :objects obj
+	 :bvh-robot-model-class sfu-bvh-robot-model args))
 
 (defclass sfu-bvh-robot-model
   :super bvh-robot-model
@@ -72,7 +73,7 @@
        (send robot limb (intern (format nil "~A-Y" (symbol-name joint)) "KEYWORD") :joint-angle
              (* sign (elt (send self limb joint :joint :joint-angle) 1)))))
   (:copy-state-to
-   (robot &optional (stay t))
+   (robot &optional stay)
    (let (sign)
      (dolist (arm '(:larm :rarm))
        (dolist (joint '(:shoulder :elbow :wrist))
@@ -102,7 +103,12 @@
 	    (send self :copy-joint-to robot limb joint))
 	   (t (format t ";; (send ~A ~A ~A)=nil~%" self limb joint)))
 	 ))
-     (unless stay (send robot :newcoords (send self :transformation (car links) :world)))
+     (unless stay
+       (let ((p (send robot :worldpos))
+	     (c (send self :transformation (car links) :world))
+	     )
+	 (send robot :newcoords (c . rot) p)
+	 ))
      )) ;; copy-state-to
   )
 
@@ -128,21 +134,28 @@
        ;;
        ))
 
-(defun demo (&key (robot (objects))
-		  (files *bvh-files*))
+(defun demo (&key robot (files *bvh-files*))
   (dolist (file (if (atom files) (list files) files))
     (sfu-bvh2eus file :objects robot)))
 
-(defun animate (&optional (files *bvh-files*))
-  (dolist (f (if (atom files) (list files) files))
-    (send (load-mcd f :bvh-robot-model-class sfu-bvh-robot-model) :animate)))
+(defun animate (&key (files *bvh-files*) (model t)
+		     (color (float-vector 0.7 1.0 1.0))
+		     (scale 10))
+  (let (mcd (objs (objects)))
+    (send *irtviewer* :change-background color)
+    (send *irtviewer* :draw-objects)
+    (dolist (f (if (atom files) (list files) files))
+      (setq mcd (load-mcd f :bvh-robot-model-class sfu-bvh-robot-model :scale scale))
+      (if model (objects (cons (send mcd :model) objs)))
+      (send mcd :animate))))
 ;;
-(defun demo1 (&optional (file "bvh/sfu/0012_SpeedVault001.bvh"))
-  (cond ((boundp '*khr*) (objects (list *khr*)))
-	(t (load "KHR/khr.l") (objects (list (khr)))))
-  (animate file))
+(defun demo2 (&key (files *bvh-files*) ;; "bvh/sfu/0012_SpeedVault001.bvh"
+		   (xs 600) (ys xs) (model t) base
+		   (color (float-vector 0.7 1.0 1.0))
+		   (scale 8))
+  (show-2d-arrange (list (kxr-create-robot "kxrl2t2l6a7h2yprb")
+			 (kxr-create-robot "kxrl2l6a7h2m"))
+		   :xs xs :ys ys :base base)
+  (animate :files files :model model :color color :scale scale))
 ;;
-(defun demo2 (&optional (file "bvh/sfu/0012_SpeedVault001.bvh"))
-  (cond ((boundp '*khr22*) (objects (list *khr22*)))
-	(t (load "KHR/khr22.l") (objects (list (khr22)))))
-  (animate file))
+  
