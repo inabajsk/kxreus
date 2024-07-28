@@ -40,11 +40,15 @@
 
 (setq *kxr-all-robot-names*
       (list 
-       "kxrl6"	 "kxrl4t"	 "kxrl4r"	 "kxrl4n"	 "kxrl4d"
-       "kxrl4b3" 	 "kxrl4b4" 	 "kxrl4b2sn" 	 "kxrl4b1" 	 "kxrl4b2"
-       "kxrl4b22"	 "kxrow4a6h2m"	 "kxrmw4a7h2m"	 "kxrl4c2"	 "kxrl4ct2a7h2"
-       "kxrl4c3"	 "kxrl4c"	 "kxrl2semi2022s"	 "kxrl2l2a6h2m"	 "kxrl2g"
-       "kxrl2l5a3h2"	 "kxrl2w2l5a4h2"	 "kxrl2w2l6a5h2"	 "kxrl2w2l6a6h2"
+       "kxrl6"	 "kxrl4t"	 "kxrl4c2"	;;	 "kxrl4l3a3"
+       "kxrl4l3a3" 	"kxrl4c3"  "kxrl4d"		;;"kxrl4b3"
+       "kxrl4b4"	"kxrl4c"
+       "kxrl4b2sn" 	 "kxrl4b1" 	 ;; "kxrl4b2"
+       "kxrl4r"	      "kxrl4ct2a7h2"
+       "kxrl4r2a3" 	"kxrl4r2a3gl" 	"kxrl4r2l3"
+       "kxrdw4a6h2m"	 "kxrow4a6h2m"	 "kxrmw4a7h2m"	 
+       "kxrl2semi2022s"	 "kxrl2l2a6h2m"	 "kxrl2g"
+       "kxrl2l5a4h2g"	 "kxrl2w2l5a4h2"	 "kxrl2w2l6a5h2"	 "kxrl2w2l6a6h2"
        "kxrl2w2l6a7h2w"	 "kxrl2l6a6h2m"	 "kxrl2l6a7h2"	 "kxrl2t2l6a7h2yprb"
        "kxrl2t2l6a7h2d405"	 "kxrl2l7a7w"	 "kxrkamakiri"	 "kxrl2makabe"
        "kxrl2makabels" "kxrl2makabelc"	 "kxrl2makabelcw"
@@ -69,7 +73,7 @@
 				 &key
 				 (sample 1.0)
 				 (robots (reverse (kxr-sample-robots sample)))
-				 (n 5) (xs 600) (ys xs)
+				 (n 6) (xs 600) (ys xs)
 				 (spos #f(0 -600 0))
 				 base coords (color (float-vector 0.7 1.0 1.0))
 				 &allow-other-keys)
