@@ -1782,7 +1782,7 @@ nil
      (8 :rleg-crotch-w -1)    (9 :lleg-crotch-w 1)
      )
     (("kxrl4r2a3" "kxrl4r2a3h")
-     (:body :l4t :type :l4 :arm :j3 :leg :j1w :head :h1)
+     (:body :l4t :type :l4 :arm :j3 :leg :j1w :head :h2sn)
      (1 :head-neck-y -1)
      (2 :rarm-shoulder-y -1)  (3 :larm-shoulder-y -1)
      (10 :rarm-shoulder-r 1)  (11 :larm-shoulder-r 1)
@@ -1830,7 +1830,7 @@ nil
      (8 :rleg-crotch-w 1)    (9 :lleg-crotch-w -1)
      )
     (("kxrl4r2a3gl")
-     (:body :l4t :type :l4 :arm :j3 :leg :j1w :head :h1 :gripper-inner :larm
+     (:body :l4t :type :l4 :arm :j3 :leg :j1w :head :realsense :gripper-inner :larm
 	    :board :armh7
 	    :gripper-sensor :finger2 :passive-wheel :shoulder)
      (1  :head-neck-y -1)
@@ -1843,7 +1843,7 @@ nil
      (8 :rleg-crotch-w 1)    (9 :lleg-crotch-w -1)
      )
     (("kxrl4r2l3")
-     (:body :l4t :type :l4 :arm :j1w :leg :j3 :head :h1 :passive-wheel :shoulder)
+     (:body :l4t :type :l4 :arm :j1w :leg :j3 :head :m5us :passive-wheel :shoulder)
      (0  :head-neck-y 1)
      (2  :rarm-shoulder-y -1)  (3 :larm-shoulder-y -1)
      (10 :rarm-shoulder-w -1)  (11 :larm-shoulder-w -1)
@@ -1851,7 +1851,7 @@ nil
      (8 :rleg-crotch-w -1)    (9 :lleg-crotch-w 1)
      )
     (("kxrl4l3a3")
-     (:body :l4t :type :l4 :arm :j3 :leg :j3 :head :h1)
+     (:body :l4t :type :l4 :arm :j3 :leg :j3 :head :m5s)
      (0 :head-neck-y 1)
      (2 :rarm-shoulder-y -1)  (3 :larm-shoulder-y -1)
      (4 :rarm-shoulder-r -1)  (5 :larm-shoulder-r -1)
@@ -3118,7 +3118,7 @@ nil
      )
     (("kxrl2l5a4h2g")
      (:body :l2l5 :type :l2 :shoulder :p-r-y :gripper t :neck-jf :a :sole t
-	    :backpack :m5 :head :m5sh  ;; :head :m5i 
+	    :backpack :m5 :head :m5u3s2	;; :m5sh  ;; :head :m5i 
 	    :sole-sensor t 
 	    :project-file "kxrl2l5a4h2g")
      (2 :rarm-shoulder-p 1)   (3 :larm-shoulder-p -1)
@@ -4722,7 +4722,7 @@ nil
      )
     (("kxrl2w2l6a5h2")
      (:body :l2l6w :type :l2 :active-wheel :ankle :shoulder :p :wrist :r
-	    :gripper t :head :e :passive-wheel :gripper :sole t) ;; 28
+	    :gripper t :head :m5u3sv2 :passive-wheel :gripper :sole t) ;; 28
      (2 :rarm-shoulder-p 1)     (3 :larm-shoulder-p -1)
      (4 :rarm-shoulder-r -1)    (5 :larm-shoulder-r 1)
      (6 :rarm-elbow-p 1)        (7 :larm-elbow-p 1)
