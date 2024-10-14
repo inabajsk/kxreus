@@ -92,10 +92,10 @@ lisp: dir $(LIBOBJECTS)
 all: libs lisp gen
 
 gen:
-	irteusgl kxranimate.l "(progn (kxr-all-robots) (exit))"
+	irteusgl kxranimate.l "(progn (kxr-sample-robots) (exit))"
 
 regen:
-	irteusgl kxranimate.l "(progn (kxr-all-robots :generate t) (exit))"
+	irteusgl kxranimate.l "(progn (kxr-sample-robots :generate t) (exit))"
 
 libs:	
 	sudo apt-get install -y libftdi-dev

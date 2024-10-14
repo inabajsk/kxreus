@@ -12,7 +12,7 @@
 (when (bvh-exists?) (load "bvh/bvh-demo.l"))
 (load "bvh/sfu-demo.l")
 
-(format t "; (objects-kxr-robots)~%; (animate)~%")
+(format t "; (objects-kxr-robots)~%; (animate)~%; (objects-kxr-robots :sample 1) ;; for all~%")
 
 (defun kxr-operation ()
   (let* ((s (kxr-operation-stand :offset 0))
@@ -55,24 +55,29 @@
        ;;"kxrl2l6anzaifly"
        ))
 
+(setq *ros-distro* (unix::getenv "ROS_DISTRO"))
+(setq *ros-distro-null* (or (null *ros-distro*) (equal *ros-distro* "")))
 (defun make-robot (name) (funcall (read-from-string name)))
-(defun kxr-all-robots (&optional (model 0) generate)
-  (unless (boundp '*kxr-all-robots*)
-    (setq *kxr-all-robots*
-	  (mapcar #'(lambda (r) 
-		      (warn " kxr-all-robots ~A~%" r)
-		      (kxr-create-robot r :model model :generate generate)
-		      )
-		  *kxr-all-robot-names*)))
-  *kxr-all-robots*)
-
-(defun kxr-sample-robots (&optional (count 1.0))
-  (setq *kxr-sample-robots* (n-sample (kxr-all-robots) count)))
+(defvar *kxr-sample-robots*)
+(defun kxr-sample-robots (&key (model (if *ros-distro-null* nil 0))
+			       generate
+			       (sample 1.0) &aux r)
+  (setq *kxr-sample-robot-names* (n-sample *kxr-all-robot-names* sample))
+  (setq *kxr-sample-robots* nil)
+  (dolist (name *kxr-sample-robot-names*)
+    (cond
+     ((setq r (find name *robots-made* :key #'(lambda (x) (send x :name)) :test #'equal))
+      (push r *kxr-sample-robots*))
+     (t
+      (warn " kxr-sample-robots ~A~%" name)
+      (push (kxr-make-robot name :model model :generate generate :viewer nil)
+	    *kxr-sample-robots*))))
+  (reverse *kxr-sample-robots*))
 
 (defun objects-kxr-robots (&rest args
 				 &key
-				 (sample 1.0)
-				 (robots (reverse (kxr-sample-robots sample)))
+				 (sample 0.3)
+				 (robots (reverse (kxr-sample-robots :sample sample)))
 				 (n 6) (xs 600) (ys xs)
 				 (spos #f(0 -600 0))
 				 base coords (color (float-vector 0.7 1.0 1.0))
