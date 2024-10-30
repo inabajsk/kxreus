@@ -146,7 +146,8 @@
   )
 ;;;
 ;;;
-(defvar *kxr-fine-body*)
+;;(defvar *kxr-fine-body*)
+(setq *kxr-fine-body* t)
 ;;;
 (defun kxr-make-kxr-body (name sbod bod holes
 			  &key
