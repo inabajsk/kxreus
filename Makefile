@@ -81,7 +81,7 @@ BMODULES=$(addprefix $(OBJDIR)/, $(addsuffix .$(LSFX),$(OBJS)))
 BMODULESOBJ=$(addprefix $(OBJDIR)/, $(addsuffix .$(OSFX),$(OBJS)))
 
 # 
-lisp: dir $(LIBOBJECTS)
+lisp: $(LIBOBJECTS)
 	touch ~/.eusrc
 	cp -f ~/.eusrc ~/.eusrc-old
 	export LD_LIBRARY_PATH=$(PWD)/$(ARCHDIR)/lib:$(LD_LIBRARY_PATH);  $(EUSLISP) < $(COMPILE)
@@ -89,7 +89,7 @@ lisp: dir $(LIBOBJECTS)
 	install -m 0644 rcb4robotconfig.l $(LIBDIR)
 	touch glbodies/*
 
-all: libs lisp gen
+all: libs dir lisp gen
 
 gen:
 	irteusgl kxranimate.l "(progn (kxr-sample-robots) (exit))"
