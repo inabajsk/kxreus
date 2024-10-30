@@ -16,6 +16,7 @@ endif
 #OBJDIR=$(ARCHDIR)/obj
 LIBDIR=$(PWD)/$(ARCHDIR)/lib
 OBJDIR=$(PWD)/$(ARCHDIR)/obj
+BINDIR=$(PWD)/$(ARCHDIR)/bin
 
 CC=gcc
 ifneq ($(ARCHDIR), Linux64)
@@ -81,7 +82,7 @@ BMODULES=$(addprefix $(OBJDIR)/, $(addsuffix .$(LSFX),$(OBJS)))
 BMODULESOBJ=$(addprefix $(OBJDIR)/, $(addsuffix .$(OSFX),$(OBJS)))
 
 # 
-lisp: $(LIBOBJECTS)
+lisp: dir $(LIBOBJECTS)
 	touch ~/.eusrc
 	cp -f ~/.eusrc ~/.eusrc-old
 	export LD_LIBRARY_PATH=$(PWD)/$(ARCHDIR)/lib:$(LD_LIBRARY_PATH);  $(EUSLISP) < $(COMPILE)
@@ -89,7 +90,7 @@ lisp: $(LIBOBJECTS)
 	install -m 0644 rcb4robotconfig.l $(LIBDIR)
 	touch glbodies/*
 
-all: libs dir lisp gen
+all: libs lisp gen
 
 gen:
 	irteusgl kxranimate.l "(progn (kxr-sample-robots) (exit))"
@@ -108,11 +109,15 @@ libs:
 	sudo install -m 0755 udevs/99-my-ftdi-future.rules /etc/udev/rules.d/
 	sudo install -m 0755 udevs/99-my-m5stack.rules /etc/udev/rules.d/
 	sudo udevadm control --reload-rules && sudo udevadm trigger
-	sudo apt-get install -y ros-$(ROS_DISTRO)-roseus
+#	sudo apt-get install -y ros-$(ROS_DISTRO)-roseus
 dir:
-	install -m 0755 -d $(ARCHDIR)
-	install -m 0755 -d $(LIBDIR)
-	install -m 0755 -d $(OBJDIR)
+	mkdir $(ARCHDIR)
+	mkdir -p $(LIBDIR)
+	mkdir -p $(OBJDIR)
+	mkdir -p $(BINDIR)
+#	install -m 0755 -d $(ARCHDIR)
+#	install -m 0755 -d $(LIBDIR)
+#	install -m 0755 -d $(OBJDIR)
 
 
 #
