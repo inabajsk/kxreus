@@ -111,7 +111,7 @@ libs:
 	sudo udevadm control --reload-rules && sudo udevadm trigger
 #	sudo apt-get install -y ros-$(ROS_DISTRO)-roseus
 dir:
-	mkdir $(ARCHDIR)
+	mkdir -p $(ARCHDIR)
 	mkdir -p $(LIBDIR)
 	mkdir -p $(OBJDIR)
 	mkdir -p $(BINDIR)
