@@ -60,11 +60,12 @@ MSOUT=-o
 MSLDFLAGS=$(LDFLAGS) -lglut -lGL -lGLU -lm
 ASFX=a
 IMPLIB=
-ifneq ($(ARCHDIR), Linux64)
-EUSCCFLAGS=-Di386 -DLinux -w -malign-functions=4 -DGCC3 -DGCC -DTHREADED -DPTHREAD -fpic -O2
-else
-EUSCCFLAGS=-Dx86_64 -DLinux -w -malign-functions=8 -DGCC3 -DGCC -DTHREADED -DPTHREAD -fPIC -O2
-endif
+
+# ifneq ($(ARCHDIR), Linux64)
+# EUSCCFLAGS=-Di386 -DLinux -w -malign-functions=4 -DGCC3 -DGCC -DTHREADED -DPTHREAD -fpic -O2
+# else
+# EUSCCFLAGS=-Dx86_64 -DLinux -w -malign-functions=8 -DGCC3 -DGCC -DTHREADED -DPTHREAD -fPIC -O2
+# endif
 
 EUSLDFLAGS=
 ifeq ($(shell /bin/uname -m), x86_64)
@@ -93,7 +94,9 @@ lisp: dir $(LIBOBJECTS)
 all: libs lisp gen
 
 gen:
-	irteusgl kxranimate.l "(progn (kxr-sample-robots) (exit))"
+	irteusgl kxranimate.l "(progn (kxr-sample-robots :sample 1) (exit))"
+
+#	irteusgl kxranimate.l "(progn (kxr-sample-robots) (exit))"
 
 regen:
 	irteusgl kxranimate.l "(progn (kxr-sample-robots :generate t) (exit))"
