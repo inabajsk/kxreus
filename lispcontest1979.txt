@@ -1,0 +1,152 @@
+;;---------------------------------------------------
+;; GPD gamepad PC, intel 11th core-i7-1195G7@2.90GHz
+;;---------------------------------------------------
+;; (lisp-contest)
+1.irteusgl$ (lisp-contest)
+(timing 10000	(bita-7))	;;   0.008 milisec
+(timing 4000	(bitb-8))	;;   0.512 milisec
+(timing 2000	(sort-100))	;;   0.985 milisec
+(timing 100	(tarai-5))	;;  32.700 milisec
+(timing 100	(tpu-2))	;;  13.700 milisec
+(timing 100	(tpu-6))	;;  33.400 milisec
+4.irteusgl$ lisp-contest
+(timing 10000	(bita-7))	;;   0.004 milisec
+(timing 4000	(bitb-8))	;;   0.292 milisec
+(timing 2000	(sort-100))	;;   0.220 milisec
+(timing 100	(tarai-5))	;;   2.300 milisec
+(timing 100	(tpu-2))	;;   3.100 milisec
+(timing 100	(tpu-6))	;;   5.100 milisec
+nil
+;;---------------------------------------------------
+;;T480 intel Core-i7-8650U Quad-core @1.9GHz
+;;---------------------------------------------------
+;; interpreter
+(timing 10000    (bita-7))   ;;   0.013 milisec
+(timing 4000    (bitb-8))    ;;   0.765 milisec
+(timing 2000    (sort-100))  ;;   1.470 milisec
+(timing 100    (tarai-5))    ;;  49.900 milisec
+(timing 100    (tpu-2))      ;;  20.900 milisec
+(timing 100    (tpu-6))      ;;  53.500 milisec
+;; (lisp-contest)
+;; compiled
+(timing 10000    (bita-7))   ;;   0.005 milisec
+(timing 4000    (bitb-8))    ;;   0.472 milisec
+(timing 2000    (sort-100))  ;;   0.340 milisec
+(timing 100    (tarai-5))    ;;   3.700 milisec
+(timing 100    (tpu-2))      ;;   6.000 milisec
+(timing 100    (tpu-6))      ;;   8.500 milisec
+;;---------------------------------------------------
+;;Core i9-14900K  24core 8 + 16 32thread 6GHz turbo 128GMem GeforceRTX4090 24GB
+;;---------------------------------------------------
+1.irteusgl$ lisp-contest
+(timing 10000    (bita-7))   ;;   0.005 milisec
+(timing 4000    (bitb-8))    ;;   0.367 milisec
+(timing 2000    (sort-100))  ;;   0.625 milisec
+(timing 100    (tarai-5))    ;;  22.900 milisec
+(timing 100    (tpu-2))      ;;   9.800 milisec
+(timing 100    (tpu-6))      ;;  23.700 milisec
+
+4.irteusgl$ lisp-contest
+(timing 10000    (bita-7))   ;;   0.002 milisec
+(timing 4000    (bitb-8))    ;;   0.220 milisec
+(timing 2000    (sort-100))  ;;   0.140 milisec
+(timing 100    (tarai-5))    ;;   1.900 milisec
+(timing 100    (tpu-2))      ;;   2.100 milisec
+(timing 100    (tpu-6))      ;;   3.700 milisec
+;;-----------------------------------------------------
+;;Azure rhp-isaac-test-v2   A10 GPU VRAM 24GB MEM 440GB
+;;-----------------------------------------------------
+1.irteusgl$ lisp-contest
+(timing 10000    (bita-7))   ;;   0.010 milisec
+(timing 4000    (bitb-8))    ;;   0.597 milisec
+(timing 2000    (sort-100))  ;;   1.285 milisec
+(timing 100    (tarai-5))    ;;  40.200 milisec
+(timing 100    (tpu-2))      ;;  15.800 milisec
+(timing 100    (tpu-6))      ;;  38.900 milisec
+nil
+4.irteusgl$ lisp-contest
+(timing 10000    (bita-7))   ;;   0.004 milisec
+(timing 4000    (bitb-8))    ;;   0.335 milisec
+(timing 2000    (sort-100))  ;;   0.245 milisec
+(timing 100    (tarai-5))    ;;   3.300 milisec
+(timing 100    (tpu-2))      ;;   3.700 milisec
+(timing 100    (tpu-6))      ;;   5.800 milisec
+;;-----------------------------------------------------
+;; Raspi 5 ubuntu24.04 with 8GB
+;;-----------------------------------------------------
+1.irteusgl$ lisp-contest
+(timing 10000    (bita-7))   ;;   0.026 milisec
+(timing 4000    (bitb-8))    ;;   1.732 milisec
+(timing 2000    (sort-100))  ;;   2.645 milisec
+(timing 100    (tarai-5))    ;;  80.600 milisec
+(timing 100    (tpu-2))      ;;  47.000 milisec
+(timing 100    (tpu-6))      ;; 115.300 milisec
+nil
+4.irteusgl$ lisp-contest
+(timing 10000    (bita-7))   ;;   0.018 milisec
+(timing 4000    (bitb-8))    ;;   1.268 milisec
+(timing 2000    (sort-100))  ;;   0.910 milisec
+(timing 100    (tarai-5))    ;;   6.200 milisec
+(timing 100    (tpu-2))      ;;  12.600 milisec
+(timing 100    (tpu-6))      ;;  20.200 milisec
+nil
+;;---------------------------------------------------
+;; Raspi 5 BCM2712 2.4GHz quad-core 64-bit Arm Cortex-A76 CPU,
+;; with 8GB debian 12
+;;---------------------------------------------------
+1.irteusgl$ lisp-contest
+(timing 10000 (bita-7))      ;;   0.026 milisec
+(timing 4000 (bitb-8))       ;;   1.822 milisec
+(timing 2000 (sort-100))     ;;   2.675 milisec
+(timing 100 (tarai-5))       ;;  81.900 milisec
+(timing 100 (tpu-2))         ;;  46.800 milisec
+(timing 100 (tpu-6))         ;; 114.600 milisec
+nil
+4.irteusgl$ lisp-contest
+(timing 10000 (bita-7))      ;;   0.017 milisec
+(timing 4000 (bitb-8))       ;;   1.140 milisec
+(timing 2000 (sort-100))     ;;   0.715 milisec
+(timing 100 (tarai-5))       ;;   5.900 milisec
+(timing 100 (tpu-2))         ;;  11.000 milisec
+(timing 100 (tpu-6))         ;;  18.200 milisec
+;;---------------------------------------------------
+;; Jetson orin nano ubuntu20.04 Jetpack 5.1.5
+;; aarch64 6 cores, 1.728GHz
+;;---------------------------------------------------
+(timing 10000    (bita-7))      ;;   0.029 milisec
+(timing 4000    (bitb-8))       ;;   1.947 milisec
+(timing 2000    (sort-100))     ;;   3.405 milisec
+(timing 100    (tarai-5))       ;; 107.800 milisec
+(timing 100    (tpu-2))         ;;  52.500 milisec
+(timing 100    (tpu-6))         ;; 128.000 milisec
+6.irteusgl$ lisp-contest
+(timing 10000    (bita-7))      ;;   0.014 milisec
+(timing 4000    (bitb-8))       ;;   1.167 milisec
+(timing 2000    (sort-100))     ;;   0.775 milisec
+(timing 100    (tarai-5))       ;;   6.800 milisec
+(timing 100    (tpu-2))         ;;  11.600 milisec
+(timing 100    (tpu-6))         ;;  19.800 milisec
+;;---------------------------------------------------
+;; Raspi 4 with 4GB
+;;---------------------------------------------------
+;; (lisp-contest)
+1.irteusgl$ lisp-contest
+(timing 10000	(bita-7))	;;   0.050 milisec
+(timing 4000	(bitb-8))	;;   3.292 milisec
+(timing 2000	(sort-100))	;;   5.255 milisec
+(timing 100	(tarai-5))	;; 166.700 milisec
+(timing 100	(tpu-2))	;;  91.900 milisec
+(timing 100	(tpu-6))	;; 236.900 milisec
+nil
+6.irteusgl$ load "lispcontest1979"
+;; (lisp-contest)
+#<load-module #Xaaaadbc02fc0 "./lispcontest1979.so">
+7.irteusgl$ lisp-contest
+(timing 10000	(bita-7))	;;   0.031 milisec
+(timing 4000	(bitb-8))	;;   2.370 milisec
+(timing 2000	(sort-100))	;;   1.490 milisec
+(timing 100	(tarai-5))	;;  11.900 milisec
+(timing 100	(tpu-2))	;;  22.600 milisec
+(timing 100	(tpu-6))	;;  37.900 milisec
+nil
+
