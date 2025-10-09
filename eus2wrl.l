@@ -50,6 +50,21 @@
     )
   )
 
+(defvar *joint-numbered-name*)
+(defvar *joint-upcase-name*)
+(defvar *joint-underscored-name*)
+(defvar *robot-upcase-name*)
+
+(defun eus2isaac-model (robo &rest args)
+  (setq *robot-upcase-name* t)
+  (setq *joint-upcase-name* t)
+  (setq *joint-underscored-name* t)
+  (apply #'eus2collada-robot robo args))
+
+(setq *robot-upcase-name* t)
+(setq *joint-upcase-name* t)
+(setq *joint-underscored-name* t)
+
 (defun eus2collada-robot
     (robo &key
 	  head
@@ -69,18 +84,20 @@
 	  (urdf t)
 	  erase
 	  (actuator-joint-check nil)
-	  (joint-numbered-name t)
+	  (joint-numbered-name *joint-numbered-name*)
 	  )
   (unix::chdir *rcb4eus-dir*)
+  (when *robot-upcase-name*
+    (setq fname (string-upcase fname))
+    (setq wrl (format nil "wrls/~A.wrl" fname))
+    (setq dae (format nil "daes/~A.dae" fname))
+    (setq yaml (format nil "yamls/~A.yaml" fname)))
   (if fname (send robo :name fname))
   (when robo
     (send robo :angle-vector (instantiate float-vector (length (send robo :angle-vector)))))
   (mkdir-unless "wrls")
-  (when urdf
-    (mkdir-unless "urdfs")
-    (mkdir-unless (format nil "urdfs/~A" fname))
-    (mkdir-unless (format nil "urdfs/~A/urdf" fname))
-    (setq urdf (format nil "urdfs/~A/urdf/~A.urdf" fname fname)))
+  (when urdf (mkdir-unless "urdf")
+	(setq urdf (format nil "urdf/~A.urdf" fname)))
   (cond
     ;;((substringp "khr" fname)
     ;;(khr2model fname))
@@ -90,7 +107,9 @@
     (export-collada wrl dae)
     (eus2yaml robo :yaml yaml :actuator-joint-check actuator-joint-check)
     (collada2eus fname :dae dae :yaml yaml :model model)
-    (when urdf (collada2urdf fname))
+    (when urdf
+      (collada2kxr_models fname)
+      (collada2urdf fname))
     (when erase (eus2erase-files fname)))
    ((derivedp robo robot-model)
     (eus2wrl robo wrl :mode mode :actuator-joint-check actuator-joint-check
@@ -98,7 +117,9 @@
     (export-collada wrl dae)
     (eus2yaml robo :yaml yaml :actuator-joint-check actuator-joint-check)
     (collada2eus fname :dae dae :yaml yaml :model model)
-    (when urdf (collada2urdf fname))
+    (when urdf
+      (collada2kxr_models fname)
+      (collada2urdf fname))
     (when erase (eus2erase-files fname)))
    ))
 
@@ -154,14 +175,17 @@
 	   (joint-method-candidates r)))
 
 (defun eus2yaml (robo &key
-			(name (string-downcase (send robo :name)))
-			(yaml (format nil "yamls/~A.yaml" name))
-			(scale 0.001)
-			(actuator-joint-check nil)
-			(limbs '(:head :larm :rarm :lleg :rleg :torso))
-			&aux av)
+		      (name (string-downcase (send robo :name)))
+		      (yaml (format nil "yamls/~A.yaml" name))
+		      (scale 0.001)
+		      (actuator-joint-check nil)
+		      (limbs '(:head :larm :rarm :lleg :rleg :torso))
+		      &aux av ll)
   (when (derivedp robo robot-model)
     (send robo :angle-vector)
+    (when *joint-underscored-name*
+      (change-link-names-to-underscored-string robo)
+      (change-joint-names-to-underscored-string robo))
     (mkdir-unless "yamls")
     (with-open-file
      (strm yaml :direction :output)
@@ -174,15 +198,21 @@
 	 (when (if actuator-joint-check
 		   (get (send l :joint) :active) 	;; (get (send l :joint) :servo-index)
 		 t)
-	   (format strm " - ~A : ~A~%"
-		   (send (send l :joint) :name)
-		   (read-from-string
-		    (symbol-name 
-		     (or
-		      (get (send l :joint) :joint-method-name)
-		      (find-joint-method robo (send l :joint))
-		      )
-		     ))))))
+	   (cond
+	    (*joint-underscored-name*
+	     (format strm " - ~A : ~A~%"
+		     (send (send l :joint) :name)
+		     (send l :name)))
+	    (t
+	     (format strm " - ~A : ~A~%"
+		     (send (send l :joint) :name)
+		     (read-from-string
+		      (symbol-name 
+		       (or
+			(get (send l :joint) :joint-method-name)
+			(find-joint-method robo (send l :joint))
+			)
+		       ))))))))
      ;;
      (format strm "#~%# end-coords ~%#~%")
      (if (find-method robo :limbs) (setq limbs (send robo :limbs)))
@@ -244,7 +274,12 @@
    (when (derivedp scene robot-model)
      (if joint-numbered-name
 	 (change-joint-names-to-limb-numbered scene)
-       (change-joint-names-to-downcase-string scene)) )
+       (if *joint-upcase-name*
+	   (change-joint-names-to-upcase-string scene)
+	 (change-joint-names-to-downcase-string scene)))
+     (when *joint-underscored-name*
+       (change-link-names-to-underscored-string scene)
+       (change-joint-names-to-underscored-string scene)))
    (format f "#VRML V2.0 utf8~%~%")
    (format f "# Produced by ~A~%" (lisp-implementation-version))
    (format f "# Date: ~A~%~%" (unix:asctime (unix:localtime)))
@@ -271,12 +306,20 @@
   (if (stringp scene)
       (setq robot-name scene scene (kxr-make-robot robot-name))
       (setq robot-name (send scene :name)))
+  (when *robot-upcase-name*
+    (setq robot-name (string-upcase robot-name))
+    (send scene :name robot-name))
   (with-open-file 
    (f wrl :direction :output)
     (when (derivedp scene robot-model)
       (if joint-numbered-name
 	  (change-joint-names-to-limb-numbered scene)
-	(change-joint-names-to-downcase-string scene)))
+       (if *joint-upcase-name*
+	   (change-joint-names-to-upcase-string scene)
+	 (change-joint-names-to-downcase-string scene)))
+      (when *joint-underscored-name*
+	(change-link-names-to-underscored-string scene)	  
+	(change-joint-names-to-underscored-string scene)))
     (format f "#VRML V2.0 utf8~%~%")
     (format f "# Produced by ~A~%" (lisp-implementation-version))
     (format f "# Date: ~A~%~%" (unix:asctime (unix:localtime)))
@@ -290,6 +333,7 @@
 			   robot-name (string-downcase (send scene :name))))))
     (setq *eus2wrl-camera-index* 0)
     (setq *eus2wrl-kjs-index* 0)
+    (setq *tmpid* 0)
     (if (not (find-method scene :dump-to-wrl))
 	(progn
 	  (when (not (send scene :name))
@@ -323,6 +367,24 @@
 (defun change-joint-names-to-downcase-string (robo)
   (dolist (j (send robo :joint-list))
     (send j :name (string-downcase (string (send j :joint-method-name)))))
+  )
+(defun change-joint-names-to-upcase-string (robo)
+  (dolist (j (send robo :joint-list))
+    (send j :name (string-upcase (string (send j :joint-method-name)))))
+  )
+(defun string-underscored (str)
+  (dotimes (i (length str))
+    (if (= (elt str i) #\-) (setf (elt str i) #\_)))
+  str)
+
+(defun change-joint-names-to-underscored-string (robo)
+  (dolist (j (send robo :joint-list))
+    (send j :name (string-underscored (string (send j :joint-method-name)))))
+  )
+
+(defun change-link-names-to-underscored-string (robo)
+  (dolist (j (send robo :links))
+    (send j :name (string-underscored (string (send j :name)))))
   )
 
 ;;;
@@ -553,6 +615,7 @@
 		     (tmpid (if (find-method ajoint :servo)
 				(send ajoint :servo :no)
 			      (send ajoint :get :joint-id-for-dump))))
+		(if (null tmpid) (setq tmpid (incf *tmpid*)))
 		(when ajoint
 		  (format strm "  jointAxis ~A~%"
 			  (if (eq mode :openhrp2)
@@ -573,10 +636,10 @@
 		  (format strm "  lvlimit [~A]~%"  (- (send ajoint :max-joint-velocity)))
 		  (when
 		      tmpid
-		    (format strm "  climit [~A]~%" (get ajoint :climit))
-		    (format strm "  torqueConst ~A~%" (get ajoint :torque-const))
-		    (format strm "  gearRatio ~A~%" (get ajoint :gear-ratio))
-		    (format strm "  rotorInertia ~A~%" (get ajoint :rotor-inertia)))
+		    (format strm "  climit [~A]~%" (or (get ajoint :climit) 10))
+		    (format strm "  torqueConst ~A~%" (or (get ajoint :torque-const) 0.1))
+		    (format strm "  gearRatio ~A~%" (or (get ajoint :gear-ratio) 300))
+		    (format strm "  rotorInertia ~A~%" (or (get ajoint :rotor-inertia) 0.1)))
 		  )))
 	    ;;(setq pos (scale scale (if (derivedp parent bodyset-link) 
 	    ;;(send self :pos) (send self :worldpos))))
@@ -1008,12 +1071,14 @@
 	   (format strm "        }~%")
 	   ))
        (format strm "      }~%") ;; appearance
-       (format strm "      geometry DEF ~A-FACES IndexedFaceSet {~%" name)
+       (format strm "      geometry DEF ~A-FACES IndexedFaceSet {~%"
+	       (pathname-name (pathname name)))
        (format strm "        ccw TRUE~%")
        ;;(format strm "        ccw FALSE~%") ;;???
        (format strm "        solid TRUE~%")
        
-       (format strm "        coord DEF ~A-COORD Coordinate {~%" name)
+       (format strm "        coord DEF ~A-COORD Coordinate {~%"
+	       (pathname-name (pathname name)))
        (format strm "          point[~%")
        (let* ((vmat (cadr (assoc :vertices minfo)))
 	      pt
@@ -1107,10 +1172,12 @@
 	(format strm "        }~%")
 	)
       (format strm "      }~%")
-      (format strm "      geometry DEF ~A-FACES IndexedFaceSet {~%" name)
+      (format strm "      geometry DEF ~A-FACES IndexedFaceSet {~%"
+	      (pathname-name (pathname name)))
       (format strm "        ccw TRUE~%")
       (format strm "        solid TRUE~%")
-      (format strm "        coord DEF ~A-COORD Coordinate {~%" name)
+      (format strm "        coord DEF ~A-COORD Coordinate {~%"
+	      (pathname-name (pathname name)))
       (format strm "          point[~%")
       (while vlist
 	(setq v (scale sc (pop vlist)))
@@ -1845,7 +1912,7 @@ PROTO ~A [
   (eus2wrl robo wrl :mode :openhrp3 :actuator-joint-check actuator-joint-check
 	   :joint-numbered-name joint-numbered-name)
   (export-collada wrl dae)
-  (collada2urdf name :package-dir package-dir)
+  (collada2kxr_models name :package-dir package-dir)
   )
 
 #+:ros
@@ -1856,6 +1923,16 @@ PROTO ~A [
   (load "package://eusurdf/euslisp/convert-eus-to-urdf.l")
   (send robo :neutral)
   
+  )
+
+(defun collada2urdf-old (name &key (daes-dir "daes"))
+  (mkdir-unless "urdfs")
+  (mkdir-unless (format nil "urdfs/~A" name))
+  (mkdir-unless (format nil "urdfs/~A/urdf" name))
+  (mkdir-unless (format nil "urdfs/~A/meshes" name))
+  (system-format
+   "rosrun collada_urdf collada_to_urdf ~A/~A.dae -O urdfs/~A/urdf/~A.urdf --mesh_output_dir urdfs/~A/meshes --mesh_prefix package://~A/meshes"
+   daes-dir name name name name name)
   )
 
 (defun collada2urdf (name &key (daes-dir "daes")
@@ -1893,6 +1970,7 @@ PROTO ~A [
     (with-open-file
      (f (format nil "urdfs/~A/launch/display.launch" name) :direction :output)
      (display-launch name f))
+    (unix::system  (format nil "cp urdf.rviz urdfs/~A/urdf.rviz" name))
     ;;(with-open-file
     ;;(f (format nil "urdfs/~A/urdf.rviz" name) :direction :output)
     ;;(rviz-config f))
@@ -1959,7 +2037,34 @@ endforeach(dir)
    name name)
   )
 
-
+(defun collada2kxr_models (name &key (daes-dir "daes") (urdf-dir "urdf")
+				(package-dir "package://kxr_models")
+				(mesh-dir (format nil "meshes/~A" name))
+				(mesh-prefix (format nil "~A/meshes/~A" package-dir name)))
+  (mkdir-unless "meshes")
+  (mkdir-unless urdf-dir)
+  (mkdir-unless mesh-dir)
+  (let ((euscollada-dir (read-line (piped-fork "rospack find euscollada") nil nil))
+	(kxr_models-dir (read-line (piped-fork "rospack find kxr_models") nil nil))
+        (collada-to-urdf-pkg "collada_urdf"))
+    ;; if collada_to_urdf exist at euscollada, you will use it.
+    (cond
+      ((and euscollada-dir
+	    (probe-file (format nil "~A/scripts/collada_to_urdf" euscollada-dir)))
+       (setq collada-to-urdf-pkg "euscollada")
+       (system-format
+	"rosrun ~A collada_to_urdf ~A/~A.dae -O ~A/~A.urdf --mesh_output_dir ~A --mesh_prefix ~A"
+	collada-to-urdf-pkg daes-dir name urdf-dir name mesh-dir mesh-prefix))
+      (t
+       (system-format
+	"rosrun collada_urdf collada_to_urdf ~A/~A.dae -O ~A/~A.urdf --mesh_output_dir ~A --mesh_prefix ~A"
+	daes-dir name urdf-dir name mesh-dir mesh-prefix)
+       ))
+    (when kxr_models-dir
+      (system-format
+       "cd ~A; ln -s ~A/meshes/~A meshes; ln -s ~A/urdf/~A.urdf urdf"
+       kxr_models-dir *rcb4eus-dir* name *rcb4eus-dir* name))
+    ))
 
 (defun param-split (str &optional (delim '(#\Space #\Tab 10 13)))
   (let (ret sub c in-str)
