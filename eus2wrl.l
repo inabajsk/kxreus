@@ -76,8 +76,11 @@
   (when robo
     (send robo :angle-vector (instantiate float-vector (length (send robo :angle-vector)))))
   (mkdir-unless "wrls")
-  (when urdf (mkdir-unless "urdf")
-	(setq urdf (format nil "urdf/~A.urdf" fname)))
+  (when urdf
+    (mkdir-unless "urdfs")
+    (mkdir-unless (format nil "urdfs/~A" fname))
+    (mkdir-unless (format nil "urdfs/~A/urdf" fname))
+    (setq urdf (format nil "urdfs/~A/urdf/~A.urdf" fname fname)))
   (cond
     ;;((substringp "khr" fname)
     ;;(khr2model fname))
@@ -1855,11 +1858,13 @@ PROTO ~A [
   
   )
 
-(defun collada2urdf (name &key (daes-dir "daes") (urdf-dir "urdf")
-			    (package-dir "package://kxr_models")
-			    (mesh-dir (format nil "meshes/~A" name))
-			    (mesh-prefix (format nil "~A/meshes/~A" package-dir name)))
-  (mkdir-unless "meshes")
+(defun collada2urdf (name &key (daes-dir "daes")
+			  (urdf-dir (format nil "urdfs/~A/urdf" name))
+			  (package-dir "package:/") ;;(package-dir "package://kxr_models")
+			  (mesh-dir (format nil "urdfs/~A/meshes" name))
+			  (mesh-prefix (format nil "~A/~A/meshes" package-dir name)))
+  (mkdir-unless "urdfs")
+  (mkdir-unless (format nil "urdfs/~A" name))
   (mkdir-unless urdf-dir)
   (mkdir-unless mesh-dir)
   (let ((euscollada-dir (read-line (piped-fork "rospack find euscollada") nil nil))
@@ -1867,22 +1872,94 @@ PROTO ~A [
         (collada-to-urdf-pkg "collada_urdf"))
     ;; if collada_to_urdf exist at euscollada, you will use it.
     (cond
-      ((and euscollada-dir
-	    (probe-file (format nil "~A/scripts/collada_to_urdf" euscollada-dir)))
-       (setq collada-to-urdf-pkg "euscollada")
-       (system-format
-	"rosrun ~A collada_to_urdf ~A/~A.dae -O ~A/~A.urdf --mesh_output_dir ~A --mesh_prefix ~A"
-	collada-to-urdf-pkg daes-dir name urdf-dir name mesh-dir mesh-prefix))
-      (t
-       (system-format
-	"rosrun collada_urdf collada_to_urdf ~A/~A.dae -O ~A/~A.urdf --mesh_output_dir ~A --mesh_prefix ~A"
-	daes-dir name urdf-dir name mesh-dir mesh-prefix)
-       ))
+     ((and euscollada-dir
+	   (probe-file (format nil "~A/scripts/collada_to_urdf" euscollada-dir)))
+      (setq collada-to-urdf-pkg "euscollada")
+      (system-format
+       "rosrun ~A collada_to_urdf ~A/~A.dae -O ~A/~A.urdf --mesh_output_dir ~A --mesh_prefix ~A"
+       collada-to-urdf-pkg daes-dir name urdf-dir name mesh-dir mesh-prefix))
+     (t
+      (system-format
+       "rosrun collada_urdf collada_to_urdf ~A/~A.dae -O ~A/~A.urdf --mesh_output_dir ~A --mesh_prefix ~A"
+       daes-dir name urdf-dir name mesh-dir mesh-prefix)
+      ))
+    (with-open-file
+     (f (format nil "urdfs/~A/package.xml" name) :direction :output)
+     (package-xml name f))
+    (with-open-file
+     (f (format nil "urdfs/~A/CMakeLists.txt" name) :direction :output)
+     (cmakelists-txt name f))
+    (mkdir-unless (format nil "urdfs/~A/launch" name)) 
+    (with-open-file
+     (f (format nil "urdfs/~A/launch/display.launch" name) :direction :output)
+     (display-launch name f))
+    ;;(with-open-file
+    ;;(f (format nil "urdfs/~A/urdf.rviz" name) :direction :output)
+    ;;(rviz-config f))
     (when kxr_models-dir
       (system-format
        "cd ~A; ln -s ~A/meshes/~A meshes; ln -s ~A/urdf/~A.urdf urdf"
        kxr_models-dir *rcb4eus-dir* name *rcb4eus-dir* name))
     ))
+
+(defun cmakelists-txt (name &optional (strm t))
+  (format
+   strm
+   "
+cmake_minimum_required(VERSION 2.8.3)
+project(~A)
+find_package(catkin REQUIRED)
+catkin_package()
+find_package(roslaunch)
+foreach(dir config launch meshes urdf)
+	install(DIRECTORY ${dir}/
+		DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/${dir})
+endforeach(dir)
+"
+   name)
+  )
+
+(defun display-launch (name &optional (strm t))
+  (format
+   strm
+   "
+<launch>
+  <arg name=\"model\" />
+  <param name=\"robot_description\" textfile=\"$(find ~A)/urdf/~A.urdf\" />
+  <node name=\"joint_state_publisher_gui\" pkg=\"joint_state_publisher_gui\" type=\"joint_state_publisher_gui\" />
+  <node name=\"robot_state_publisher\" pkg=\"robot_state_publisher\" type=\"robot_state_publisher\" />
+  <node name=\"rviz\" pkg=\"rviz\" type=\"rviz\" args=\"-d $(find ~A)/urdf.rviz\" />
+</launch>
+"
+   name name name)
+  )
+
+(defun package-xml (name strm)
+  (format
+   strm
+   "
+<package format=\"2\">
+  <name>~A</name>
+  <version>1.0.0</version>
+  <description>
+    <p>URDF Description package for ~A</p>
+  </description>
+  <maintainer email=\"euslisp@jsk.t.u-tokyo.ac.jp\">Euslisp developer</maintainer>
+  <license>Euslisp</license>
+  <buildtool_depend>catkin</buildtool_depend>
+  <depend>roslaunch</depend>
+  <depend>robot_state_publisher</depend>
+  <depend>rviz</depend>
+  <depend>joint_state_publisher_gui</depend>
+  <export>
+    <architecture_independent />
+  </export>
+</package>
+"
+   name name)
+  )
+
+
 
 (defun param-split (str &optional (delim '(#\Space #\Tab 10 13)))
   (let (ret sub c in-str)
