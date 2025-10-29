@@ -1846,9 +1846,13 @@
 	       (make-coords :rot (send c :worldrot) :pose (send b :worldpos))
 	       b)
        (send robot :move-coords m s))))
-  (:read-angle-vector
+  (:read-angle-vector-old
    nil
    (when (send self :read-servo-vector)
+     (setq angle-vector (send self :servo-vector-to-angle-vector servo-vector))))
+  (:read-angle-vector
+   nil
+   (when (setq servo-vector (send self :read-servo-vector))
      (setq angle-vector (send self :servo-vector-to-angle-vector servo-vector))))
   (:read-angle-alist
    nil
