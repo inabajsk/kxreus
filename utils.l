@@ -3,6 +3,11 @@
 ;;;
 (provide :utils)
 
+(defun string-underscored (str)
+  (dotimes (i (length str))
+    (if (= (elt str i) #\-) (setf (elt str i) #\_)))
+  str)
+
 (defun objects+ (blist &key base (des t) show-name
 		       (coords t) (prop t) ((:viewer vwer)) &allow-other-keys)
   (let ((bs blist))

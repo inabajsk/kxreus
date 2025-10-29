@@ -61,9 +61,9 @@
   (setq *joint-underscored-name* t)
   (apply #'eus2collada-robot robo args))
 
-(setq *robot-upcase-name* t)
-(setq *joint-upcase-name* t)
-(setq *joint-underscored-name* t)
+;;(setq *robot-upcase-name* nil)
+;;(setq *joint-upcase-name* nil)
+;;(setq *joint-underscored-name* nil)
 
 (defun eus2collada-robot
     (robo &key
@@ -372,10 +372,6 @@
   (dolist (j (send robo :joint-list))
     (send j :name (string-upcase (string (send j :joint-method-name)))))
   )
-(defun string-underscored (str)
-  (dotimes (i (length str))
-    (if (= (elt str i) #\-) (setf (elt str i) #\_)))
-  str)
 
 (defun change-joint-names-to-underscored-string (robo)
   (dolist (j (send robo :joint-list))

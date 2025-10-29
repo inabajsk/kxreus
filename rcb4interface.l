@@ -1604,8 +1604,10 @@
   (:set-servo-vector-joint
    (sv-index joint-method-name &optional (sign 1) offset servo-type pair-kjs-idx magenc-offset upper-limit)
    (unless (find-method robot joint-method-name)
-     (warn "!! ~A has no method ~A in :set-servo-vector-joint~%" robot joint-method-name)
-     (return-from :set-servo-vector-joint nil))
+     (setq joint-method-name (intern (string-underscored (string joint-method-name)) *keyword-package*))
+     (unless (find-method robot joint-method-name)
+       (warn "!! ~A has no method ~A in :set-servo-vector-joint~%" robot joint-method-name)
+       (return-from :set-servo-vector-joint nil)))
    (let* ((j (send robot joint-method-name))
 	  (jl (send robot :joint-list))
 	  (av-index (position j jl))
@@ -1846,13 +1848,9 @@
 	       (make-coords :rot (send c :worldrot) :pose (send b :worldpos))
 	       b)
        (send robot :move-coords m s))))
-  (:read-angle-vector-old
-   nil
-   (when (send self :read-servo-vector)
-     (setq angle-vector (send self :servo-vector-to-angle-vector servo-vector))))
   (:read-angle-vector
    nil
-   (when (setq servo-vector (send self :read-servo-vector))
+   (when (send self :read-servo-vector)
      (setq angle-vector (send self :servo-vector-to-angle-vector servo-vector))))
   (:read-angle-alist
    nil
