@@ -1568,7 +1568,7 @@
 	  (setf (get self :joint-free-state) nil))
 	 (t (warn "; joint-hold to ~A no servo-index~%"  self)))
    (get self :joint-free-state))
-;;  (:axis nil axis)
+  (:axis nil axis)
   (:id (&optional v)
        (if v (setf (get self :id) v))
        (get self :id))
