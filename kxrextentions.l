@@ -181,7 +181,7 @@
   )
 
 (defun 5inch-ducted-fan-motor ()
-  (let* ((s (stl2eus (format nil "~A/stls/5inch_propeller_duct.STL" *rcb4eus-dir*)))
+  (let* ((s (stl2eus (format nil "~A/stls/5inch_propeller_duct.STL" *rcb4eus-dir*) :scale 1.0))
          (l (kxr-make-kxr-body "5inch-ducted-fan-motor" s s nil))
          )
     (send l :weight 175.0)
@@ -246,31 +246,31 @@
 
 
 (defun flying-battery-unit-body ()
-  (let* ((c (stl2eus (format nil "~A/stls/battery_unit.STL" *rcb4eus-dir*)))
+  (let* ((c (stl2eus (format nil "~A/stls/battery_unit.STL" *rcb4eus-dir*) :scale 1.0))
          (l (kxr-make-kxr-body "flying-battery-unit-body" c c nil)))
     (send l :weight 217.0)
     l
     ))
 
 (defun 70mm-ducted-fan-body ()
-  (let ((c (stl2eus (format nil "~A/stls/70mm_duct_propeller.STL" *rcb4eus-dir*))))
+  (let ((c (stl2eus (format nil "~A/stls/70mm_duct_propeller.STL" *rcb4eus-dir*) :scale 1.0)))
     (kxr-make-kxr-body "70mm-ducted-fan-body" c c nil)
     ))
 
 (defun 70mm-ducted-fan-body-mirror ()
-  (let ((c (stl2eus (format nil "~A/stls/70mm_duct_propeller_mirror.STL" *rcb4eus-dir*))))
+  (let ((c (stl2eus (format nil "~A/stls/70mm_duct_propeller_mirror.STL" *rcb4eus-dir*) :scale 1.0)))
     (kxr-make-kxr-body "70mm-ducted-fan-body-mirror" c c nil)
     ))
 
 (defun 5inch-ducted-fan-body ()
-  (let* ((c (stl2eus (format nil "~A/stls/5inch_propeller.STL" *rcb4eus-dir*)))
+  (let* ((c (stl2eus (format nil "~A/stls/5inch_propeller.STL" *rcb4eus-dir*) :scale 1.0))
          (l (kxr-make-kxr-body "5inch-ducted-fan-body" c c nil)))
     (send l :weight 3.2)
     l
     ))
 
 (defun 5inch-ducted-fan-body-mirror ()
-  (let* ((c (stl2eus (format nil "~A/stls/5inch_propeller_mirror.STL" *rcb4eus-dir*)))
+  (let* ((c (stl2eus (format nil "~A/stls/5inch_propeller_mirror.STL" *rcb4eus-dir*) :scale 1.0))
          (l (kxr-make-kxr-body "5inch-ducted-fan-body-mirror" c c nil)))
     (send l :weight 3.2)
     l

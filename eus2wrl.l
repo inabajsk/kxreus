@@ -61,9 +61,9 @@
   (setq *joint-underscored-name* t)
   (apply #'eus2collada-robot robo args))
 
-;;(setq *robot-upcase-name* nil)
-;;(setq *joint-upcase-name* nil)
-;;(setq *joint-underscored-name* nil)
+(setq *robot-upcase-name* nil)
+(setq *joint-upcase-name* nil)
+(setq *joint-underscored-name* nil)
 
 (defun eus2collada-robot
     (robo &key
