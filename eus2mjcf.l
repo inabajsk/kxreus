@@ -25,20 +25,20 @@
 (defun trim-matrix (v)
   (string-trim "#2f(() ())" (format nil "~S" v)))
 
-(defun simulate (name &aux (simulate
-			    (format nil "~A/mujoco/bin/simulate" (unix::getenv "HOME"))))
+(defun simulate (name) (mujoco name "simulate"))
+(defun basic (name) (mujoco name "basic"))
+(defun mujoco (name app &aux fname)
   (load-robot name)
-  ;;(send *robot* :reset-pose)
-  ;;(send *robot* :fix-leg-to-coords (make-coords))
-  ;;(send *robot* :worldcoords)
   (send *robot* :dump-mjcf)
-  (unless (probe-file simulate)
-    (setq simulate (format nil "~A/mujoco/build/bin/simulate" (unix::getenv "HOME"))))
-  (system-format "~A mjcfs/~A/~A.xml" simulate (send *robot* :name)
-		 (send *robot* :name))
-  )
+  (unless (probe-file
+	   (setq fname (format nil "~A/mujoco/bin/~A" (unix::getenv "HOME") app)))
+    (setq fname (format nil "~A/mujoco/build/bin/~A" (unix::getenv "HOME") app)))
+  (system-format "~A mjcfs/~A/~A.xml" fname (send *robot* :name)
+		 (send *robot* :name)))
 
+(format t ";; (basic \"kxrl4t\")~%")
 (format t ";; (simulate \"kxrl6\")~%")
+
 
 (defmethod bodyset-link
   (:mjcf-body
