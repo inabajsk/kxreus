@@ -15,11 +15,8 @@
 (require :rcb4robots)
 
 (defun load-robot (name)
-  (let ((fname (format nil "models/~A.l" (string-downcase name))))
-    (if (probe-file fname)
-	(load fname)
-      (make-kxr-robot name))
-    (setq *robot* (apply (read-from-string name) nil))))
+  (load (format nil "models/~A.l" (string-downcase name)))
+  (setq *robot* (apply (read-from-string name) nil)))
 
 (defun trim-vector (v)
   (string-trim "#f()" (format nil "~S" v)))
@@ -39,6 +36,7 @@
 (format t ";; (basic \"kxrl4t\")~%")
 (format t ";; (simulate \"kxrl6\")~%")
 (format t ";; (mujoco \"kxrl4d\")~%")
+(format t ";; (demo \"kxrl2g\")~%")
 ;;
 (defun python-open-exp ()
   (setq *python* (piped-fork "python3" "-u" "-c" "while True: print(eval(input()))")))
@@ -77,9 +75,6 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
   (setq *python* (piped-fork "python3" "-u" "-i" "test-motion.py"))
   )
 
-(defun mujoco-open ()
-  (setq *python* (piped-fork "python3" "-u" "-i" "mujocorepl.py")))
-
 (defun py (line)
   (unless (boundp '*python*) (python-open))
   (format *python* "~A~%" line)
@@ -90,13 +85,17 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
    (f fname :direction :input)
    (while (setq ln (read-line f nil nil)) (py ln))))
 
-(defun mujoco (&optional (nm "kxrl6") (n 4))
+(defun mujoco (&optional (nm "kxrl6") (n 4) &key menu)
   (make-kxr-robot nm)
-  (send *robot* :open-mujoco)
+  (send *ri* :robot :open-mujoco :menu menu)
   (dotimes (i n) (send *ri* :draw-project-file 0))
   )
+(defun demo (&optional (nm "kxrl2l5a3h2g") (n 4)) (mujoco nm n :menu t))
+(defun demo1 (&optional (nm "kxrl2l6a6h2g") (n 4)) (demo nm n))
+(defun demo2 (&optional (nm "kxrl2l6a7h2m") (n 4)) (demo nm n))
 
 (defmethod robot-model
+  (:ode-ci nil (get self :ode-ci))
   (:test-motion
    (&optional (nm 0) (count 10))
    (setf (get self :ode-ci) t)
@@ -113,21 +112,24 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
      (send *robot* :send-ode)
      (unix:usleep (* 500 1000))
      ))
+  (:python nil (get self :python))
   (:open-mujoco
-   nil
+   (&key menu)
    (let* ((nm (send self :name))
+	  (pyname "mujocoview.py")
 	  (fname 
 	   (format nil "~A/kxreus/mjcfs/~A/~A.xml"
 		   (unix::getenv "HOME") nm nm)))
+     (if menu (setq pyname "mujocomenu.py"))
      (unless
 	 (probe-file fname)
        (send self :dump-mjcf))
-     (unless
-	 (probe-file "mujocorepl.py")
-       (define-replpy))
+     (if menu
+	 (define-menupy)
+       (define-viewpy))
      (setf (get self :ode-ci) t)
      (setf (get self :python)
-	   (piped-fork "python3" "-u" "-i" "mujocorepl.py" fname))
+	   (piped-fork "python3" "-u" "-i" pyname fname))
      ))
   (:send-ode
    nil
@@ -141,17 +143,20 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
      (if (select-stream (list python) 0.001)
 	 (read python nil nil))))
   )
-(defun define-replpy nil
+
+(defun define-viewpy nil
   (with-open-file
-   (f "mujocorepl.py" :direction :output)
+   (f "mujocoview.py" :direction :output)
    (format f
 	   "
 #
-# python3 -u -i mujocorepl.py /home/leus/kxreus/mjcfs/kxrl6/kxrl6.xml
+# python3 -u -i mujocoview.py /home/leus/kxreus/mjcfs/kxrl6/kxrl6.xml
 # print(\"Usage: python this_program.py <model_file.xml>\")#
 #
 import mujoco
-import mujoco.viewer
+#import mujoco.viewer
+# pip install mujoco-python-viewer -> mujoco_viewer
+import mujoco_viewer
 import numpy as np
 import threading
 import sys
@@ -181,12 +186,72 @@ def input_thread():
             pass
 
 threading.Thread(target=input_thread, daemon=True).start()
+
+# v= mujoco.viewer.Viewer(model, data , width=400, height=400)
+#with mujoco.viewer.launch_passive(model, data) as viewer: # hide_menus=True) as viewer:
+#
+viewer= mujoco_viewer.MujocoViewer(model, data , width=400, height=400, hide_menus=True)
+#while viewer.is_running():
+while viewer.is_alive:
+    data.ctrl[:] = ctrl_values
+    mujoco.mj_step(model, data)
+#    viewer.sync()
+    viewer.render()
+viewer.close()
+"
+	   ))
+  )
+
+(defun define-menupy nil
+  (with-open-file
+   (f "mujocomenu.py" :direction :output)
+   (format f
+	   "
+#
+# python3 -u -i mujocomenu.py /home/leus/kxreus/mjcfs/kxrl6/kxrl6.xml
+# print(\"Usage: python this_program.py <model_file.xml>\")#
+#
+import mujoco
+import mujoco.viewer
+import numpy as np
+import threading
+import sys
+import time
+
+
+#if len(sys.argv) < 2:
+#    print(\"Usage: python this_program.py <model_file.xml>\")
+#    sys.exit(1)
+
+model_path = sys.argv[1]
+model = mujoco.MjModel.from_xml_path(model_path)
+data = mujoco.MjData(model)
+
+ctrl_values = np.zeros(model.nu)
+def input_thread():
+    while True:
+        line = sys.stdin.readline()
+        if not line:
+            break
+        try:
+            values = [float(x) for x in line.strip().split()]
+            if len(values) == model.nu:
+                ctrl_values[:] = values
+            else:
+                print(f\"Warning: Expected {model.nu} values, got {len(values)}\")
+        except ValueError:
+            pass
+
+threading.Thread(target=input_thread, daemon=True).start()
+
 with mujoco.viewer.launch_passive(model, data) as viewer:
     while viewer.is_running():
         data.ctrl[:] = ctrl_values
         mujoco.mj_step(model, data)
         viewer.sync()
-")))
+"
+	   ))
+  )
 
 (defmethod bodyset-link
   (:mjcf-body
