@@ -23,6 +23,7 @@
 (defun trim-matrix (v)
   (string-trim "#2f(() ())" (format nil "~S" v)))
 
+#|
 (defun simulate (name) (mujoco-run name "simulate"))
 (defun basic (name) (mujoco-run name "basic"))
 (defun mujoco-run (name app &aux fname)
@@ -35,8 +36,10 @@
 		 (send *robot* :name)))
 (format t ";; (basic \"kxrl4t\")~%")
 (format t ";; (simulate \"kxrl6\")~%")
+|#
 (format t ";; (mujoco \"kxrl4d\")~%")
 (format t ";; (demo \"kxrl2g\")~%")
+(format t ";; (send *kxrl6* :test-motion)~%")
 ;;
 (defun python-open-exp ()
   (setq *python* (piped-fork "python3" "-u" "-c" "while True: print(eval(input()))")))
@@ -85,34 +88,46 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
    (f fname :direction :input)
    (while (setq ln (read-line f nil nil)) (py ln))))
 
-(defun mujoco (&optional (nm "kxrl6") (n 4) &key menu)
-  (make-kxr-robot nm)
+(defun mujoco (&rest args
+		     &key (name "kxrl6") (repeat 4) menu (motion-id 0) ((:viewer vw)) (sleep 4)
+		     )
+  (if vw (make-kxr-robot name) (make-kxr-robot-interface name))
   (send *ri* :robot :open-mujoco :menu menu)
-  (dotimes (i n) (send *ri* :draw-project-file 0))
+  (unix:sleep sleep)
+  (dotimes (i repeat) (send *ri* :draw-project-file motion-id))
   )
-(defun demo (&optional (nm "kxrl2l5a3h2g") (n 4)) (mujoco nm n :menu t))
+(defun mujoco1 (&rest args &key (name "kxrl2l6a6h2g") &allow-other-keys)
+  (apply #'mujoco :name name args))
+(defun mujoco2 (&rest args &key (name "kxrl2l6a7h2m") &allow-other-keys)
+  (apply #'mujoco :name name args))
+
+(defun demo (&optional (nm "kxrl2l5a3h2g") (n 4)) (mujoco :name nm :repeat n :menu t))
 (defun demo1 (&optional (nm "kxrl2l6a6h2g") (n 4)) (demo nm n))
 (defun demo2 (&optional (nm "kxrl2l6a7h2m") (n 4)) (demo nm n))
 
 (defmethod robot-model
   (:ode-ci nil (get self :ode-ci))
+  (:python-pid nil (get (send self :python) :pid))
   (:test-motion
-   (&optional (nm 0) (count 10))
+   (&optional (nm 0) &key (count 10) (wait 500))
    (setf (get self :ode-ci) t)
    (dotimes (i count)
-     (send (send self :ri) :draw-project-file nm))
+     (send (send self :ri) :draw-project-file nm wait))
    )
   (:reset-motion
-   (&optional (n 5))
+   (&optional (n 5) (delay 500))
    (dotimes (i n)
      (send self :neutral)
-     (send self :send-ode)
-     (unix:usleep (* 500 1000))
-     (send *robot* :reset-pose)
-     (send *robot* :send-ode)
-     (unix:usleep (* 500 1000))
+     (send self :send-ode delay)
+     (send self :reset-pose)
+     (send self :send-ode delay)
      ))
   (:python nil (get self :python))
+  (:close-mujoco
+   nil 
+   (when (send self :python-pid)
+     (unix::kill (send self :python-pid) 9)
+     (setf (get self :python) nil)))
   (:open-mujoco
    (&key menu)
    (let* ((nm (send self :name))
@@ -126,25 +141,25 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
        (send self :dump-mjcf))
      (if menu
 	 (define-menupy)
-       (define-viewpy))
+       (define-viewpy nm))
      (setf (get self :ode-ci) t)
      (setf (get self :python)
 	   (piped-fork "python3" "-u" "-i" pyname fname))
      ))
   (:send-ode
-   nil
+   (&optional (delay 1))
    (let* ((ss (make-string-output-stream))
 	  (av (send self :angle-vector))
 	  (l (length av))
-	  (python (get self :python)))
+	  (python (send self :python)))
      (dotimes (i l)
        (format ss "~A " (deg2rad (elt av i))))
      (format python "~A~%" (get-output-stream-string ss))
-     (if (select-stream (list python) 0.001)
+     (if (select-stream (list python) (/ delay 1000.0))
 	 (read python nil nil))))
   )
 
-(defun define-viewpy nil
+(defun define-viewpy (nm)
   (with-open-file
    (f "mujocoview.py" :direction :output)
    (format f
@@ -187,19 +202,21 @@ def input_thread():
 
 threading.Thread(target=input_thread, daemon=True).start()
 
-# v= mujoco.viewer.Viewer(model, data , width=400, height=400)
-#with mujoco.viewer.launch_passive(model, data) as viewer: # hide_menus=True) as viewer:
-#
-viewer= mujoco_viewer.MujocoViewer(model, data , width=400, height=400, hide_menus=True)
+viewer= mujoco_viewer.MujocoViewer(model, data,
+    width=400, height=400, hide_menus=True, title=~S)
 #while viewer.is_running():
 while viewer.is_alive:
-    data.ctrl[:] = ctrl_values
-    mujoco.mj_step(model, data)
+    timestep = 0
+    frame_skip = 10
+    for _ in range(frame_skip):
+        data.ctrl[:] = ctrl_values
+        mujoco.mj_step(model, data)
+        timestep += 1
 #    viewer.sync()
     viewer.render()
 viewer.close()
 "
-	   ))
+	   nm))
   )
 
 (defun define-menupy nil
