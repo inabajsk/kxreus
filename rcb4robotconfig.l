@@ -5121,7 +5121,52 @@ nil
      (32 :head-neck-y -1)       (34 :head-neck-p -1)
      
      )
-    (("kxrl2l6a6h2m") 		;; 28
+    (("kxrl2l6a6h2g") 		;; 28
+     (:body :l2l6m :type :l2 :sole t
+	    ;;:project-file "kxra6g"
+	    :project-file "kxrl2l6a6h2g"
+	    :head :d405echos :3eye-front t :head-length 20
+	    :shoulder :pry-cross :shoulder-front t :shoulder-low t :flat-shoulder nil
+	    :elbow :angle :wrist :cross-pr :upper-arm-length 38 
+	    ;;:shoulder-p-sensor :horn-mag-
+	    ;;:elbow-p-sensor :mag-7      :wrist-sensor :mag-7
+	    ;;:crotch-p-sensor :rev-a      :crotch-r-sensor :mag-7
+	    ;;:crotch-y-sensor :rev-a      :knee-p-sensor :mag-7
+	    ;;:ankle-r-sensor :mag-7      :ankle-sensor :mag-7
+	    ;;:active-wheel :crotch ;; :ankle ;; :crotch
+	    :gripper t :gripper-straight t :gripper-axis :y
+	    :reset-pose-alist ((:larm-shoulder-p 0) (:rarm-shoulder-p 0)
+			       (:larm-shoulder-r 0) (:rarm-shoulder-r 0)
+			       (:lleg-crotch-r 0) (:rleg-crotch-r 0)
+			       (:lleg-crotch-p -15) (:rleg-crotch-p -15)
+			       (:lleg-knee-p 30) (:rleg-knee-p 30)
+			       (:lleg-ankle-p -15) (:rleg-ankle-p -15)
+			       (:larm-elbow-p 0) (:rarm-elbow-p 0)
+			       (:larm-wrist-p 0) (:rarm-wrist-p 0)
+			       (:larm-wrist-r 0) (:rarm-wrist-r  0)
+			       )
+	    ;;      :init-form (print (list 'self= self 'args= args))
+	    )
+     (2 :rarm-shoulder-p 1)     (3 :larm-shoulder-p -1)
+     (4 :rarm-shoulder-r 1)     (5 :larm-shoulder-r 1)
+     (6 :rarm-elbow-p 1)        (7 :larm-elbow-p 1)
+     (8 :rleg-crotch-r 1)       (9 :lleg-crotch-r 1)
+     (10 :rleg-crotch-p -1)     (11 :lleg-crotch-p -1)
+     (12 :rleg-knee-p 1)        (13 :lleg-knee-p 1)
+     (14 :rleg-ankle-p -1)      (15 :lleg-ankle-p -1)
+     (16 :rleg-ankle-r -1)      (17 :lleg-ankle-r -1)
+
+     (18 :rarm-gripper-r 1/2)    (19 :larm-gripper-r 1/2)
+     (18 :rarm-gripper2-r 1/2)   (19 :larm-gripper2-r 1/2)
+
+     (22 :rarm-shoulder-y 1)   (23 :larm-shoulder-y 1)
+     (24 :rleg-crotch-y 1)      (25 :lleg-crotch-y 1)
+     (26 :rarm-wrist-p 1)       (27 :larm-wrist-p -1)
+     (28 :rarm-wrist-r -1)       (29 :larm-wrist-r -1)
+     (32 :head-neck-y -1)       (34 :head-neck-p -1)
+     
+     )
+    (("kxrl2l6a6h2m")
      (:body :l2l6m :type :l2 :sole t
 	    :project-file "kxra6g"
 	    ;;:project-file "kxrl2l6a6h2g"
