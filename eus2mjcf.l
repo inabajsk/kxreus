@@ -2,6 +2,7 @@
 ;;;	Generator mujoco xml file
 ;;;	2020.6.4 created
 ;;;	2020.6.14 using <mujocoinclude> for multi robots
+;;	2025.11.2 mujoco through python
 ;;;	TODO: update inertia matrix
 ;;;	TODO: tendon robot
 ;;;	TODO: flying furnitures
@@ -25,9 +26,9 @@
 (defun trim-matrix (v)
   (string-trim "#2f(() ())" (format nil "~S" v)))
 
-(defun simulate (name) (mujoco name "simulate"))
-(defun basic (name) (mujoco name "basic"))
-(defun mujoco (name app &aux fname)
+(defun simulate (name) (mujoco-run name "simulate"))
+(defun basic (name) (mujoco-run name "basic"))
+(defun mujoco-run (name app &aux fname)
   (load-robot name)
   (send *robot* :dump-mjcf)
   (unless (probe-file
@@ -35,10 +36,157 @@
     (setq fname (format nil "~A/mujoco/build/bin/~A" (unix::getenv "HOME") app)))
   (system-format "~A mjcfs/~A/~A.xml" fname (send *robot* :name)
 		 (send *robot* :name)))
-
 (format t ";; (basic \"kxrl4t\")~%")
 (format t ";; (simulate \"kxrl6\")~%")
+(format t ";; (mujoco \"kxrl4d\")~%")
+;;
+(defun python-open-exp ()
+  (setq *python* (piped-fork "python3" "-u" "-c" "while True: print(eval(input()))")))
+(defun python-open ()
+  (setq *python* (piped-fork "python3" "-u" "-i" "pyrepl.py")))
 
+(format t ";; (mujoco-test)~%")
+(defun mujoco-test ()
+  (with-open-file
+   (f "test-motion.py" :direction :output)
+   (format f
+	   "
+import mujoco
+import mujoco.viewer
+import numpy as np
+import time
+model = mujoco.MjModel.from_xml_path(\"/home/leus/kxreus/mjcfs/kxrl6/kxrl6.xml\")
+data = mujoco.MjData(model)
+amplitude = 1.0  
+frequency = 1.0  
+
+with mujoco.viewer.launch_passive(model, data) as viewer:
+    start = time.time()
+    while viewer.is_running():
+        t = time.time() - start
+        data.ctrl[1] = amplitude * np.sin(2 * np.pi * frequency * t)
+        data.ctrl[4] = amplitude * np.sin(2 * np.pi * frequency * t)
+        data.ctrl[7] = amplitude * np.sin(2 * np.pi * frequency * t)
+        data.ctrl[13] = amplitude * np.sin(2 * np.pi * frequency * t)
+
+        data.ctrl[10] = amplitude * np.sin(2 * np.pi * frequency * t)
+        data.ctrl[16] = amplitude * np.sin(2 * np.pi * frequency * t)
+        mujoco.mj_step(model, data)
+        viewer.sync()
+"))
+  (setq *python* (piped-fork "python3" "-u" "-i" "test-motion.py"))
+  )
+
+(defun mujoco-open ()
+  (setq *python* (piped-fork "python3" "-u" "-i" "mujocorepl.py")))
+
+(defun py (line)
+  (unless (boundp '*python*) (python-open))
+  (format *python* "~A~%" line)
+  (if (select-stream (list *python*) 0.1) (read *python* nil nil)))
+
+(defun run-py (fname &aux ln)
+  (with-open-file
+   (f fname :direction :input)
+   (while (setq ln (read-line f nil nil)) (py ln))))
+
+(defun mujoco (&optional (nm "kxrl6") (n 4))
+  (make-kxr-robot nm)
+  (send *robot* :open-mujoco)
+  (dotimes (i n) (send *ri* :draw-project-file 0))
+  )
+
+(defmethod robot-model
+  (:test-motion
+   (&optional (nm 0) (count 10))
+   (setf (get self :ode-ci) t)
+   (dotimes (i count)
+     (send (send self :ri) :draw-project-file nm))
+   )
+  (:reset-motion
+   (&optional (n 5))
+   (dotimes (i n)
+     (send self :neutral)
+     (send self :send-ode)
+     (unix:usleep (* 500 1000))
+     (send *robot* :reset-pose)
+     (send *robot* :send-ode)
+     (unix:usleep (* 500 1000))
+     ))
+  (:open-mujoco
+   nil
+   (let* ((nm (send self :name))
+	  (fname 
+	   (format nil "~A/kxreus/mjcfs/~A/~A.xml"
+		   (unix::getenv "HOME") nm nm)))
+     (unless
+	 (probe-file fname)
+       (send self :dump-mjcf))
+     (unless
+	 (probe-file "mujocorepl.py")
+       (define-replpy))
+     (setf (get self :ode-ci) t)
+     (setf (get self :python)
+	   (piped-fork "python3" "-u" "-i" "mujocorepl.py" fname))
+     ))
+  (:send-ode
+   nil
+   (let* ((ss (make-string-output-stream))
+	  (av (send self :angle-vector))
+	  (l (length av))
+	  (python (get self :python)))
+     (dotimes (i l)
+       (format ss "~A " (deg2rad (elt av i))))
+     (format python "~A~%" (get-output-stream-string ss))
+     (if (select-stream (list python) 0.001)
+	 (read python nil nil))))
+  )
+(defun define-replpy nil
+  (with-open-file
+   (f "mujocorepl.py" :direction :output)
+   (format f
+	   "
+#
+# python3 -u -i mujocorepl.py /home/leus/kxreus/mjcfs/kxrl6/kxrl6.xml
+# print(\"Usage: python this_program.py <model_file.xml>\")#
+#
+import mujoco
+import mujoco.viewer
+import numpy as np
+import threading
+import sys
+import time
+
+#if len(sys.argv) < 2:
+#    print(\"Usage: python this_program.py <model_file.xml>\")
+#    sys.exit(1)
+
+model_path = sys.argv[1]
+model = mujoco.MjModel.from_xml_path(model_path)
+data = mujoco.MjData(model)
+
+ctrl_values = np.zeros(model.nu)
+def input_thread():
+    while True:
+        line = sys.stdin.readline()
+        if not line:
+            break
+        try:
+            values = [float(x) for x in line.strip().split()]
+            if len(values) == model.nu:
+                ctrl_values[:] = values
+            else:
+                print(f\"Warning: Expected {model.nu} values, got {len(values)}\")
+        except ValueError:
+            pass
+
+threading.Thread(target=input_thread, daemon=True).start()
+with mujoco.viewer.launch_passive(model, data) as viewer:
+    while viewer.is_running():
+        data.ctrl[:] = ctrl_values
+        mujoco.mj_step(model, data)
+        viewer.sync()
+")))
 
 (defmethod bodyset-link
   (:mjcf-body
