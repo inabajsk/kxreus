@@ -368,12 +368,12 @@
 			(setq cflag (minusp value))
 			(setq addr (1+ addr)))))
 		  (when (and (consp (cadr dest)) (eq (car (cadr dest)) :timer))
-		    (format t ";; :timer op:~A ~A, data=~A usleep (* 100000 ~A)~%"
+		    (format t ";; :timer op:~A ~A, data=~A usleep (* 1000 ~A)~%"
 			    op (cadr dest) data (numseq-to-num data 2))
 		    (cond
 		      ((memq op '(:mov :move))
 		       (setq data (list (car data) (logand #x7f (cadr data))))
-		       (unix:usleep (* 100000 (numseq-to-num data 2)))
+		       (unix:usleep (* 1000 (numseq-to-num data 2)))
 		       (unless flag
 			 (setf (elt machine-ram addr) 0)
 			 (setf (elt machine-ram (1+ addr)) 0))
@@ -436,12 +436,12 @@
 		   ;;(format t ";; :servo wait vel=~A~%" vel)
 		   (if send-to-ri
 		       (send ri :angle-vector (send x :angle-vector) vel)
-		     (unix:usleep (* 10000 vel)))
+		     (unix:usleep (* 1000 vel 10)))
 		   (when 
-		       (or ode-ci (get *robot* :ode-ci))
+		       (or ode-ci (get robot :ode-ci))
 		     ;;(format t ";; send-ode in emulate-motion-code x=~A~%" x)
-		     (send *robot* :angle-vector (send x :angle-vector))
-		     (send *robot* :send-ode))
+		     (send robot :angle-vector (send x :angle-vector))
+		     (send robot :send-ode))
 		   (when 
 		       motion-file
 		     ;;(format t ";; write to motion-file in emulate-motion-code x=~A~%" x)
@@ -456,7 +456,8 @@
 		      (send (send vwer :viewer :viewsurface :getglimage) :halve)
 		      :depth 24)
 		))
-	    (if (numberp (elt a 1)) (unix:usleep (* 10000 (elt a 1)))
+	    (if (numberp (elt a 1))
+		(unix:usleep (* 10000 (elt a 1)))
 	      (unix:usleep (* 10000 (elt (car a) 1))))
 	    (setq pc (1+ pc))))
 	 (t (setq pc (1+ pc))))
