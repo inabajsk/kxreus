@@ -153,13 +153,15 @@
   (if (derivedp robo robot-model) (setq robo (send robo :name)))
   (format nil "~A/projects/Hello_~A" (rcb4eus-dir) (string-downcase robo)))
 
-(defun kxr-project-file-name (name-str &optional (dir (rcb4-robot-project-dir name-str))
+(defun kxr-project-file-name (name-str &optional
+				       (dir (rcb4-robot-project-dir
+					     (or (kxr-body-config-key name-str
+								      :project-file)
+						 name-str)))
 				       (project-file-keystr "") (ext "h4p"))
   (when (probe-file dir)
-    (let* ((path (car (find-files :dir dir :subseq project-file-keystr :ext ext)))
-	   (pfs (kxr-body-config-key name-str :project-file)))
-      (if (probe-file path) path
-	(if pfs (kxr-project-file-name pfs) nil)))))
+    (let* ((path (car (find-files :dir dir :subseq project-file-keystr :ext ext))))
+      (if (probe-file path) path))))
 
 (defun create-robot-model-from-file (name-str &optional form)
   (let* ((bconfig (kxr-body-config name-str))
