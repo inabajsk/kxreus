@@ -1788,8 +1788,8 @@
    (send rcb4machine :emulate-motion-code self mc
 	 :loopmax loopmax :copy-viewer copy-viewer :send-to-ri send-to-ri))
   (:emulate-motion-code
-   (mc &rest args &key (loopmax 100) copy-viewer send-to-ri &allow-other-keys)
-   (send* rcb4machine :emulate-motion-code self mc args))
+   (mc &rest args &key (loopmax 100) copy-viewer send-to-ri (wait 0) &allow-other-keys)
+   (send* rcb4machine :emulate-motion-code self mc :wait wait :loopmax loopmax args))
   (:emulate-button-motion
    (button &key (project t) (loopmax 100) copy-viewer send-to-ri)
    )

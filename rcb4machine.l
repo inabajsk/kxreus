@@ -253,7 +253,6 @@
      
      (if (atom mc)
 	 (format t "~S~%" (send mc :name)))
-
      (dolist (a acodes)
        (cond ((symbolp a) (push (cons a pc) labels))
 	     (t (push a scodes)	(setq pc (1+ pc)))))
@@ -441,14 +440,15 @@
 		       (or ode-ci (get robot :ode-ci))
 		     ;;(format t ";; send-ode in emulate-motion-code x=~A~%" x)
 		     (send robot :angle-vector (send x :angle-vector))
-		     (send robot :send-ode))
+		     (send robot :send-ode (* vel 10)))
 		   (when 
 		       motion-file
 		     ;;(format t ";; write to motion-file in emulate-motion-code x=~A~%" x)
-		     (write-motion-file-angle-vector motion-file (send x :angle-vector) time-sec av-cnt)
+		     (write-motion-file-angle-vector
+		      motion-file (send x :angle-vector) time-sec av-cnt)
 		     )
 		   ))
-	     (and vwer (send vwer :objects)))
+	     (or (and vwer (send vwer :objects)) (list robot)))
 	    (when vwer
 	      (send vwer :draw-objects)
 	      (when copy-viewer
