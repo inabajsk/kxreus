@@ -4,15 +4,20 @@
 ;;;
 (require :rcb4robots)
 
-(defun bvh-exists? nil
-  (or
-   (probe-file "bvh/bvh-demo.l")
-   (probe-file (format nil "~A/bvh/bvh-demo.l" (unix::getenv "EUSDIR")))))
+(defun load-robot (name)
+  (load (format nil "~A/models/~A.l" *rcb4eus-dir*
+		(string-downcase (string name))))
+  (setq *robot* (apply (read-from-string (string name)) nil))
+  *robot*)
 
-(when (bvh-exists?) (load "bvh/bvh-demo.l"))
-(load "bvh/sfu-demo.l")
+(defun bvh-load nil
+  (load (format nil "~A/bvh/sfu-demo.l" *rcb4eus-dir*)))
 
-(format t "; (objects-kxr-robots)~%; (animate)~%; (objects-kxr-robots :sample 1) ;; for all~%")
+(bvh-load)
+
+(format t "; (objects-kxr-robots)~%; (animate)~%")
+(format t "; (objects-kxr-robots :sample 1) ;; for all~%")
+(format t "; (kxr-robots)~%")
 
 (defun kxr-operation ()
   (let* ((s (kxr-operation-stand :offset 0))
@@ -55,6 +60,26 @@
        ;;"kxrl2l6anzaifly"
        ))
 
+(setq *kxr-robot-names* *kxr-all-robot-names*)
+(setq *kxr-robot-names-old*
+      '(kxrdw4a6h2m kxrkamakiri kxrl2g kxrl2l2a6h2m kxrl2l5a4h2g kxrl2l6a6h2m
+		    kxrl2l6a7h2 kxrl2l7a7w kxrl2makabe kxrl2makabelc
+		    kxrl2makabelcw kxrl2makabels kxrl2semi2022s
+		    kxrl2t2l6a7h2d405 kxrl2t2l6a7h2yprb kxrl2w2l5a4h2
+		    kxrl2w2l6a5h2 kxrl2w2l6a6h2 kxrl2w2l6a7h2w kxrl4b1
+		    kxrl4b2sn kxrl4b4 kxrl4c kxrl4c2 kxrl4c3 kxrl4ct2a7h2
+		    kxrl4d kxrl4l3a3 kxrl4r kxrl4r2a3 kxrl4r2a3gl
+		    kxrl4r2l3 kxrl4t kxrl6 kxrmw4a7h2m kxrow4a6h2m))
+
+(setq *khr-robot-names*
+      '(
+	khr3 khranzaifly khranzaifly5 khrh2ganzaiflys khrl5a3h2 khrl5a3h2g khrl5a3h2wg
+	     khrl5a4h2g khrl5a4h2wg khrl6a3h2 khrl6a3h2g khrl6a3h2wg khrl6a4h2
+	     khrl6a4h2g khrl6a4h2wg khrt1l5a3h2g khrt1l5a3h2wg khrt1l5a4h2g khrt1l5a4h2wg
+	     khrt1l6a3h2 khrt1l6a3h2g khrt1l6a3h2m khrt1l6a3h2wg khrt1l6a4h2g
+	     khrt1l6a4h2wg
+	     ))
+
 (setq *ros-distro* (unix::getenv "ROS_DISTRO"))
 (setq *ros-distro-null* (or (null *ros-distro*) (equal *ros-distro* "")))
 (defun make-robot (name) (funcall (read-from-string name)))
@@ -86,6 +111,71 @@
 	 :base base args)
   (send *irtviewer* :change-background color)
   (send *irtviewer* :draw-objects)
+  )
+
+(defun axis-vector (v)
+  (if (vectorp v) v
+    (case v
+	  (:x #f(1 0 0))
+	  (:-x #f(-1 0 0))
+	  (:y #f(0 1 0))
+	  (:-y #f(0 -1 0))
+	  (:z #f(0 0 1))
+	  (:-z #f(0 0 -1)))))
+     
+(defmethod joint
+  (:axis (&optional v) (if v (setq axis (axis-vector v))
+			 (axis-vector axis)))
+  (:reverse-axis nil (send self :axis (scale -1 (send self :axis))))
+  (:sign (&optional v) (if v (setf (get self :sign) v)) (get self :sign))
+  )
+(defun x0 (xwidth)
+  (- (send x::*root* :width) xwidth 100))
+
+(defun kxr-robots (&rest args &key (robots *kxr-robot-names*)
+                         (xcount 12) (rs 4)
+                         (ylines (1+ (/ (length robots) xcount)))
+                         (titley 60)
+                         (height (- (/ (- (send x::*root* :height) 200 titley) ylines) titley))
+                         (width height) (msec 1)
+			 (x0 (x0 (* xcount (+ width)))) (y0 50)
+                         &allow-other-keys)
+  (apply #'create-piped-robots :robots robots :rs rs :x0 x0 :y0 y0 :width width :height height :xcount xcount :msec msec args))
+
+(defun create-piped-robots (&key (robots *kxr-robot-names*)
+                                 (width 280) (height 280)
+                                 (xskip 10)  (yskip 50) (xcount 10)
+				 ;;(rs (if (> (length robots) 28) 2 1))
+				 (rs xcount) (msec 10)
+				 (x0 (x0 (* xcount (+ width)))) (y0 50)
+				 &allow-other-keys)
+  (let ((len (/ (length robots) rs)) name (x x0) (y y0) strm)
+    (setq *piped-streams* nil)
+    (dotimes (i len)
+      (setq n nil)
+      (dotimes (j rs) (push (pop robots) n))
+      (setq strm (piped-robot (reverse n)
+			      :x x :y y :wx width :wy height :msec msec))
+      (push strm *piped-streams*)
+      (dotimes (j rs)
+	(if
+	    (= (1- xcount) (mod (+ j (* i rs)) xcount))
+	    (setq x x0 y (+ y height yskip))
+	  (setq x (+ x width xskip))))
+      )
+    (when robots
+      (setq strm (piped-robot robots :x x :y y :wx width :wy height))
+      (push strm *piped-streams*)
+      (dotimes (j (length robots))
+	(setq x (+ x width xskip)))
+      ))
+  )
+(defun piped-robot (nlist &key (x 50) (y 50) (wx 200) (wy 200) (msec 10))
+  (piped-fork
+   (format
+    nil
+    "irteusgl kxranimate.l '(robot-non-itimer (quote ~A) :x0 ~A :y0 ~A :width ~A :height ~A :xcount ~A :msec ~A)' 2> /dev/null"
+    nlist x y wx wy (length nlist) msec))
   )
 
 (defun kxr-defun-form (robot)
@@ -120,6 +210,31 @@
 	 ,gvar)))
   )
 
+(defun robot-non-itimer (names &key
+			       (msec 10)
+			       (width 200) (height 200) (xcount 11)
+			       (x0 (x0 (* xcount (+ width)))) (y0 50)
+			       ) 
+  (let* ((len (length names))
+	 (robots (instantiate vector len))
+	 name (x x0) (y y0) (xskip 10)  (yskip 55))
+    (bvh-load)
+    (dotimes (i len)
+      (setf (elt robots i) (load-robot (elt names i)))
+      (send (elt robots i) :show-self :x x :y y :width width :height height)
+      (if
+	  (= (1- xcount) (mod i xcount))
+	  (setq x x0 y (+ y height yskip))
+	(setq x (+ x width xskip))))
+    (do-until-key
+     (dotimes (i (length names))
+       (when (derivedp (elt robots i) robot-model)
+	 (send (elt robots i) :mcd-tick))
+       (x::window-main-one)
+       (unix::usleep (* msec 1000))
+       )))
+  )
+
 (defmethod robot-model
   (:animate-list nil (get self :animate-list))
   (:draw-animate
@@ -138,6 +253,71 @@
    (send self :reset-pose)
    (send self :send-to-ri))
   )
+
+(defmethod robot-model
+  (:animate-files
+   (&optional (names *bvh-files*) (file "bvh/sfu-demo.l"))
+   (load file)
+   (setf (get self :animate-files) names)
+   (get self :animate-files))
+  (:sfu-files
+   (&optional (file "bvh/sfu-demo.l"))
+   (send self :animate-files *bvh-files* file))
+  (:pop-mcd nil (pop (get self :animate-files)))
+  (:mcd-file nil (car (send self :animate-files)))
+  (:mcd-index
+   nil
+   (when (null (get self :mcd-index))
+     (setf (get self :mcd-index) 0))
+   (get self :mcd-index))
+  (:mcd
+   (&optional (scale 10.0))
+   (when (null (get self :mcd))
+     (setf (get self :mcd)
+	   (load-mcd (send self :mcd-file)
+		     :scale scale
+		     :bvh-robot-model-class sfu-bvh-robot-model)))
+   (get self :mcd))
+  (:mcd-index
+   nil
+   (when (null (get self :mcd-index)) (setf (get self :mcd-index) 0))
+   (when (>= (get self :mcd-index) (send (send self :mcd) :frame-length))
+     (send self :pop-mcd)
+     (setf (get self :mcd-index) 0))
+   (get self :mcd-index))
+  (:mcd-state-load
+   (&optional (step 1) (stay t))
+   (send (send self :mcd) :frame (send self :mcd-index))
+   (send (send (send self :mcd) :model) :copy-state-to self stay)
+   (incf (get self :mcd-index) step)
+   (when (>= (send self :mcd-index) (send (send self :mcd) :frame-length))
+     (send self :pop-mcd))
+   )
+  (:show-self
+   (&key x y (width 200) (height 200))
+   (send self :create-viewer :x x :y y :width width :height height)
+   (send (get self :viewer) :draw-objects)
+   ;;(send (get self :viewer) :string 50 (- (send (get self :viewer) :height) 10)
+   ;;(format nil "~3A" (send self :mcd-index)))
+   )
+  (:mcd-tick nil
+	     (send self :mcd-state-load)
+	     (send self :show-self :width (send (get self :viewer) :width)
+		   :height (send (get self :viewer) :height))
+	     )
+  (:create-viewer
+   (&key x y (width 200) (height 200))
+   (unless (get self :viewer)
+     (format t ":create-viewer width=~A height=~A x=~A y=~A~%" width height x y)
+     (setf (get self :viewer)
+	   (make-irtviewer :width width :height height))
+     (send (get self :viewer) :objects (list self))
+     (send (get self :viewer) :title (send self :name))
+     (send (get self :viewer) :look-all)
+     )
+   (when (and x y) (send (get self :viewer) :move x y))
+   (send (get self :viewer) :draw-objects)
+   ))
 
 (defun show-2d-arrange (&optional (objs (objects))
 				  &key
