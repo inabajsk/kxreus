@@ -25,6 +25,7 @@
 (format t "; (objects-kxr-robots :sample 1) ;; for all~%")
 (format t "; (kxr-robots)~%")
 (format t "; (khr-robots)~%")
+(format t "; (all-robots)~%")
 
 (defun kxr-operation ()
   (let* ((s (kxr-operation-stand :offset 0))
@@ -139,12 +140,13 @@
       )))
 
 (defun khr-robots (&rest args &key (robots *khr-robot-names*)
-			 (ylines 3)
+			 (xcount 10)
+                         (ylines (1+ (/ (length robots) xcount)))
                          (titley 60)
                          (height (- (/ (- (send x::*root* :height) 300 titley) ylines) titley))
                          (width height)
-			 (xcount (round (+ 0.5 (/ (length robots) (float ylines)))))
-			 (rs xcount) (msec 1)
+			 ;;(xcount (round (+ 0.5 (/ (length robots) (float ylines)))))
+			 (rs 5) (msec 1)
 			 ;;(xcount (* (/ xcount0 rs) rs))
 			 (x0 (x0 (* xcount (+ width)))) (y0 50)
                          &allow-other-keys)
@@ -162,6 +164,15 @@
   (create-robot-models robots)
   (apply #'create-piped-robots :robots robots :rs rs :x0 x0 :y0 y0 :width width :height height :xcount xcount :msec msec args))
 
+(defun all-robots (&rest
+		   args
+		   &key (robots (append *kxr-robot-names* *khr-robot-names*))
+		   (xcount 14) (rs 7)
+		   &allow-other-keys)
+  (apply #'kxr-robots :robots robots :xcount xcount :rs rs args))
+
+(defun all-robots2 nil
+  (khr-robots :robots (append *kxr-robot-names* *khr-robot-names*)))
 
 (defun create-piped-robots (&key (robots *kxr-robot-names*)
                                  (width 280) (height 280)
@@ -199,6 +210,40 @@
 ;;    "irteusgl kxranimate.l '(robot-non-itimer (quote ~A) :x0 ~A :y0 ~A :width ~A :height ~A :xcount ~A :msec ~A)' 2> /dev/null"
     "irteusgl kxranimate.l '(robot-non-itimer (quote ~A) :x0 ~A :y0 ~A :width ~A :height ~A :xcount ~A :msec ~A)'"
     nlist x y wx wy (length nlist) msec))
+  )
+
+(defun irteus-pids (&optional (str "irt"))
+  (let* ((strm (piped-fork (format nil "ps a | grep ~A" str)))
+	 l ret)
+    (while (setq l (read-line strm nil nil))
+      (push (psline-pid l) ret))
+    (reverse ret)))
+(defun psline-pid (l) (read-from-string l))
+
+(setq *start-pids* (irteus-pids))
+(defun kill-pids (pids &aux s)
+  ;;(print (list 'pids= pids))
+  (dolist (pid pids)
+    (unix::kill pid 9)
+    ;;(setq s (format nil "sudo kill -9 ~A > /dev/null" pid))
+    ;;(print s)
+    ;;(unix::system s)
+    ))
+
+(setq *piped-streams* nil)
+(defun kill-subs (&optional (str "irt"))
+  (dolist (strm *piped-streams*)
+    (format strm "(exit)~%")
+    (unix:kill (get strm :pid) 9)
+    (unix:usleep (* 100 1000))
+    (close strm))
+  (setq *piped-streams* nil)
+  (kill-pids (set-difference (irteus-pids str) *start-pids*))
+  nil)
+(defun kill-start () (kill-pids *start-pids*))
+(defun kill-all (&optional (str "irt"))
+  (kill-subs str)
+  (kill-start)
   )
 
 (defun kxr-defun-form (robot)
