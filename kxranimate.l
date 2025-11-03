@@ -1,14 +1,20 @@
 ;;;
 ;;;	bvh animation M.I.
 ;;;	2017.9.1  created as :animate-demo
+;;;	2025.11.2 kxr-robots
+;;;	2025.11.3 khr-robots
 ;;;
 (require :rcb4robots)
+(require :eus2wrl)
 
 (defun load-robot (name)
-  (load (format nil "~A/models/~A.l" *rcb4eus-dir*
-		(string-downcase (string name))))
-  (setq *robot* (apply (read-from-string (string name)) nil))
-  *robot*)
+  (let ((fname (format nil "~A/models/~A.l" *rcb4eus-dir*
+		       (string-downcase (string name)))))
+    (unless (probe-file fname)
+      (eus2collada-robot name))
+    (load fname)
+    (setq *robot* (apply (read-from-string (string name)) nil))
+    *robot*))
 
 (defun bvh-load nil
   (load (format nil "~A/bvh/sfu-demo.l" *rcb4eus-dir*)))
@@ -18,6 +24,7 @@
 (format t "; (objects-kxr-robots)~%; (animate)~%")
 (format t "; (objects-kxr-robots :sample 1) ;; for all~%")
 (format t "; (kxr-robots)~%")
+(format t "; (khr-robots)~%")
 
 (defun kxr-operation ()
   (let* ((s (kxr-operation-stand :offset 0))
@@ -61,24 +68,15 @@
        ))
 
 (setq *kxr-robot-names* *kxr-all-robot-names*)
-(setq *kxr-robot-names-old*
-      '(kxrdw4a6h2m kxrkamakiri kxrl2g kxrl2l2a6h2m kxrl2l5a4h2g kxrl2l6a6h2m
-		    kxrl2l6a7h2 kxrl2l7a7w kxrl2makabe kxrl2makabelc
-		    kxrl2makabelcw kxrl2makabels kxrl2semi2022s
-		    kxrl2t2l6a7h2d405 kxrl2t2l6a7h2yprb kxrl2w2l5a4h2
-		    kxrl2w2l6a5h2 kxrl2w2l6a6h2 kxrl2w2l6a7h2w kxrl4b1
-		    kxrl4b2sn kxrl4b4 kxrl4c kxrl4c2 kxrl4c3 kxrl4ct2a7h2
-		    kxrl4d kxrl4l3a3 kxrl4r kxrl4r2a3 kxrl4r2a3gl
-		    kxrl4r2l3 kxrl4t kxrl6 kxrmw4a7h2m kxrow4a6h2m))
-
 (setq *khr-robot-names*
       '(
-	khr3 khranzaifly khranzaifly5 khrh2ganzaiflys khrl5a3h2 khrl5a3h2g khrl5a3h2wg
-	     khrl5a4h2g khrl5a4h2wg khrl6a3h2 khrl6a3h2g khrl6a3h2wg khrl6a4h2
-	     khrl6a4h2g khrl6a4h2wg khrt1l5a3h2g khrt1l5a3h2wg khrt1l5a4h2g khrt1l5a4h2wg
-	     khrt1l6a3h2 khrt1l6a3h2g khrt1l6a3h2m khrt1l6a3h2wg khrt1l6a4h2g
-	     khrt1l6a4h2wg
-	     ))
+	"khr3" "khranzaifly" "khranzaifly5" "khrh2ganzaiflys"
+	"khrl5a3h2" "khrl5a3h2g" "khrl5a3h2wg" "khrl5a4h2g" "khrl5a4h2wg"
+	"khrl6a3h2" "khrl6a3h2g" "khrl6a3h2wg" "khrl6a4h2" "khrl6a4h2g"
+	"khrl6a4h2wg" "khrt1l5a3h2g" "khrt1l5a3h2wg" "khrt1l5a4h2g" "khrt1l5a4h2wg"
+	"khrt1l6a3h2" "khrt1l6a3h2g" "khrt1l6a3h2m" "khrt1l6a3h2wg" "khrt1l6a4h2g"
+	"khrt1l6a4h2wg"
+	))
 
 (setq *ros-distro* (unix::getenv "ROS_DISTRO"))
 (setq *ros-distro-null* (or (null *ros-distro*) (equal *ros-distro* "")))
@@ -132,6 +130,27 @@
 (defun x0 (xwidth)
   (- (send x::*root* :width) xwidth 100))
 
+(defun create-robot-models (robots &aux name)
+  (dolist (r robots)
+    (setq name (string-downcase (string r)))
+    (unless (probe-file (format nil "~A/models/~A.l" *rcb4eus-dir* name))
+      ;;(format t ";; (create-robot-models) generate ~A~%" name)
+      (eus2collada-robot name)
+      )))
+
+(defun khr-robots (&rest args &key (robots *khr-robot-names*)
+			 (ylines 3)
+                         (titley 60)
+                         (height (- (/ (- (send x::*root* :height) 300 titley) ylines) titley))
+                         (width height)
+			 (xcount (round (+ 0.5 (/ (length robots) (float ylines)))))
+			 (rs xcount) (msec 1)
+			 ;;(xcount (* (/ xcount0 rs) rs))
+			 (x0 (x0 (* xcount (+ width)))) (y0 50)
+                         &allow-other-keys)
+  (create-robot-models robots)
+  (apply #'create-piped-robots :robots robots :rs rs :x0 x0 :y0 y0 :width width :height height :xcount xcount :msec msec args))
+
 (defun kxr-robots (&rest args &key (robots *kxr-robot-names*)
                          (xcount 12) (rs 4)
                          (ylines (1+ (/ (length robots) xcount)))
@@ -140,7 +159,9 @@
                          (width height) (msec 1)
 			 (x0 (x0 (* xcount (+ width)))) (y0 50)
                          &allow-other-keys)
+  (create-robot-models robots)
   (apply #'create-piped-robots :robots robots :rs rs :x0 x0 :y0 y0 :width width :height height :xcount xcount :msec msec args))
+
 
 (defun create-piped-robots (&key (robots *kxr-robot-names*)
                                  (width 280) (height 280)
@@ -170,11 +191,13 @@
 	(setq x (+ x width xskip)))
       ))
   )
+
 (defun piped-robot (nlist &key (x 50) (y 50) (wx 200) (wy 200) (msec 10))
   (piped-fork
    (format
     nil
-    "irteusgl kxranimate.l '(robot-non-itimer (quote ~A) :x0 ~A :y0 ~A :width ~A :height ~A :xcount ~A :msec ~A)' 2> /dev/null"
+;;    "irteusgl kxranimate.l '(robot-non-itimer (quote ~A) :x0 ~A :y0 ~A :width ~A :height ~A :xcount ~A :msec ~A)' 2> /dev/null"
+    "irteusgl kxranimate.l '(robot-non-itimer (quote ~A) :x0 ~A :y0 ~A :width ~A :height ~A :xcount ~A :msec ~A)'"
     nlist x y wx wy (length nlist) msec))
   )
 
@@ -221,13 +244,14 @@
     (bvh-load)
     (dotimes (i len)
       (setf (elt robots i) (load-robot (elt names i)))
-      (send (elt robots i) :show-self :x x :y y :width width :height height)
+      (send (elt robots i)
+	    :show-self :x x :y y :width width :height height)
       (if
 	  (= (1- xcount) (mod i xcount))
 	  (setq x x0 y (+ y height yskip))
 	(setq x (+ x width xskip))))
     (do-until-key
-     (dotimes (i (length names))
+     (dotimes (i len)
        (when (derivedp (elt robots i) robot-model)
 	 (send (elt robots i) :mcd-tick))
        (x::window-main-one)
@@ -308,7 +332,7 @@
   (:create-viewer
    (&key x y (width 200) (height 200))
    (unless (get self :viewer)
-     (format t ":create-viewer width=~A height=~A x=~A y=~A~%" width height x y)
+     ;;(format t "; :create-viewer width=~A height=~A x=~A y=~A~%" width height x y)
      (setf (get self :viewer)
 	   (make-irtviewer :width width :height height))
      (send (get self :viewer) :objects (list self))
@@ -467,7 +491,7 @@
       (setq gif-filename (format nil "./tmp~A.gif" counter))
       (setq gif-filenames (concatenate string gif-filenames " " gif-filename))
       (image::write-pnm-file ppm-filename pm)
-      (format t ";writing ~A...~%" ppm-filename)      
+      ;;(format t ";writing ~A...~%" ppm-filename)      
       (unix:system (format nil "convert ~A ~A" ppm-filename gif-filename))
       (if delete (unix:system (format nil "rm ~A " ppm-filename)))
       (incf counter))
@@ -1083,7 +1107,7 @@
      (dotimes (i (length (send *robot* :self-collision-check)))
        (setq pair (elt (send *robot* :self-collision-check) i))
        (setq color (map float-vector #'(lambda (x) (/ x 255.0)) (color-category10 i)))
-       (format t "collision: ~a ~a~%" (send (car pair) :name) (send (cdr pair) :name))
+       ;;(format t ";collision: ~a ~a~%" (send (car pair) :name) (send (cdr pair) :name))
        (send (car pair) :draw-on :flush nil :color color :width 2)
        (send (cdr pair) :draw-on :flush nil :color color :width 2)
        )))
