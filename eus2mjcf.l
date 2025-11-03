@@ -142,9 +142,9 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
      (if menu
 	 (define-menupy)
        (define-viewpy nm))
-     (setf (get self :ode-ci) t)
      (setf (get self :python)
 	   (piped-fork "python3" "-u" "-i" pyname fname))
+     (setf (get self :ode-ci) t)
      ))
   (:send-ode
    (&optional (delay 1))
