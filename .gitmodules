@@ -1,0 +1,6 @@
+[submodule "urdf2webots/eus2webots"]
+	path = urdf2webots/eus2webots
+	url = https://github.com/cyberbotics/urdf2webots.git
+[submodule "urdf2webots/urdf2webots"]
+	path = urdf2webots/urdf2webots
+	url = https://github.com/cyberbotics/urdf2webots.git
