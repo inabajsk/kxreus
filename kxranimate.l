@@ -207,8 +207,7 @@
   (piped-fork
    (format
     nil
-;;    "irteusgl kxranimate.l '(robot-non-itimer (quote ~A) :x0 ~A :y0 ~A :width ~A :height ~A :xcount ~A :msec ~A)' 2> /dev/null"
-    "irteusgl kxranimate.l '(robot-non-itimer (quote ~A) :x0 ~A :y0 ~A :width ~A :height ~A :xcount ~A :msec ~A)'"
+    "irteusgl kxranimate.l '(robot-non-itimer (quote ~A) :x0 ~A :y0 ~A :width ~A :height ~A :xcount ~A :msec ~A)' 2> /dev/null"
     nlist x y wx wy (length nlist) msec))
   )
 
