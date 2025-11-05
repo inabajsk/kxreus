@@ -38,9 +38,18 @@
 (format t ";; (simulate \"kxrl6\")~%")
 |#
 (format t ";; (mujoco \"kxrl4d\")~%")
-(format t ";; (demo \"kxrl2g\")~%")
-(format t ";; (send *kxrl6* :test-motion)~%")
+(format t ";; (mujocov \"kxrl2g\")~%")
+(format t ";; (send *robot* :test-motion)~%")
 ;;
+(defvar *piped-python-streams*)
+(setf (get 'exit :org) ('exit . function))
+(defun kill-pythons ni
+  (dolist (st *piped-python-streams*)
+    (unix::kill (get st :pid) 9)))
+(defun exit nil
+  (kill-pythons)
+  (apply (get 'exit :org) nil))
+
 (defun python-open-exp ()
   (setq *python* (piped-fork "python3" "-u" "-c" "while True: print(eval(input()))")))
 (defun python-open ()
@@ -89,30 +98,44 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
    (while (setq ln (read-line f nil nil)) (py ln))))
 
 (defun mujoco (&rest args
-		     &key (name "kxrl6") (repeat 4) menu (motion-id 0) ((:viewer vw)) (sleep 4)
-		     )
-  (if vw (make-kxr-robot name) (make-kxr-robot-interface name))
-  (send *ri* :robot :open-mujoco :menu menu)
-  (unix:sleep sleep)
-  (dotimes (i repeat) (send *ri* :draw-project-file motion-id))
+		     &key (name "kxrl6") (repeat 4) menu (motion-id 0) ((:viewer vw) t) (sleep 4) (angle t)
+		     (noview t))
+  (let* ((ri (make-kxr-robot-interface name))
+	 (r (send ri :robot)))
+    (setq *robot* r)
+    (when vw (objects (list r))
+	  (send *irtviewer* :title (send r :name)))
+    (send r :open-mujoco :menu menu :angle angle :noview noview)
+    (unix:sleep sleep)
+    (dotimes (i repeat) (send *ri* :draw-project-file motion-id)))
   )
-(defun mujoco1 (&rest args &key (name "kxrl2l6a6h2g") &allow-other-keys)
-  (apply #'mujoco :name name args))
-(defun mujoco2 (&rest args &key (name "kxrl2l6a7h2m") &allow-other-keys)
-  (apply #'mujoco :name name args))
+(defun mujoco0 (&optional (nm "kxrl2l5a3h2g") (n 4)) (mujoco :name nm :repeat n))
+(defun mujoco1 (&optional (nm "kxrl2l6a6h2g") (n 4)) (mujoco :name nm :repeat n))
+(defun mujoco2 (&optional (nm "kxrl2l6a7h2m") (n 4)) (mujoco :name nm :repeat n))
 
-(defun demo (&optional (nm "kxrl2l5a3h2g") (n 4)) (mujoco :name nm :repeat n :menu t))
-(defun demo1 (&optional (nm "kxrl2l6a6h2g") (n 4)) (demo nm n))
-(defun demo2 (&optional (nm "kxrl2l6a7h2m") (n 4)) (demo nm n))
+(defun mujocov (&optional (nm "kxrl6") (n 4)) (mujoco :name nm :repeat n :menu nil :angle t :viewer t :noview nil))
+(defun mujocov0 (&optional (nm "kxrl2l5a3h2g") (n 4)) (mujocov nm n))
+(defun mujocov1 (&optional (nm "kxrl2l6a6h2g") (n 4)) (mujocov nm n))
+(defun mujocov2 (&optional (nm "kxrl2l6a7h2m") (n 4)) (mujocov nm n))
+
+(defun mujocon (&optional (nm "kxrl6") (n 4)) (mujoco :name nm :repeat n :menu nil :angle nil :viewer nil))
+(defun mujocon0 (&optional (nm "kxrl2l6a6h2g") (n 4)) (mujocov nm n))
+(defun mujocon1 (&optional (nm "kxrl2l6a6h2g") (n 4)) (mujocov nm n))
+(defun mujocon2 (&optional (nm "kxrl2l6a7h2m") (n 4)) (mujocov nm n))
+
+(defun mujocom (&optional (nm "kxrl2l5a3h2g") (n 4)) (mujoco :name nm :repeat n :menu t :viewer nil))
+(defun mujocom1 (&optional (nm "kxrl2l6a6h2g") (n 4)) (mujocom nm n))
+(defun mujocom2 (&optional (nm "kxrl2l6a7h2m") (n 4)) (mujocom nm n))
 
 (defmethod robot-model
   (:ode-ci nil (get self :ode-ci))
   (:python-pid nil (get (send self :python) :pid))
   (:test-motion
-   (&optional (nm 0) &key (count 10) (wait 500))
+   (&key (motion 0) (repeat 10) (wait 500))
    (setf (get self :ode-ci) t)
-   (dotimes (i count)
-     (send (send self :ri) :draw-project-file nm wait))
+   (dotimes (i repeat)
+     (send (send self :ri) :draw-project-file motion wait)
+     )
    )
   (:reset-motion
    (&optional (n 5) (delay 500))
@@ -125,38 +148,175 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
   (:python nil (get self :python))
   (:close-mujoco
    nil 
-   (when (send self :python-pid)
+   (when (send self :python)
+     (format t ";; :close-mujoco~%")
      (unix::kill (send self :python-pid) 9)
+     (close (get self :python))
      (setf (get self :python) nil)))
   (:open-mujoco
-   (&key menu)
+   (&key menu angle noview)
    (let* ((nm (send self :name))
 	  (pyname "mujocoview.py")
 	  (fname 
 	   (format nil "~A/kxreus/mjcfs/~A/~A.xml"
 		   (unix::getenv "HOME") nm nm)))
+     (if angle (setq pyname "mujocoangle.py"))
      (if menu (setq pyname "mujocomenu.py"))
+     (if noview (setq pyname "mujoconoview.py"))
      (unless
 	 (probe-file fname)
        (send self :dump-mjcf))
-     (if menu
-	 (define-menupy)
-       (define-viewpy nm))
+     (cond
+      (noview (define-noviewpy nm))
+      (menu (define-menupy))
+      (angle (define-anglepy nm))
+      (t (define-viewpy nm)))
+     (when 
+	 (get self :python)
+       (send self :close-mujoco))
      (setf (get self :python)
 	   (piped-fork "python3" "-u" "-i" pyname fname))
+     (push (get self :python) *piped-python-streams*)
      (setf (get self :ode-ci) t)
      ))
   (:send-ode
    (&optional (delay 1))
    (let* ((ss (make-string-output-stream))
 	  (av (send self :angle-vector))
-	  (l (length av))
+	  (l (length av)) ret s f
 	  (python (send self :python)))
      (dotimes (i l)
        (format ss "~A " (deg2rad (elt av i))))
-     (format python "~A~%" (get-output-stream-string ss))
-     (if (select-stream (list python) (/ delay 1000.0))
-	 (read python nil nil))))
+     (format python "~A~%" (setq s (get-output-stream-string ss)))
+     (setq f (read-from-string (format nil "#f(~A)" s)))
+     (when (select-stream (list python) (/ delay 1000.0))
+       (setq ret (read python nil nil))
+       ;;(print (list 's= (length s) 'ret= (length ret) ret))
+       (when (float-vector-p ret)
+	 (let* ((p (scale 1000.0 (subseq ret 0 3)))
+		(q (subseq ret 3 7))
+		(m (quaternion2matrix q))
+		(av (scale (/ 180.0 pi) (subseq ret 7))))
+	   (send self :angle-vector av)
+	   (send self :newcoords (make-coords :pos p :rot m))
+	   (when (boundp '*irtviewer*)
+	     (send *irtviewer* :draw-objects)
+	     (x::window-main-one)
+	     )
+	   ))
+       )
+     )
+   )
+  )
+
+(defun define-noviewpy (nm)
+  (with-open-file
+   (f "mujoconoview.py" :direction :output)
+   (format f
+	   "
+#
+# python3 -u -i mujoconoview.py /home/leus/kxreus/mjcfs/kxrl6/kxrl6.xml
+#
+import mujoco
+import numpy as np
+import threading
+import sys
+import time
+
+model_path = sys.argv[1]
+model = mujoco.MjModel.from_xml_path(model_path)
+data = mujoco.MjData(model)
+
+ctrl_values = np.zeros(model.nu)
+def input_thread():
+    current_angles = np.zeros(len(data.qpos))
+    while True:
+        line = sys.stdin.readline()
+        if not line:
+            break
+        try:
+            joint_values = [float(x) for x in line.strip().split()]
+            if len(joint_values) == model.nu:
+                ctrl_values[:] = joint_values
+            current_angles = ' '.join(map(str, data.qpos))
+            print('#f(', current_angles,')')
+            sys.stdout.flush()
+        except Exception as e:
+            print(f\"(error {e})\", file=sys.stderr)
+            sys.stdout.flush()
+
+threading.Thread(target=input_thread, daemon=True).start()
+
+while True:
+    timestep = 0
+    frame_skip = 100
+    data.ctrl[:] = ctrl_values
+    for _ in range(frame_skip):
+        mujoco.mj_step(model, data)
+    timestep += 1
+"
+	   nm))
+  )
+
+(defun define-anglepy (nm)
+  (with-open-file
+   (f "mujocoangle.py" :direction :output)
+   (format f
+	   "
+#
+# pip install mujoco-python-viewer -> mujoco_viewer
+#
+# import mujoco.viewer
+# python3 -u -i mujocoangle.py /home/leus/kxreus/mjcfs/kxrl6/kxrl6.xml
+# print(\"Usage: python this_program.py <model_file.xml>\")
+#
+import mujoco
+import mujoco_viewer
+import numpy as np
+import threading
+import sys
+import time
+
+model_path = sys.argv[1]
+model = mujoco.MjModel.from_xml_path(model_path)
+data = mujoco.MjData(model)
+
+ctrl_values = np.zeros(model.nu)
+def input_thread():
+    current_angles = np.zeros(len(data.qpos))
+    while True:
+        line = sys.stdin.readline()
+        if not line:
+            break
+        try:
+            joint_values = [float(x) for x in line.strip().split()]
+            if len(joint_values) == model.nu:
+                ctrl_values[:] = joint_values
+            current_angles = ' '.join(map(str, data.qpos))
+#            if len(current_angles) == len(data.qpos):
+            print('#f(', current_angles,')')
+            sys.stdout.flush()
+        except Exception as e:
+            print(f\"(error {e})\", file=sys.stderr)
+            sys.stdout.flush()
+
+threading.Thread(target=input_thread, daemon=True).start()
+
+viewer= mujoco_viewer.MujocoViewer(model, data,
+    width=400, height=400, hide_menus=True, title=~S)
+#while viewer.is_running():
+while viewer.is_alive:
+    timestep = 0
+    frame_skip = 10
+    for _ in range(frame_skip):
+        data.ctrl[:] = ctrl_values
+        mujoco.mj_step(model, data)
+        timestep += 1
+#    viewer.sync()
+    viewer.render()
+viewer.close()
+"
+	   nm))
   )
 
 (defun define-viewpy (nm)
@@ -196,7 +356,7 @@ def input_thread():
             if len(values) == model.nu:
                 ctrl_values[:] = values
             else:
-                print(f\"Warning: Expected {model.nu} values, got {len(values)}\")
+                print(f\"(Warning Expected {model.nu} values, got {len(values)})\")
         except ValueError:
             pass
 
@@ -275,7 +435,7 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
    (&optional name)
    (append
     (send self :mjcf :name name)
-    (mapcar #'(lambda (x) (send x :mjcf-body name)) child-links)))
+    (mapcar #'(lambda (x) (send x :mjcf-body name)) (reverse child-links))))
   #|
   (:mass ()
   (let ((m (* 0.001
@@ -606,7 +766,8 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
        ))
    )
   (:dump-mjcf ;; cascaded-link
-   (&rest args &key (fname (send self :name)) (name (send self :name)) (dirname (format nil "mjcfs/~A" fname)) &allow-other-keys)
+   (&rest args &key (fname (send self :name)) (name (send self :name))
+	  (dirname (format nil "mjcfs/~A" fname)) &allow-other-keys)
    (send* self :dump-mjcf-meshes args)
    (tiny-xml::dump
     (send* self :mjcf-include-xml :name name args) (format nil "~A/~Ainc.xml" dirname fname))
