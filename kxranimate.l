@@ -6,6 +6,7 @@
 ;;;
 (require :rcb4robots)
 (require :eus2wrl)
+(require :eus2mjcf)
 
 (defun load-robot (name)
   (let ((fname (format nil "~A/models/~A.l" *rcb4eus-dir*
@@ -131,13 +132,17 @@
 (defun x0 (xwidth)
   (- (send x::*root* :width) xwidth 100))
 
-(defun create-robot-models (robots &aux name)
+(defun create-robot-models (robots &aux name rr)
   (dolist (r robots)
     (setq name (string-downcase (string r)))
     (unless (probe-file (format nil "~A/models/~A.l" *rcb4eus-dir* name))
       ;;(format t ";; (create-robot-models) generate ~A~%" name)
       (eus2collada-robot name)
-      )))
+      )
+    (setq rr (load-robot name))
+    (unless (probe-file (format nil "~A/mjcfs/~A" *rcb4eus-dir* name))
+      (send rr :dump-mjcf))
+    ))
 
 (defun khr-robots (&rest args &key (robots *khr-robot-names*)
 			 (xcount 10)
