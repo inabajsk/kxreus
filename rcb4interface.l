@@ -953,8 +953,13 @@
 			     (- (elt a 5) 375)))
        (send c :rotate pi :z)
        )
-      )
-     (send c :rotate-vector v)))
+      (t
+       (setq v (float-vector (- (elt a 4) (elt analog-neutral 4))
+			     (- (elt analog-neutral 3) (elt a 3)) 
+			     (- (elt a 5) 375)))
+       ))
+     (send c :rotate-vector v)
+     ))
   (:av-length nil av-length)
   (:sv-length nil sv-length)
   ;;
