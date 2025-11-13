@@ -11,25 +11,25 @@
 (push
  '("iarm0"
    (:file "iarm.l" :form (instance iarmclass :init))
-   (2 :joint0 1)
-   (4 :joint1 1)
-   (6 :joint2 1)
-   (8 :joint3 1)
+   (0 :joint0 -1)
+   (2 :joint1 1)
+   (4 :joint2 -1)
+   (8 :joint3 -1)
    )
  *kxr-body-config-alist*)
 (push
  '("iarm1"
    (:file "iarm.l" :form (instance iarmclass :init))
-   (2 :joint0 1)
-   (4 :joint1 1)
-   (6 :joint2 1)
-   (8 :joint3 1)
+   (0 :joint0 -1)
+   (2 :joint1 1)
+   (4 :joint2 -1)
+   (8 :joint3 -1)
    )
  *kxr-body-config-alist*)
 
 (defun robot-init (&optional (name "iarm0") &key (stretch 1))
   (make-kxr-robot name :viewer t)
-  (send *ri* :com-init) (send *ri* :timer-on)
+  (send *ri* :com-init :baud 115200) (send *ri* :timer-on)
   (send *ri* :hold) (send *ri* :send-stretch stretch))
 
 (defun follower-recv nil

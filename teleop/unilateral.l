@@ -10,20 +10,20 @@
 (push
  '("iarm0"  ;; leader
    (:file "iarm.l" :form (instance iarmclass :init))
-   (2 :joint0 1)
-   (4 :joint1 1)
-   (6 :joint2 1)
-   (8 :joint3 1)
+   (0 :joint0 -1)
+   (2 :joint1 1)
+   (4 :joint2 -1)
+   (8 :joint3 -1)
    )
  *kxr-body-config-alist*)
 
 (push
  '("iarm1"  ;; follower
    (:file "iarm.l" :form (instance iarmclass :init))
-   (2 :joint0 1)
-   (4 :joint1 1)
-   (6 :joint2 1)
-   (8 :joint3 1)
+   (0 :joint0 -1)
+   (2 :joint1 1)
+   (4 :joint2 -1)
+   (8 :joint3 -1)
    )
  *kxr-body-config-alist*)
 
@@ -32,7 +32,7 @@
   (send *ri* :viewer :change-background (float-vector 0.9 0.9 0.7))
   (send *ri* :viewer :look-all)
   ;;
-  (send *ri* :com-init)
+  (send *ri* :com-init :baud 115200)
   (if free (send *ri* :free))
   (if stretch (send *ri* :send-stretch stretch))
   ;;(send *ri* :timer-on)
