@@ -4,6 +4,10 @@
 (require :rcb4robots)
 (require :iarm)
 
+(defparameter *leader-ip* "192.168.1.34")
+(defparameter *follower-ip* "192.168.1.18")
+(defparameter *port-number* 2000)
+
 (push
  '("iarm0"
    (:file "iarm.l" :form (instance iarmclass :init))
@@ -33,8 +37,8 @@
     (unix::usleep (* 2 1000))
     ))
 
-(defun bclient-init (&key (ips "192.168.1.18")
-			  (ipc "192.168.1.34") (port 2000))
+(defun bclient-init (&key (ips *follower-ip*)
+			  (ipc *client-ip*) (port *port-number*))
   (setq *caddr* (make-socket-address :domain af_inet :host ips :port port))
   (setq *csock* (unix::socket (send *caddr* :domain) 2 0))
   ;;
