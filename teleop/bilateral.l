@@ -37,7 +37,7 @@
     (when (stringp msg)
       (setq sym (read-from-string msg))
       (when (float-vector-p sym) (setq *angle-vector* sym)))
-    (unix::usleep (* 1 1000))
+    ;;(unix::usleep (* 1 1000))
     ))
 
 (defun follower-init (&key (ips *follower-ip*) (ipc *leader-ip*) (port *port-number*))
@@ -54,7 +54,8 @@
   (while (setq msg (unix::recvfrom *ssock*))
     (when (stringp msg) (setq sym (read-from-string msg))
 	  (when (float-vector-p sym) (setq *real-vector* sym)))
-    (unix::usleep (* 1 1000))))
+    ;;(unix::usleep (* 1 1000))
+    ))
 
 (defun leader-init (&key (ips *follower-ip*) (ipc *leader-ip*) (port *port-number*))
   (robot-init "iarm0")
