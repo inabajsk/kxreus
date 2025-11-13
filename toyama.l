@@ -39,6 +39,18 @@
 (defun init1 nil
   (send *ri1* :com-init)
   )
+
+(defun server-init (&key (ip "192.168.1.18") (port 2000))
+  (setq *saddr* (make-socket-address :domain af_inet
+				     :host ip :port port))
+  (setq *sport* (make-socket-port *saddr*))
+  (setq *sstrm* (make-server-socket-stream *sport*))
+  )
+(defun client-init (&key (ip "192.168.1.18") (port 2000))
+  (setq *caddr* (make-socket-address :domain af_inet :host ip :port port))
+  (setq *cstrm* (make-client-socket-stream *caddr*))
+  )
+
 #|
 (format t ";; (make-kxr-robot \"iarm0\")~%")
 (format t ";; (make-iarm)~%")
