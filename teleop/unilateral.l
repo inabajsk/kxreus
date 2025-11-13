@@ -37,16 +37,16 @@
   ;;(send *ri* :timer-on)
   )
 
-(defun follower-recv nil
+(defun follower-recv (&aux msg sym)
   (while (setq msg (unix::recvfrom *ssock*))
     (when (stringp msg)
       (setq sym (read-from-string msg))
       (when (float-vector-p sym) (setq *angle-vector* sym)))
-    (unix::usleep (* 2 1000))
+    (unix::usleep (* 1 1000))
     ))
 
-(defun follower-init (&key (ip *follower-ip*) (port 2000))
-  (robot-init "iarm1")
+(defun follower-init (&key (name "iarm1") (ip *follower-ip*) (port 2000))
+  (robot-init name)
   (setq *saddr* (make-socket-address :domain af_inet
 				     :host ip :port port))
   (setq *ssock* (make-dgram-socket *saddr*))
@@ -67,8 +67,8 @@
 (format t "(follower-init)~%")
 (format t "(follower-loop)~%")
 
-(defun leader-init (&key (ip *follower-ip*) (port 2000))
-  (robot-init "iarm0" t)
+(defun leader-init (&key (name "iarm0") (ip *follower-ip*) (port 2000) (free t))
+  (robot-init name free)
   (setq *caddr* (make-socket-address :domain af_inet :host ip :port port))
   (setq *csock* (unix::socket (send *caddr* :domain) 2 0))
   )
