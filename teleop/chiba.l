@@ -11,9 +11,9 @@
 (push
  '("iarm0"  ;; leader
    (:file "iarm.l" :form (instance iarmclass :init))
-   (0 :joint0 -1)
-   (2 :joint1 1)
-   (4 :joint2 -1)
+   (2 :joint0 -1)
+   (4 :joint1 1)
+   (6 :joint2 -1)
    (8 :joint3 -1)
    )
  *kxr-body-config-alist*)
@@ -21,9 +21,9 @@
 (push
  '("iarm1"  ;; follower
    (:file "iarm.l" :form (instance iarmclass :init))
-   (0 :joint0 -1)
-   (2 :joint1 1)
-   (4 :joint2 -1)
+   (2 :joint0 -1)
+   (4 :joint1 1)
+   (6 :joint2 -1)
    (8 :joint3 -1)
    )
  *kxr-body-config-alist*)
