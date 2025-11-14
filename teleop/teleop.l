@@ -131,12 +131,6 @@
     )
   )
 
-(defun follower1 nil
-  (follower1-init)
-  (while (not (boundp '*angle-vector*)) (unix::sleep 1))
-  (follower1-loop)
-  )
-
 (defun leader1-init (&key (name "iarm0")
 			  (ip *follower-ip*) (port 2000) (free t))
   (robot1-init name :free free)
@@ -152,5 +146,32 @@
    (send *ri* :viewer :draw-objects)
    )
   )
+
+(defun leader1 nil
+  (leader1-init)
+  (unix::sleep 1)
+  (leader1-loop)
+  )
+(format t "(leader1)~%")
+
+(defun leader2 nil
+  (leader2-init)
+  (unix::sleep 1)
+  (leader2-loop)
+  )
+(format t "(leader2)~%")
+
+(defun follower1 nil
+  (follower1-init)
+  (while (not (boundp '*angle-vector*)) (unix::sleep 1))
+  (follower1-loop)
+  )
+(format t "(follower1)~%")
+(defun follower2 nil
+  (follower2-init)
+  (while (not (boundp '*angle-vector*)) (unix::sleep 1))
+  (follower2-loop)
+  )
+(format t "(follower2)~%")
 
 (require :datahandle)

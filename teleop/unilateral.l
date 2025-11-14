@@ -92,5 +92,19 @@
 (format t "(leader-init)~%")
 (format t "(leader-loop)~%")
 
+(defun leader nil
+  (leader-init)
+  (unix::sleep 1)
+  (leader-loop)
+  )
+(format t "(leader)~%")
+
+(defun follower nil
+  (follower-init)
+  (while (not (boundp '*angle-vector*)) (unix::sleep 1))
+  (follower-loop)
+  )
+(format t "(follower)~%")
+
 (require :datahandle)
 
