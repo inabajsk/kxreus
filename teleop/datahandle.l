@@ -8,7 +8,7 @@
 					    (car (unix::gettimeofday))))
 			     &key (show t) (send t))
   (let ((mt (instance mtimer :init))
-	av avdata tmdata tm0 tm1)
+	av avdata tmdata tm0 tm1 xyz xyzdata)
     (setq tm0 (list (unix::localtime) (unix:gettimeofday)))
     (send mt :start)
     (do-until-key
@@ -16,7 +16,8 @@
      (if send (unix::sendto *csock* *caddr* (format nil "~A" av)))
      (when show
        (send *ri* :robot :angle-vector av)
-       (send *ri* :viewer :draw-objects))
+       (send *ri* :viewer :draw-objects)
+       )
      (push av avdata)
      (push (send mt :stop) tmdata)
      (unix::sendto *csock* *caddr* (format nil "~A" av))
@@ -28,23 +29,87 @@
     (setq *time-data* (reverse tmdata))
     (dump-loadable-structure fname *robot-name*
 			     *start-end-time* *av-data* *time-data*)
-    (graph-plot)
+    (joint-plot)
+    (xyz-2dplot)
+    (xyz-3dplot)
+    (animate-data)
     ))
 
-(defun graph-plot (&key fname (yrange '(-90 90)))
+(defun joint-plot (&key fname (yrange '(-90 90)))
   (if (and fname (probe-file fname)) (load fname))
   (when
-      (boundp '*time-data*)
+      (boundp '*av-data*)
     (let (data (stimestr (unix::asctime (caar *start-end-time*))))
       (dotimes (i 4)
 	(push (mapcar #'(lambda (fv) (elt fv i)) *av-data*) data))
       (graph-view
        (reverse data)
        *time-data*
-       :xrange (list (round (car (find-extreams *time-data* :bigger #'<)))
-		     (round (car (find-extreams *time-data* :bigger #'>))))
+       :keylist '("joint0" "joint1" "joint2" "joint3")
+       :xrange (list (round (apply #'min *time-data*))
+		     (round (apply #'max *time-data*)))
        :yrange yrange
+       :graph-instance (setq *gp* (gnuplot))
        :title (format nil "~A Joints  ~A"
+		      *robot-name*
+		      (if fname fname
+			(subseq stimestr 0 (1- (length stimestr)))))
+       ))
+    ))
+
+(defun xyz-2dplot (&key fname)
+  (if (and fname (probe-file fname)) (load fname))
+  (when
+      (boundp '*av-data*)
+    (let (data (stimestr (unix::asctime (caar *start-end-time*)))
+	       xyz xyzdata)
+      (dolist (av *av-data*)
+	(send *ri* :robot :angle-vector av)
+	(setq xyz (copy-object (send *ri* :robot :end-coords :worldpos)))
+	(push xyz xyzdata))
+      (setq *xyz-data* (reverse xyzdata))
+      (dotimes (i 3)
+	(push (mapcar #'(lambda (fv) (elt fv i)) *xyz-data*) data))
+      (graph-view
+       (reverse data)
+       *time-data*
+       :keylist '("end-coords X" "end-coords Y" "end-coords Z")
+       :xrange (list (round (apply #'min *time-data*))
+		     (round (apply #'max *time-data*)))
+       :yrange (list (apply #'min (mapcar #'(lambda (x) (apply #'min x)) data))
+		     (apply #'max (mapcar #'(lambda (x) (apply #'max x)) data)))
+       :graph-instance (setq *gp* (gnuplot))
+       :title (format nil "~A end-pos  ~A"
+		      *robot-name*
+		      (if fname fname
+			(subseq stimestr 0 (1- (length stimestr)))))
+       ))
+    ))
+
+(defun xyz-3dplot (&key fname)
+  (if (and fname (probe-file fname)) (load fname))
+  (when
+      (boundp '*av-data*)
+    (let (data (stimestr (unix::asctime (caar *start-end-time*)))
+	       xyz xydata zdata)
+      (dolist (av *av-data*)
+	(send *ri* :robot :angle-vector av)
+	(setq xyz (copy-object (send *ri* :robot :end-coords :worldpos)))
+	(push (elt xyz 2) zdata)
+	(push (list (elt xyz 0) (elt xyz 1)) xydata))
+      (setq *xy-data* (reverse xydata))
+      (setq *z-data* (reverse zdata))
+      (graph-view
+       (list *z-data*)
+       *xy-data*
+       :xrange (list (round (apply #'min (mapcar #'car *xy-data*)))
+		     (round (apply #'max (mapcar #'car *xy-data*))))
+       :yrange (list (round (apply #'min (mapcar #'cadr *xy-data*)))
+		     (round (apply #'max (mapcar #'cadr *xy-data*))))
+       :zrange (list (round (apply #'min *z-data*))
+		     (round (apply #'max *z-data*)))
+       :graph-instance (setq *gp* (gnuplot))
+       :title (format nil "~A end-pos  ~A"
 		      *robot-name*
 		      (if fname fname
 			(subseq stimestr 0 (1- (length stimestr)))))
@@ -57,8 +122,9 @@
   (when (boundp '*av-data*)
     (let ((pre (car *time-data*)) now)
       (dotimes (i (length *av-data*))
-	(if send (unix::sendto *csock* *caddr*
-			       (format nil "~A" (elt *av-data* i))))
+	(if (and send (boundp '*csock*))
+	    (unix::sendto *csock* *caddr*
+			  (format nil "~A" (elt *av-data* i))))
 	(send *ri* :robot :angle-vector (elt *av-data* i))
 	(send *ri* :viewer :draw-objects)
 	(unix:usleep (round (* 1000000
@@ -68,8 +134,10 @@
 
 (format t "(store-loop \"test.dat\")~%")
 (format t "(store-loop \"test.dat\" :send nil :show nil)~%")
-(format t "(graph-plot)~%")
-(format t "(graph-plot \"test.dat\")~%")
+(format t "(joint-plot)~%")
+(format t "(joint-plot \"test.dat\")~%")
+(format t "(xyz-plot)~%")
+(format t "(xyz-plot \"test.dat\")~%")
 (format t "(animate-data)~%")
 (format t "(animate-data \"test.dat\")~%")
 (format t "(animate-data \"test.dat\" :send t})~%")
