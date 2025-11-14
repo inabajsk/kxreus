@@ -67,6 +67,12 @@
     )
   )
 
+(defun follower2 nil
+  (follower2-init)
+  (while (not (boundp '*angle-vector*)) (unix::sleep 1))
+  (follower2-loop)
+  )
+
 (defun leader2-loop nil
   (do-until-key
    (setq *angle-vector* (send *ri* :read-angle-vector))
@@ -123,6 +129,12 @@
      (send *ri* :robot :angle-vector *angle-vector*)
      (send *ri* :viewer :draw-objects))
     )
+  )
+
+(defun follower1 nil
+  (follower1-init)
+  (while (not (boundp '*angle-vector*)) (unix::sleep 1))
+  (follower1-loop)
   )
 
 (defun leader1-init (&key (name "iarm0")
