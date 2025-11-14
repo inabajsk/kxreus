@@ -3,13 +3,16 @@
 ;;
 (require :rcb4robots)
 (require :iarm)
+(require :toyama)
 
 (defparameter *leader-ip* "192.168.1.34")
 (defparameter *follower-ip* "192.168.1.18")
 (defparameter *port-number* 2000)
+;;(defparameter *baudrate* 115200)
+(defparameter *baudrate* 1250000)
 
 (push
- '("iarm0"
+ '("iarm0"  ;; leader
    (:file "iarm.l" :form (instance iarmclass :init))
    (0 :joint0 -1)
    (2 :joint1 1)
@@ -17,8 +20,9 @@
    (8 :joint3 -1)
    )
  *kxr-body-config-alist*)
+
 (push
- '("iarm1"
+ '("iarm1"  ;; follower
    (:file "iarm.l" :form (instance iarmclass :init))
    (0 :joint0 -1)
    (2 :joint1 1)
@@ -29,7 +33,7 @@
 
 (defun robot-init (&optional (name "iarm0") &key (stretch 1))
   (make-kxr-robot name :viewer t)
-  (send *ri* :com-init :baud 115200) (send *ri* :timer-on)
+  (send *ri* :com-init :baud *baudrate*) (send *ri* :timer-on)
   (send *ri* :hold) (send *ri* :send-stretch stretch))
 
 (defun follower-recv nil
@@ -40,8 +44,9 @@
     ;;(unix::usleep (* 1 1000))
     ))
 
-(defun follower-init (&key (ips *follower-ip*) (ipc *leader-ip*) (port *port-number*))
-  (robot-init "iarm1")
+(defun follower-init (&key (name "iarm1") (ips *follower-ip*) (ipc *leader-ip*) (port *port-number*)
+			   (stretch 1))
+  (robot-init name :stretch stretch)
   (setq *ssock* (make-dgram-socket
 		 (make-socket-address :domain af_inet :host ips :port port)))
   (setq *csock* (unix::socket (send
