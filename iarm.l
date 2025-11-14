@@ -107,7 +107,8 @@
    (setq joint3 (instance rotational-joint
 			  :init :parent-link iarm-b3 :child-link iarm-b4 :name :joint3 :axis :y :min -135 :max 135))
    ;;
-   (setq end-coords (send (send iarm-b4 :worldcoords) :translate #f(25 0 0) :world))
+   (setq end-coords (make-cascoords :coords (send iarm-b4 :copy-worldcoords)))
+   (send end-coords :translate #f(25 0 0) :world)
    (send iarm-b4 :assoc end-coords)
    (setq links (list iarm-b0 iarm-b1 iarm-b2 iarm-b3 iarm-b4))
    (setq joint-list (list joint0 joint1 joint2 joint3))
