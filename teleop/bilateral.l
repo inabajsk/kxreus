@@ -3,7 +3,6 @@
 ;;
 (require :rcb4robots)
 (require :iarm)
-(require :toyama)
 
 (defparameter *leader-ip* "192.168.1.34")
 (defparameter *follower-ip* "192.168.1.18")
@@ -101,3 +100,6 @@
 
 (format t "(follower-init)~%")
 (format t "(follower-loop)~%")
+
+(require :datahandle)
+
