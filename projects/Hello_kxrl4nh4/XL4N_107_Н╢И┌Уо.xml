@@ -1,0 +1,722 @@
+<?xml version="1.0"?>
+<CanvasData xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <Name>canvas</Name>
+  <Size>
+    <Width>900</Width>
+    <Height>990</Height>
+  </Size>
+  <GridSize>8</GridSize>
+  <Lines>
+    <anyType xsi:type="LineData">
+      <GUID>54d159a5-0665-4d6a-9974-bb6c8bfd659b</GUID>
+      <Path>
+        <Point>
+          <X>272</X>
+          <Y>248</Y>
+        </Point>
+        <Point>
+          <X>200</X>
+          <Y>248</Y>
+        </Point>
+      </Path>
+      <ConnectMode>True</ConnectMode>
+    </anyType>
+    <anyType xsi:type="LineData">
+      <GUID>5abd616d-fed4-4a1c-9cb3-c48aebb79500</GUID>
+      <Path>
+        <Point>
+          <X>272</X>
+          <Y>184</Y>
+        </Point>
+        <Point>
+          <X>200</X>
+          <Y>184</Y>
+        </Point>
+      </Path>
+      <ConnectMode>True</ConnectMode>
+    </anyType>
+    <anyType xsi:type="LineData">
+      <GUID>52c6e94d-7509-444b-b619-6bb85a209cbe</GUID>
+      <Path>
+        <Point>
+          <X>200</X>
+          <Y>184</Y>
+        </Point>
+        <Point>
+          <X>128</X>
+          <Y>184</Y>
+        </Point>
+      </Path>
+      <ConnectMode>Normal</ConnectMode>
+    </anyType>
+    <anyType xsi:type="LineData">
+      <GUID>91559299-25b1-421d-81b5-4ee21ad540c1</GUID>
+      <Path>
+        <Point>
+          <X>128</X>
+          <Y>184</Y>
+        </Point>
+        <Point>
+          <X>56</X>
+          <Y>184</Y>
+        </Point>
+      </Path>
+      <ConnectMode>Normal</ConnectMode>
+    </anyType>
+    <anyType xsi:type="LineData">
+      <GUID>73eec89d-0fe5-4a25-ad9d-3843de38dee0</GUID>
+      <Path>
+        <Point>
+          <X>56</X>
+          <Y>184</Y>
+        </Point>
+        <Point>
+          <X>272</X>
+          <Y>248</Y>
+        </Point>
+      </Path>
+      <ConnectMode>Normal</ConnectMode>
+    </anyType>
+    <anyType xsi:type="LineData">
+      <GUID>d2482980-d9e1-4a17-bed4-69e237091472</GUID>
+      <Path>
+        <Point>
+          <X>200</X>
+          <Y>248</Y>
+        </Point>
+        <Point>
+          <X>128</X>
+          <Y>248</Y>
+        </Point>
+      </Path>
+      <ConnectMode>Normal</ConnectMode>
+    </anyType>
+    <anyType xsi:type="LineData">
+      <GUID>50124ab5-b70d-4cd8-84fb-78e89eff7e0e</GUID>
+      <Path>
+        <Point>
+          <X>128</X>
+          <Y>248</Y>
+        </Point>
+        <Point>
+          <X>56</X>
+          <Y>248</Y>
+        </Point>
+      </Path>
+      <ConnectMode>Normal</ConnectMode>
+    </anyType>
+    <anyType xsi:type="LineData">
+      <GUID>0f05480a-d5b3-4c59-be84-6b68806dd3b7</GUID>
+      <Path>
+        <Point>
+          <X>56</X>
+          <Y>248</Y>
+        </Point>
+        <Point>
+          <X>272</X>
+          <Y>184</Y>
+        </Point>
+      </Path>
+      <ConnectMode>Normal</ConnectMode>
+    </anyType>
+    <anyType xsi:type="LineData">
+      <GUID>1f7c7b21-60de-403a-9ce7-0398a2f041b0</GUID>
+      <Path>
+        <Point>
+          <X>56</X>
+          <Y>72</Y>
+        </Point>
+        <Point>
+          <X>128</X>
+          <Y>72</Y>
+        </Point>
+      </Path>
+      <ConnectMode>Normal</ConnectMode>
+    </anyType>
+    <anyType xsi:type="LineData">
+      <GUID>7743fff9-e92d-4e55-8e67-baba17f0fe3a</GUID>
+      <Path>
+        <Point>
+          <X>128</X>
+          <Y>72</Y>
+        </Point>
+        <Point>
+          <X>200</X>
+          <Y>72</Y>
+        </Point>
+      </Path>
+      <ConnectMode>Normal</ConnectMode>
+    </anyType>
+    <anyType xsi:type="LineData">
+      <GUID>0f9b8a64-926f-4dc6-807c-543f822e51f8</GUID>
+      <Path>
+        <Point>
+          <X>344</X>
+          <Y>184</Y>
+        </Point>
+        <Point>
+          <X>416</X>
+          <Y>184</Y>
+        </Point>
+      </Path>
+      <ConnectMode>Normal</ConnectMode>
+    </anyType>
+    <anyType xsi:type="LineData">
+      <GUID>33a1cdae-dd2e-4272-b829-718c327fa56c</GUID>
+      <Path>
+        <Point>
+          <X>416</X>
+          <Y>184</Y>
+        </Point>
+        <Point>
+          <X>488</X>
+          <Y>184</Y>
+        </Point>
+      </Path>
+      <ConnectMode>Normal</ConnectMode>
+    </anyType>
+    <anyType xsi:type="LineData">
+      <GUID>3933a48e-53ae-4bd7-b7c0-cecfc1df15cc</GUID>
+      <Path>
+        <Point>
+          <X>344</X>
+          <Y>248</Y>
+        </Point>
+        <Point>
+          <X>416</X>
+          <Y>248</Y>
+        </Point>
+      </Path>
+      <ConnectMode>Normal</ConnectMode>
+    </anyType>
+    <anyType xsi:type="LineData">
+      <GUID>1f1d0998-f49a-46af-bf8c-d742b628e1d6</GUID>
+      <Path>
+        <Point>
+          <X>416</X>
+          <Y>248</Y>
+        </Point>
+        <Point>
+          <X>488</X>
+          <Y>248</Y>
+        </Point>
+      </Path>
+      <ConnectMode>Normal</ConnectMode>
+    </anyType>
+    <anyType xsi:type="LineData">
+      <GUID>230538b5-f437-44e9-a713-5fb3f7842571</GUID>
+      <Path>
+        <Point>
+          <X>200</X>
+          <Y>72</Y>
+        </Point>
+        <Point>
+          <X>200</X>
+          <Y>135</Y>
+        </Point>
+        <Point>
+          <X>54</X>
+          <Y>134</Y>
+        </Point>
+        <Point>
+          <X>56</X>
+          <Y>184</Y>
+        </Point>
+      </Path>
+      <ConnectMode>Normal</ConnectMode>
+    </anyType>
+    <anyType xsi:type="LineData">
+      <GUID>0ee87cd8-3d02-4492-af7b-2709ab4b52e3</GUID>
+      <Path>
+        <Point>
+          <X>272</X>
+          <Y>184</Y>
+        </Point>
+        <Point>
+          <X>344</X>
+          <Y>184</Y>
+        </Point>
+      </Path>
+      <ConnectMode>False</ConnectMode>
+    </anyType>
+    <anyType xsi:type="LineData">
+      <GUID>a60bb9d9-97ea-4e94-96a6-735872f892ff</GUID>
+      <Path>
+        <Point>
+          <X>272</X>
+          <Y>248</Y>
+        </Point>
+        <Point>
+          <X>344</X>
+          <Y>248</Y>
+        </Point>
+      </Path>
+      <ConnectMode>False</ConnectMode>
+    </anyType>
+    <anyType xsi:type="LineData">
+      <GUID>d9b2d3e9-f7d8-4e7f-84b4-35e09efe2d44</GUID>
+      <Path>
+        <Point>
+          <X>488</X>
+          <Y>184</Y>
+        </Point>
+        <Point>
+          <X>580</X>
+          <Y>208</Y>
+        </Point>
+      </Path>
+      <ConnectMode>Normal</ConnectMode>
+    </anyType>
+    <anyType xsi:type="LineData">
+      <GUID>79a690bc-0619-4b9b-b65e-6f8fd0340cb0</GUID>
+      <Path>
+        <Point>
+          <X>488</X>
+          <Y>248</Y>
+        </Point>
+        <Point>
+          <X>580</X>
+          <Y>208</Y>
+        </Point>
+      </Path>
+      <ConnectMode>Normal</ConnectMode>
+    </anyType>
+  </Lines>
+  <Activities>
+    <anyType xsi:type="ActivityData">
+      <Name>Pos4</Name>
+      <GUID>29278a6e-8783-481d-9333-3394729f5826</GUID>
+      <Location>
+        <X>24</X>
+        <Y>160</Y>
+      </Location>
+      <Size>
+        <Width>64</Width>
+        <Height>48</Height>
+      </Size>
+      <Text>Pos4</Text>
+      <BackColorText>WhiteSmoke</BackColorText>
+      <MotionFlag>None</MotionFlag>
+      <BaseName>Pos</BaseName>
+      <Description>ポジション設定</Description>
+      <Group>Position</Group>
+      <ConnectedGuids>91559299-25b1-421d-81b5-4ee21ad540c1,73eec89d-0fe5-4a25-ad9d-3843de38dee0,230538b5-f437-44e9-a713-5fb3f7842571</ConnectedGuids>
+      <ConnectTypes>EndConnect,BeginConnect,EndConnect</ConnectTypes>
+      <ProgramCode>
+        <anyType xsi:type="xsd:string">1B 10 FE 03 00 00 00 05 44 16 70 17 28 23 AE 15 AE 15 D8 27 C0 12 64 19 AE 15 F4</anyType>
+      </ProgramCode>
+      <Hint>Frame = 5</Hint>
+    </anyType>
+    <anyType xsi:type="ActivityData">
+      <Name>Pos5</Name>
+      <GUID>8ff7c7e2-e5dd-4bdd-bf6e-0a8262c85b38</GUID>
+      <Location>
+        <X>96</X>
+        <Y>160</Y>
+      </Location>
+      <Size>
+        <Width>64</Width>
+        <Height>48</Height>
+      </Size>
+      <Text>Pos5</Text>
+      <BackColorText>WhiteSmoke</BackColorText>
+      <MotionFlag>None</MotionFlag>
+      <BaseName>Pos</BaseName>
+      <Description>ポジション設定</Description>
+      <Group>Position</Group>
+      <ConnectedGuids>52c6e94d-7509-444b-b619-6bb85a209cbe,91559299-25b1-421d-81b5-4ee21ad540c1</ConnectedGuids>
+      <ConnectTypes>EndConnect,BeginConnect</ConnectTypes>
+      <ProgramCode>
+        <anyType xsi:type="xsd:string">1B 10 FE 03 00 00 00 08 44 16 C0 12 D8 27 AE 15 64 19 28 23 70 17 64 19 AE 15 B1</anyType>
+      </ProgramCode>
+      <Hint>Frame = 8</Hint>
+    </anyType>
+    <anyType xsi:type="ActivityData">
+      <Name>Pos6</Name>
+      <GUID>3256cdc0-9f7b-4136-8b49-120935857c95</GUID>
+      <Location>
+        <X>168</X>
+        <Y>160</Y>
+      </Location>
+      <Size>
+        <Width>64</Width>
+        <Height>48</Height>
+      </Size>
+      <Text>Pos6</Text>
+      <BackColorText>WhiteSmoke</BackColorText>
+      <MotionFlag>None</MotionFlag>
+      <BaseName>Pos</BaseName>
+      <Description>ポジション設定</Description>
+      <Group>Position</Group>
+      <ConnectedGuids>5abd616d-fed4-4a1c-9cb3-c48aebb79500,52c6e94d-7509-444b-b619-6bb85a209cbe</ConnectedGuids>
+      <ConnectTypes>EndConnect,BeginConnect</ConnectTypes>
+      <ProgramCode>
+        <anyType xsi:type="xsd:string">1B 10 FE 03 00 00 00 05 44 16 C0 12 D8 27 AE 15 AE 15 28 23 70 17 AE 15 AE 15 3A</anyType>
+      </ProgramCode>
+      <Hint>Frame = 5</Hint>
+    </anyType>
+    <anyType xsi:type="ActivityData">
+      <Name>Pos7</Name>
+      <GUID>baf34059-bbb6-45f9-b062-6ef1799e42f1</GUID>
+      <Location>
+        <X>24</X>
+        <Y>224</Y>
+      </Location>
+      <Size>
+        <Width>64</Width>
+        <Height>48</Height>
+      </Size>
+      <Text>Pos7</Text>
+      <BackColorText>WhiteSmoke</BackColorText>
+      <MotionFlag>None</MotionFlag>
+      <BaseName>Pos</BaseName>
+      <Description>ポジション設定</Description>
+      <Group>Position</Group>
+      <ConnectedGuids>50124ab5-b70d-4cd8-84fb-78e89eff7e0e,0f05480a-d5b3-4c59-be84-6b68806dd3b7</ConnectedGuids>
+      <ConnectTypes>EndConnect,BeginConnect</ConnectTypes>
+      <ProgramCode>
+        <anyType xsi:type="xsd:string">1B 10 FE 03 00 00 00 05 44 16 C0 12 D8 27 64 19 AE 15 28 23 70 17 AE 15 AE 15 F4</anyType>
+      </ProgramCode>
+      <Hint>Frame = 5</Hint>
+    </anyType>
+    <anyType xsi:type="ActivityData">
+      <Name>Pos8</Name>
+      <GUID>aceb4bae-3b58-478c-ab76-4cef73e3d1d6</GUID>
+      <Location>
+        <X>96</X>
+        <Y>224</Y>
+      </Location>
+      <Size>
+        <Width>64</Width>
+        <Height>48</Height>
+      </Size>
+      <Text>Pos8</Text>
+      <BackColorText>WhiteSmoke</BackColorText>
+      <MotionFlag>None</MotionFlag>
+      <BaseName>Pos</BaseName>
+      <Description>ポジション設定</Description>
+      <Group>Position</Group>
+      <ConnectedGuids>d2482980-d9e1-4a17-bed4-69e237091472,50124ab5-b70d-4cd8-84fb-78e89eff7e0e</ConnectedGuids>
+      <ConnectTypes>EndConnect,BeginConnect</ConnectTypes>
+      <ProgramCode>
+        <anyType xsi:type="xsd:string">1B 10 FE 03 00 00 00 08 44 16 70 17 28 23 64 19 AE 15 D8 27 C0 12 AE 15 64 19 B1</anyType>
+      </ProgramCode>
+      <Hint>Frame = 8</Hint>
+    </anyType>
+    <anyType xsi:type="ActivityData">
+      <Name>Pos9</Name>
+      <GUID>629b74a7-56ba-49f0-bdd8-51a1abd398cb</GUID>
+      <Location>
+        <X>168</X>
+        <Y>224</Y>
+      </Location>
+      <Size>
+        <Width>64</Width>
+        <Height>48</Height>
+      </Size>
+      <Text>Pos9</Text>
+      <BackColorText>WhiteSmoke</BackColorText>
+      <MotionFlag>None</MotionFlag>
+      <BaseName>Pos</BaseName>
+      <Description>ポジション設定</Description>
+      <Group>Position</Group>
+      <ConnectedGuids>54d159a5-0665-4d6a-9974-bb6c8bfd659b,d2482980-d9e1-4a17-bed4-69e237091472</ConnectedGuids>
+      <ConnectTypes>EndConnect,BeginConnect</ConnectTypes>
+      <ProgramCode>
+        <anyType xsi:type="xsd:string">1B 10 FE 03 00 00 00 05 44 16 70 17 28 23 AE 15 AE 15 D8 27 C0 12 AE 15 AE 15 3A</anyType>
+      </ProgramCode>
+      <Hint>Frame = 5</Hint>
+    </anyType>
+    <anyType xsi:type="ActivityData">
+      <Name>CmpButton1</Name>
+      <GUID>7a6ac7bd-c9f3-48d9-915f-c48c3740b65b</GUID>
+      <Location>
+        <X>240</X>
+        <Y>160</Y>
+      </Location>
+      <Size>
+        <Width>64</Width>
+        <Height>48</Height>
+      </Size>
+      <Text>CmpButton1</Text>
+      <BackColorText>WhiteSmoke</BackColorText>
+      <MotionFlag>None</MotionFlag>
+      <BaseName>CmpButton</BaseName>
+      <Description>コントローラーボタンで分岐</Description>
+      <Group>Compare</Group>
+      <ConnectedGuids>5abd616d-fed4-4a1c-9cb3-c48aebb79500,0f05480a-d5b3-4c59-be84-6b68806dd3b7,0ee87cd8-3d02-4492-af7b-2709ab4b52e3</ConnectedGuids>
+      <ConnectTypes>BeginConnect,EndConnect,BeginConnect</ConnectTypes>
+      <ProgramCode>
+        <anyType xsi:type="xsd:string">09 07 82 50 03 00 00 08 ED</anyType>
+        <anyType xsi:type="xsd:string">07 0B FF FF FF 05 14</anyType>
+      </ProgramCode>
+      <Hint>Button = 8</Hint>
+    </anyType>
+    <anyType xsi:type="ActivityData">
+      <Name>CmpButton2</Name>
+      <GUID>71bf1825-9afe-4b59-a066-450626dbf94e</GUID>
+      <Location>
+        <X>240</X>
+        <Y>224</Y>
+      </Location>
+      <Size>
+        <Width>64</Width>
+        <Height>48</Height>
+      </Size>
+      <Text>CmpButton2</Text>
+      <BackColorText>WhiteSmoke</BackColorText>
+      <MotionFlag>None</MotionFlag>
+      <BaseName>CmpButton</BaseName>
+      <Description>コントローラーボタンで分岐</Description>
+      <Group>Compare</Group>
+      <ConnectedGuids>54d159a5-0665-4d6a-9974-bb6c8bfd659b,73eec89d-0fe5-4a25-ad9d-3843de38dee0,a60bb9d9-97ea-4e94-96a6-735872f892ff</ConnectedGuids>
+      <ConnectTypes>BeginConnect,EndConnect,BeginConnect</ConnectTypes>
+      <ProgramCode>
+        <anyType xsi:type="xsd:string">09 07 82 50 03 00 00 08 ED</anyType>
+        <anyType xsi:type="xsd:string">07 0B FF FF FF 05 14</anyType>
+      </ProgramCode>
+      <Hint>Button = 8</Hint>
+    </anyType>
+    <anyType xsi:type="ActivityData">
+      <Name>Pos9</Name>
+      <GUID>26629008-ba24-4155-b023-943c4ca8e8e0</GUID>
+      <Location>
+        <X>528</X>
+        <Y>184</Y>
+      </Location>
+      <Size>
+        <Width>105</Width>
+        <Height>48</Height>
+      </Size>
+      <Text>ホームポジション</Text>
+      <BackColorText>WhiteSmoke</BackColorText>
+      <MotionFlag>None</MotionFlag>
+      <BaseName>Pos</BaseName>
+      <Description>ポジション設定</Description>
+      <Group>Position</Group>
+      <ConnectedGuids>d9b2d3e9-f7d8-4e7f-84b4-35e09efe2d44,79a690bc-0619-4b9b-b65e-6f8fd0340cb0</ConnectedGuids>
+      <ConnectTypes>EndConnect,EndConnect</ConnectTypes>
+      <ProgramCode>
+        <anyType xsi:type="xsd:string">1F 10 FC AB 00 00 00 0A 4C 1D 4C 1D AE 15 AE 15 4C 1D 4C 1D AE 15 AE 15 4C 1D 4C 1D F4 1A 70</anyType>
+      </ProgramCode>
+      <Hint>Frame = 10</Hint>
+    </anyType>
+    <anyType xsi:type="ActivityData">
+      <Name>Pos1</Name>
+      <GUID>b851fd03-2bb6-4137-acc3-cab0f02c3355</GUID>
+      <Location>
+        <X>24</X>
+        <Y>48</Y>
+      </Location>
+      <Size>
+        <Width>64</Width>
+        <Height>48</Height>
+      </Size>
+      <Text>Pos1</Text>
+      <BackColorText>WhiteSmoke</BackColorText>
+      <MotionFlag>Start</MotionFlag>
+      <BaseName>Pos</BaseName>
+      <Description>ポジション設定</Description>
+      <Group>Position</Group>
+      <ConnectedGuids>1f7c7b21-60de-403a-9ce7-0398a2f041b0</ConnectedGuids>
+      <ConnectTypes>BeginConnect</ConnectTypes>
+      <ProgramCode>
+        <anyType xsi:type="xsd:string">1F 10 FC AB 00 00 00 08 70 17 4C 1D 64 19 AE 15 4C 1D C0 12 AE 15 64 19 70 17 4C 1D F4 1A 87</anyType>
+      </ProgramCode>
+      <Hint>Frame = 8</Hint>
+    </anyType>
+    <anyType xsi:type="ActivityData">
+      <Name>Pos2</Name>
+      <GUID>1cb44b29-5495-4e3c-a7c9-c8f14b99d0ff</GUID>
+      <Location>
+        <X>96</X>
+        <Y>48</Y>
+      </Location>
+      <Size>
+        <Width>64</Width>
+        <Height>48</Height>
+      </Size>
+      <Text>Pos2</Text>
+      <BackColorText>WhiteSmoke</BackColorText>
+      <MotionFlag>None</MotionFlag>
+      <BaseName>Pos</BaseName>
+      <Description>ポジション設定</Description>
+      <Group>Position</Group>
+      <ConnectedGuids>1f7c7b21-60de-403a-9ce7-0398a2f041b0,7743fff9-e92d-4e55-8e67-baba17f0fe3a</ConnectedGuids>
+      <ConnectTypes>EndConnect,BeginConnect</ConnectTypes>
+      <ProgramCode>
+        <anyType xsi:type="xsd:string">1B 10 FE 03 00 00 00 03 44 16 70 17 4C 1D AE 15 AE 15 4C 1D C0 12 AE 15 AE 15 C0</anyType>
+      </ProgramCode>
+      <Hint>Frame = 3</Hint>
+    </anyType>
+    <anyType xsi:type="ActivityData">
+      <Name>Pos3</Name>
+      <GUID>a2db5d0e-2b84-4cdf-a216-3da41eecf114</GUID>
+      <Location>
+        <X>168</X>
+        <Y>48</Y>
+      </Location>
+      <Size>
+        <Width>64</Width>
+        <Height>48</Height>
+      </Size>
+      <Text>Pos3</Text>
+      <BackColorText>WhiteSmoke</BackColorText>
+      <MotionFlag>None</MotionFlag>
+      <BaseName>Pos</BaseName>
+      <Description>ポジション設定</Description>
+      <Group>Position</Group>
+      <ConnectedGuids>7743fff9-e92d-4e55-8e67-baba17f0fe3a,230538b5-f437-44e9-a713-5fb3f7842571</ConnectedGuids>
+      <ConnectTypes>EndConnect,BeginConnect</ConnectTypes>
+      <ProgramCode>
+        <anyType xsi:type="xsd:string">1B 10 FE 03 00 00 00 05 44 16 70 17 28 23 AE 15 64 19 D8 27 C0 12 64 19 AE 15 AE</anyType>
+      </ProgramCode>
+      <Hint>Frame = 5</Hint>
+    </anyType>
+    <anyType xsi:type="ActivityData">
+      <Name>Pos13</Name>
+      <GUID>0ba2698d-9a08-4a31-abd0-7d8ba675091d</GUID>
+      <Location>
+        <X>312</X>
+        <Y>160</Y>
+      </Location>
+      <Size>
+        <Width>64</Width>
+        <Height>48</Height>
+      </Size>
+      <Text>Pos7</Text>
+      <BackColorText>WhiteSmoke</BackColorText>
+      <MotionFlag>None</MotionFlag>
+      <BaseName>Pos</BaseName>
+      <Description>ポジション設定</Description>
+      <Group>Position</Group>
+      <ConnectedGuids>0f9b8a64-926f-4dc6-807c-543f822e51f8,0ee87cd8-3d02-4492-af7b-2709ab4b52e3</ConnectedGuids>
+      <ConnectTypes>BeginConnect,EndConnect</ConnectTypes>
+      <ProgramCode>
+        <anyType xsi:type="xsd:string">1B 10 FE 03 00 00 00 05 44 16 4C 1D D8 27 64 19 AE 15 28 23 4C 1D AE 15 64 19 27</anyType>
+      </ProgramCode>
+      <Hint>Frame = 5</Hint>
+    </anyType>
+    <anyType xsi:type="ActivityData">
+      <Name>Pos14</Name>
+      <GUID>e2bc896d-7b0d-4f5b-bf11-78de7688714c</GUID>
+      <Location>
+        <X>384</X>
+        <Y>160</Y>
+      </Location>
+      <Size>
+        <Width>64</Width>
+        <Height>48</Height>
+      </Size>
+      <Text>Pos8</Text>
+      <BackColorText>WhiteSmoke</BackColorText>
+      <MotionFlag>None</MotionFlag>
+      <BaseName>Pos</BaseName>
+      <Description>ポジション設定</Description>
+      <Group>Position</Group>
+      <ConnectedGuids>0f9b8a64-926f-4dc6-807c-543f822e51f8,33a1cdae-dd2e-4272-b829-718c327fa56c</ConnectedGuids>
+      <ConnectTypes>EndConnect,BeginConnect</ConnectTypes>
+      <ProgramCode>
+        <anyType xsi:type="xsd:string">1B 10 FE 03 00 00 00 03 44 16 4C 1D D8 27 AE 15 AE 15 28 23 4C 1D AE 15 AE 15 B1</anyType>
+      </ProgramCode>
+      <Hint>Frame = 3</Hint>
+    </anyType>
+    <anyType xsi:type="ActivityData">
+      <Name>Pos15</Name>
+      <GUID>35861238-3182-4db7-bb74-1b71444ce0ad</GUID>
+      <Location>
+        <X>456</X>
+        <Y>160</Y>
+      </Location>
+      <Size>
+        <Width>64</Width>
+        <Height>48</Height>
+      </Size>
+      <Text>Pos9</Text>
+      <BackColorText>WhiteSmoke</BackColorText>
+      <MotionFlag>None</MotionFlag>
+      <BaseName>Pos</BaseName>
+      <Description>ポジション設定</Description>
+      <Group>Position</Group>
+      <ConnectedGuids>33a1cdae-dd2e-4272-b829-718c327fa56c,d9b2d3e9-f7d8-4e7f-84b4-35e09efe2d44</ConnectedGuids>
+      <ConnectTypes>EndConnect,BeginConnect</ConnectTypes>
+      <ProgramCode>
+        <anyType xsi:type="xsd:string">1B 10 FE 03 00 00 00 08 44 16 4C 1D 4C 1D AE 15 64 19 4C 1D 4C 1D 64 19 AE 15 B2</anyType>
+      </ProgramCode>
+      <Hint>Frame = 8</Hint>
+    </anyType>
+    <anyType xsi:type="ActivityData">
+      <Name>Pos16</Name>
+      <GUID>c5c8eca9-fce6-4208-b0a0-603af666776d</GUID>
+      <Location>
+        <X>312</X>
+        <Y>224</Y>
+      </Location>
+      <Size>
+        <Width>64</Width>
+        <Height>48</Height>
+      </Size>
+      <Text>Pos13</Text>
+      <BackColorText>WhiteSmoke</BackColorText>
+      <MotionFlag>None</MotionFlag>
+      <BaseName>Pos</BaseName>
+      <Description>ポジション設定</Description>
+      <Group>Position</Group>
+      <ConnectedGuids>3933a48e-53ae-4bd7-b7c0-cecfc1df15cc,a60bb9d9-97ea-4e94-96a6-735872f892ff</ConnectedGuids>
+      <ConnectTypes>BeginConnect,EndConnect</ConnectTypes>
+      <ProgramCode>
+        <anyType xsi:type="xsd:string">1B 10 FE 03 00 00 00 05 44 16 70 17 4C 1D AE 15 64 19 4C 1D C0 12 64 19 AE 15 36</anyType>
+      </ProgramCode>
+      <Hint>Frame = 5</Hint>
+    </anyType>
+    <anyType xsi:type="ActivityData">
+      <Name>Pos17</Name>
+      <GUID>aa9e555e-5aa4-4cd2-8c3c-2d139da33b25</GUID>
+      <Location>
+        <X>384</X>
+        <Y>224</Y>
+      </Location>
+      <Size>
+        <Width>64</Width>
+        <Height>48</Height>
+      </Size>
+      <Text>Pos14</Text>
+      <BackColorText>WhiteSmoke</BackColorText>
+      <MotionFlag>None</MotionFlag>
+      <BaseName>Pos</BaseName>
+      <Description>ポジション設定</Description>
+      <Group>Position</Group>
+      <ConnectedGuids>3933a48e-53ae-4bd7-b7c0-cecfc1df15cc,1f1d0998-f49a-46af-bf8c-d742b628e1d6</ConnectedGuids>
+      <ConnectTypes>EndConnect,BeginConnect</ConnectTypes>
+      <ProgramCode>
+        <anyType xsi:type="xsd:string">1B 10 FE 03 00 00 00 03 44 16 70 17 4C 1D AE 15 AE 15 4C 1D C0 12 AE 15 AE 15 C0</anyType>
+      </ProgramCode>
+      <Hint>Frame = 3</Hint>
+    </anyType>
+    <anyType xsi:type="ActivityData">
+      <Name>Pos18</Name>
+      <GUID>c3519fb3-3bf5-47a0-8f27-b1defb19f85c</GUID>
+      <Location>
+        <X>456</X>
+        <Y>224</Y>
+      </Location>
+      <Size>
+        <Width>64</Width>
+        <Height>48</Height>
+      </Size>
+      <Text>Pos15</Text>
+      <BackColorText>WhiteSmoke</BackColorText>
+      <MotionFlag>None</MotionFlag>
+      <BaseName>Pos</BaseName>
+      <Description>ポジション設定</Description>
+      <Group>Position</Group>
+      <ConnectedGuids>1f1d0998-f49a-46af-bf8c-d742b628e1d6,79a690bc-0619-4b9b-b65e-6f8fd0340cb0</ConnectedGuids>
+      <ConnectTypes>EndConnect,BeginConnect</ConnectTypes>
+      <ProgramCode>
+        <anyType xsi:type="xsd:string">1F 10 FC AB 00 00 00 08 4C 1D 4C 1D 64 19 AE 15 4C 1D 4C 1D AE 15 64 19 70 17 4C 1D F4 1A 00</anyType>
+      </ProgramCode>
+      <Hint>Frame = 8</Hint>
+    </anyType>
+  </Activities>
+  <BackColorText>buttonface</BackColorText>
+</CanvasData>

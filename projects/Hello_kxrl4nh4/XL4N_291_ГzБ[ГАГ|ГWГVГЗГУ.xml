@@ -1,0 +1,76 @@
+<?xml version="1.0"?>
+<CanvasData xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <Name>canvas</Name>
+  <Size>
+    <Width>1280</Width>
+    <Height>720</Height>
+  </Size>
+  <GridSize>8</GridSize>
+  <Lines>
+    <anyType xsi:type="LineData">
+      <GUID>98bc300c-37f5-476e-8c52-9bd865603b6a</GUID>
+      <Path>
+        <Point>
+          <X>100</X>
+          <Y>72</Y>
+        </Point>
+        <Point>
+          <X>258</X>
+          <Y>59</Y>
+        </Point>
+      </Path>
+      <ConnectMode>Normal</ConnectMode>
+    </anyType>
+  </Lines>
+  <Activities>
+    <anyType xsi:type="ActivityData">
+      <Name>Pos0</Name>
+      <GUID>9b32cec3-0448-4281-9aea-346def39cd43</GUID>
+      <Location>
+        <X>48</X>
+        <Y>48</Y>
+      </Location>
+      <Size>
+        <Width>105</Width>
+        <Height>48</Height>
+      </Size>
+      <Text>ホームポジション</Text>
+      <BackColorText>WhiteSmoke</BackColorText>
+      <MotionFlag>Start</MotionFlag>
+      <BaseName>Pos</BaseName>
+      <Description>ポジション設定</Description>
+      <Group>Position</Group>
+      <ConnectedGuids>98bc300c-37f5-476e-8c52-9bd865603b6a</ConnectedGuids>
+      <ConnectTypes>BeginConnect</ConnectTypes>
+      <ProgramCode>
+        <anyType xsi:type="xsd:string">25 10 FC AB 2A 00 00 1E 42 16 E6 24 51 12 E1 12 C6 23 D2 16 E1 12 51 12 4C 1D 18 2B F4 1A 11 10 04 1D 06 26 2B</anyType>
+      </ProgramCode>
+      <Hint>Frame = 30</Hint>
+    </anyType>
+    <anyType xsi:type="ActivityData">
+      <Name>Free1</Name>
+      <GUID>32ec79dd-07f4-4fe9-826d-5c99f886edce</GUID>
+      <Location>
+        <X>226</X>
+        <Y>35</Y>
+      </Location>
+      <Size>
+        <Width>64</Width>
+        <Height>48</Height>
+      </Size>
+      <Text>Free1</Text>
+      <BackColorText>WhiteSmoke</BackColorText>
+      <MotionFlag>None</MotionFlag>
+      <BaseName>Free</BaseName>
+      <Description>指定したサーボモーターを脱力する</Description>
+      <Group>Position</Group>
+      <ConnectedGuids>98bc300c-37f5-476e-8c52-9bd865603b6a</ConnectedGuids>
+      <ConnectTypes>EndConnect</ConnectTypes>
+      <ProgramCode>
+        <anyType xsi:type="xsd:string">0D 10 00 20 20 00 00 01 00 80 00 80 5E</anyType>
+      </ProgramCode>
+      <Hint>Free device: 0D 15</Hint>
+    </anyType>
+  </Activities>
+  <BackColorText>buttonface</BackColorText>
+</CanvasData>
