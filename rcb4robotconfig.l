@@ -2328,6 +2328,17 @@ nil
      (19 :head-gripper-p -1/2)
      (19 :head-gripper2-p -1/2)
      )
+    (("kxrl4nh4")
+     (:body :l4t :type :l4 :arm :j2 :leg :j2 :head :h2s
+	    )
+     (10 :head-joint0 1)      (12 :head-joint1 1)
+     (16 :head-joint2 1)      (20 :head-joint3 1)
+     (18 :head-gripper 1/2)   (19 :rarm-gripper2 1/2)
+     (2 :rarm-shoulder-y -1)  (3 :larm-shoulder-y -1)
+     (4 :rarm-shoulder-w -1)  (5 :larm-shoulder-w 1)
+     (6 :rleg-crotch-y -1)    (7 :lleg-crotch-y -1)
+     (8 :rleg-crotch-w -1)    (9 :lleg-crotch-w 1)
+     )
     (("kxrl4b1")
      (:body :l4b :type :l4 :head :h2s :neck :y-p-r ;; :y-r-p;; :h3sn
 	    :arm :j4 :leg :j4
