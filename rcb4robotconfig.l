@@ -587,6 +587,7 @@ nil
 		 (:mbase "kxrl2l6base")
 		 ))
      )
+;;;
     (("head-gripper")
      (:body :mag+7 :noleg t :noarm t :type :module  ;; :limb :head 
 	    :limb :head
@@ -2385,11 +2386,11 @@ nil
      (8 :rleg-crotch-r -1)    (9 :lleg-crotch-r 1)
      )
     (("kxrl4nh4")
-     (:body :l4t :type :l4 :arm :j2 :leg :j2 :head :h2s
+     (:body :l4t :type :l4 :arm :j2 :leg :j2 ;; :head :h2s
+	    :neck :y-p-p-p
 	    )
-     (10 :head-joint0 1)      (12 :head-joint1 1)
-     (16 :head-joint2 1)      (20 :head-joint3 1)
-     (18 :head-gripper 1/2)   (19 :rarm-gripper2 1/2)
+     (11 :head-neck0-y 1)      (13 :head-neck0-p -1)
+     (17 :head-neck1-p -1)      (21 :head-neck2-p 1)
      (2 :rarm-shoulder-y -1)  (3 :larm-shoulder-y -1)
      (4 :rarm-shoulder-r -1)  (5 :larm-shoulder-r 1)
      (6 :rleg-crotch-y -1)    (7 :lleg-crotch-y -1)
@@ -2402,7 +2403,17 @@ nil
 	    )
      (11 :head-neck0-y 1)      (13 :head-neck0-p -1)
      (17 :head-neck1-p -1)      (21 :head-neck2-p 1)
-     (19 :head-gripper-y 1/2)   (19 :head-gripper2-y 1/2)
+     (19 :head-gripper-p 1/2)   (19 :head-gripper2-p 1/2)
+     (2 :rarm-shoulder-y -1)  (3 :larm-shoulder-y -1)
+     (4 :rarm-shoulder-r -1)  (5 :larm-shoulder-r 1)
+     (6 :rleg-crotch-y -1)    (7 :lleg-crotch-y -1)
+     (8 :rleg-crotch-r -1)    (9 :lleg-crotch-r 1)
+     )
+    (("kxrl4ng")
+     (:body :l4t :type :l4 :arm :j2 :leg :j2
+	    :head :gripper-y
+	    )
+     (19 :head-gripper-p 1/2)   (19 :head-gripper2-p 1/2)
      (2 :rarm-shoulder-y -1)  (3 :larm-shoulder-y -1)
      (4 :rarm-shoulder-r -1)  (5 :larm-shoulder-r 1)
      (6 :rleg-crotch-y -1)    (7 :lleg-crotch-y -1)
@@ -11882,6 +11893,10 @@ nil
      (19 :larm-gripper-r 1/2) (19 :larm-gripper2-r 1/2))
     (("rg1s")
      (:body :mag+7 :type :module :noleg t :arm :g1 :limb :rarm :gripper t :gripper-straight t)
+     (18 :rarm-gripper-r 1/2) (18 :rarm-gripper2-r 1/2))
+    (("rg1sz")
+     (:body :mag+7 :type :module :noleg t :arm :g1 :limb :rarm
+	    :gripper t :gripper-straight t :gripper-axis :z)
      (18 :rarm-gripper-r 1/2) (18 :rarm-gripper2-r 1/2))
     (("lg1sx")
      (:body :mag+7 :type :module :noleg t :arm :g1 :limb :larm
