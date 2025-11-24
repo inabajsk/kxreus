@@ -721,7 +721,8 @@
 					   :pos (send l0 :worldpos)))
      (send head-end-coords :translate (float-vector -1 0 18) :local)
      l))
-  (:limb-top-link (limb) (or (car (last (send self limb))) body-link))
+  ;;(:limb-top-link (limb) (or (car (last (send self limb))) body-link))
+  (:limb-top-link (limb) (or (car (last (assocdr limb lst-alist))) body-link))
   (:torso-top-link () (or (car (last (assocdr :torso lst-alist))) body-link))
   (:neck-top-link () (or (car (last (assocdr :neck lst-alist))) (send self :torso-top-link)))
   (:setup-tail ;; kxr-robot
@@ -763,7 +764,7 @@
 	  )
 	 ((memq torso '(:y-p-y :dy-p :dy-p2 :dy-p3 :ly-p :ly-pf :ly-p-high))
 	  (unless (null neck) (setq neck :p))))
-       (format t ";; neck=~A self=~A~%" neck self)
+       ;;(format t ";; neck=~A self=~A~%" neck self)
        (case
 	neck
 	(:y
@@ -2065,25 +2066,27 @@
   (:ln-ending
    (type l/r gripper gripper-inner gripper-straight sensor-link)
    (let (c)
-     (setq c (make-cascoords
-	      :name
-	      (case l/r (:larm "lhsensor") (:rarm "rhsensor")
-		    (:lleg "lfsensor") (:rleg "rfsensor")
-		    (t (format nil "~A-sensor" (string-downcase (string l/r)))))
-	      :rot (rotation-matrix
-		    (if gripper-straight 0
+     (when
+	 sensor-link
+       (setq c (make-cascoords
+		:name
+		(case l/r (:larm "lhsensor") (:rarm "rhsensor")
+		      (:lleg "lfsensor") (:rleg "rfsensor")
+		      (t (format nil "~A-sensor" (string-downcase (string l/r)))))
+		:rot (rotation-matrix
+		      (if gripper-straight 0
 			(if (kxr-left-limb? l/r)
 			    (if gripper-inner -23 23)
-			    (if gripper-inner 23 -23)))
-		    :x)
-	      :pos (send sensor-link :worldpos)))
-     ;;(send c :translate #f(0 0 -30) :local)
-     (send c :put :sensor-type :base_force6d)
-     (send sensor-link :assoc c)
-     (unless (assoc l/r sensor-coords-alist)
-       (push (cons l/r c) sensor-coords-alist))
-     (unless (assoc l/r end-coords-alist)
-       (push (cons l/r c) end-coords-alist))
+			  (if gripper-inner 23 -23)))
+		      :x)
+		:pos (send sensor-link :worldpos)))
+       ;;(send c :translate #f(0 0 -30) :local)
+       (send c :put :sensor-type :base_force6d)
+       (send sensor-link :assoc c)
+       (unless (assoc l/r sensor-coords-alist)
+	 (push (cons l/r c) sensor-coords-alist))
+       (unless (assoc l/r end-coords-alist)
+	 (push (cons l/r c) end-coords-alist)))
      ;;(setslot self (class self) (read-from-string (symbol-name l/r)) (reverse lst))
      #|
      (when (eq type :l6)
@@ -2279,6 +2282,16 @@
 	(send self :push-joint l/r 2 x-axis -170 170 :parent-link l :child-link
 	      (kxr-foot-link :l/r l/r :sole sole :sole-sensor sole-sensor :ankle-sensor ankle-sensor))
 	(when end (send self :add-link (kxr-mag-link end)))
+	)
+       (:foot
+	;;(format t ";; sole=~A, l/r=~A, leg=~A, limb-type=~A~%" sole l/r leg limb-type)
+	(when sole
+	  (let (cl l)
+	    (setq cl (kxr-foot-link :l/r l/r :sole sole :sole-sensor sole-sensor
+				    :ankle-sensor ankle-sensor :arm nil))
+	    (setq l (send self :add-link cl :target-link body-link :parent-name :joint-coord))
+	    ;;(format t ";; cl=~A, l=~A, lst=~A, jlst=~A~%" cl l lst jlst)
+	    ))
 	)
        (:l6s
 	;;(send self :push-joint l/r 0 :z -90 90 :parent-link body-link :child-link (kxr-wrist-y-link))
@@ -2541,13 +2554,15 @@
 		:child-link l1 :parent-name nil :active nil)
 	  )))
      ;; end-coords
-     (setq ec (make-cascoords
-	       :rot (rotation-matrix 0 :x)
-	       :pos (send (get (car lst) :joint-coord) :worldpos)
-	       :name (format nil "~A-end-coords" l/r)))
-     (push (cons l/r ec) end-coords-alist)
-     (send (car lst) :assoc ec)
-     (if (null l0) (setq l0 (car lst)))
+     (when
+	 (car lst)
+       (setq ec (make-cascoords
+		 :rot (rotation-matrix 0 :x)
+		 :pos (send (get (car lst) :joint-coord) :worldpos)
+		 :name (format nil "~A-end-coords" l/r)))
+       (push (cons l/r ec) end-coords-alist)
+       (send (car lst) :assoc ec)
+       (if (null l0) (setq l0 (car lst))))
      (send self :ln-ending type l/r gripper gripper-inner gripper-straight l0) ;; :setup-ln-limb
      ))
   (:setup-leg
@@ -2931,7 +2946,9 @@
 	       (setq c (get l :joint-coord))
 	       ;;(format t ";; ls=consp l=~A ls=~A, c=~A, prop=~A~%" l ls c prop)
 	       ;;
+	       ;;(setq top (send r :limb-top-link prop))
 	       (setq top (send r :torso-top-link))
+	       (format t ";;; top=~A, prop=~A, l=~A,c=~A~%" top prop l c)
 	       (when (and top (top . child-links))
 		 (setq m (send self :add-link top :target-link l))
 		 ;; (send m :assoc top) ;; 2024.1.8
