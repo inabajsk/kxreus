@@ -432,6 +432,17 @@
     ((memq limb '(:lleg :rleg :lleg0 :rleg0 :lleg1 :rleg1 :lleg2 :rleg2))
      (elt '("crotch" "knee" "ankle") i))))
 
+(defmethod robot-model
+  (:link-joint-check
+   nil
+   (let ((ln (length links))
+	 (jn (length joint-list)))
+     (cond
+      ((= ln (1+ jn)) (format t ";; OK ln=jn=~A~%" ln))
+      (t
+       (format t ";; NG ln=~A jn=~A~% links=~A~% joint-list=~A~%" ln jn links joint-list)))))
+  )
+
 (defmethod kxr-robot
   (:jlst-alist nil jlst-alist)
   (:lst-alist nil lst-alist)
@@ -451,6 +462,11 @@
    (&rest args)
    (prog1 (forward-message-to (cdr (assoc :rarm-gripper-r name-joint-list)) args)
      (forward-message-to (cdr (assoc :rarm-gripper2-r name-joint-list)) args)))
+  ;;
+  (:head-gripper-r
+   (&rest args)
+   (prog1 (forward-message-to (cdr (assoc :head-gripper-r name-joint-list)) args)
+     (forward-message-to (cdr (assoc :head-gripper2-r name-joint-list)) args)))
   ;;
   (:sit-pose ;; kxr-robot
    (&optional (knee 130))
@@ -679,6 +695,32 @@
 					   :pos (send l0 :worldpos)))
      (send head-end-coords :translate (float-vector -1 0 18) :local)
      l))
+  (:add-gripper-y
+   (&key head-sensor)
+   (let* ((ls (kxr-fingers-links :l/r :head :magbase (eq :mag-irsensor head-sensor)))
+	  (l0 (car ls)) (l1 (cadr ls))
+	  j l (g (kxr-gripper-servo-bodyset :straight t :base-b nil)))
+     (send g :rotate pi :y :world)
+     (setq l (send self :add-link (kxr-link-create (send g :bodies) :joint-coord (get g :joint-coord))
+		   :target-link body-link))
+     ;;(format t ";;;; l=~A (get l :joint-coord) =~A ;;;;~% " l (get l :joint-coord))
+     (send l1 :translate (float-vector 0 0 (sqrt (+ (* 21 21) (* 10.5 10.5)))) :world)
+     (send l0 :assoc l1)
+     (send l0 :rotate pi/2 :x :world)
+     (send l0 :rotate -pi/2 :y :world)
+     (send l0 :locate (send (get l :joint-coord) :worldpos))
+     ;;
+     (setq j (send self :push-joint :head "gripper" :y -100 100 :child-link l0
+		   :parent-link l :parent-name :joint-coord))
+     ;;(format t ";;;;;;;;;;;;;;;;; l=~A (l . joint)=~A ;;;;~% links=~A joint-list=~A" l (l . joint) links joint-list)
+     ;;(setq (l . joint) j)
+     (send self :push-joint :head "gripper2" :-y -100 100
+	   :child-link l1 :parent-link l :parent-name nil :active nil)
+     ;;(format t ";;;;;;;;;;;;;;;;; l=~A ;;;;;;;;;;; ~% links=~A joint-list=~A" l links joint-list)
+     (setq head-end-coords (make-cascoords :rot (rotation-matrix (atan2 -10.5 21.0) :y)
+					   :pos (send l0 :worldpos)))
+     (send head-end-coords :translate (float-vector -1 0 18) :local)
+     l))
   (:limb-top-link (limb) (or (car (last (send self limb))) body-link))
   (:torso-top-link () (or (car (last (assocdr :torso lst-alist))) body-link))
   (:neck-top-link () (or (car (last (assocdr :neck lst-alist))) (send self :torso-top-link)))
@@ -701,11 +743,11 @@
      (push (cons :tail (reverse jlst)) jlst-alist)
      ))
   (:setup-neck ;; kxr-robot
-   (&rest args &key stand neck-jf ((:body bod)) torso neck-p-sensor
+   (&rest args &key stand neck-jf ((:body bod)) torso neck-p-sensor horn
 	  (neck :y-p) head-b (neck-axis :p) (head-length 26) ((:head hd)) m5stack &allow-other-keys)
    (let (n)
      (setq lst nil jlst nil)
-     (when hd
+     (when neck  ;; hd 2025
        (cond
 	 ((memq bod '(:backpack))
 	  (send self :add-link 
@@ -721,73 +763,95 @@
 	  )
 	 ((memq torso '(:y-p-y :dy-p :dy-p2 :dy-p3 :ly-p :ly-pf :ly-p-high))
 	  (unless (null neck) (setq neck :p))))
+       (format t ";; neck=~A self=~A~%" neck self)
        (case
-	   neck
-	 (:y
-	  (send self :push-joint :head "neck" :z -170 170
-		:parent-link (setq n (send self :torso-top-link))
-		:parent-name (if (get n :neck) :neck :joint-coord)
-		:child-link 
-		(kxr-l2-neck-base-link :servo nil :rotate (eq hd :realsense-y)
-				       :base-b neck-jf ;; (eq neck-jf :b)
-				       ;; :sensor neck-p-sensor
-				       :horn t
-				       ))
-	  )
-	 (:y-p
-	  (send self :push-joint :head "neck" :z -170 170
-		:parent-link (setq n (send self :torso-top-link))
-		:parent-name (if (get n :neck) :neck :upper-coord)
-		:child-link 
-		(kxr-l2-neck-base-link :rotate (eq hd :realsense-y) :base-b neck-jf :horn t))
-	  (send self :push-joint :head "neck" :y -120 120 :child-link
-		(kxr-l2-head-link :roll (and (eq bod :l4b) (null stand)) :head nil :len head-length))
-	  )
-	 (:y-r-p ;;(:m5u3s :m5u3s2 :m5u3sv2 :m5u3sb)
-	  (if (and (eq bod :l4b) (null stand))
-	      (send self :push-joint :head "neck" :x -170 170 :parent-link (send self :torso-top-link)
-		    :parent-name :neck :child-link
-		    (kxr-arm-base-link :from :z :to :x :len 28 :apply-list (list (list :rotate pi/2 :y :world))))
-	      (send self :push-joint :head "neck" :z -170 170 :parent-link (send self :torso-top-link)
-		    :parent-name :neck :child-link (kxr-arm-base-link :from :z :to :x :len 28)))
-	  (if (and (eq bod :l4b) (null stand))
-	      (send self :push-joint :head "neck" :z -120 120 :child-link
-		    (kxr-cross-servo-link :apply-list (list (list :rotate -pi/2 :y :world) )))
-	      (if (eq hd :m5u3sb)
-		  (send self :push-joint :head "neck" :x -120 120 :child-link
-			(kxr-cross-servo-link :apply-list (list (list :rotate pi :x :world) (list :rotate pi :z :world))))
-		  (send self :push-joint :head "neck" :x -120 120 :child-link
-			(kxr-cross-servo-link :apply-list (list (list :rotate pi :x :world))))))
-	  (send self :push-joint :head "neck" :y -120 120
-		:child-link (kxr-l2-head-link :roll (and (eq bod :l4b) (null stand))
-					      :head nil :len 38))
-	  )
-	 (:y-p-r ;; (:h3s :h3sn :h3sl :h3sh :h3sv :h3svo :h3svi)
-	  (if (and (eq bod :l4b) (null stand))
-	      (send self :push-joint :head "neck" :x -170 170 :parent-link (send self :torso-top-link)
-		    :parent-name :neck :child-link
-		    (kxr-arm-base-link :from :z :to :y :len 38 :apply-list (list (list :rotate pi/2 :y :world))))
-	      (send self :push-joint :head "neck" :z -170 170 :parent-link (send self :torso-top-link)
-		    :parent-name :neck :child-link
-		    (kxr-arm-base-link :from :z :to :y :len 38)))
-	  (send self :push-joint :head "neck" :y -120 120 :child-link
-		(if (and (eq bod :l4b) (null stand))
-		    ;;(kxr-cross-servo-link :apply-list (list (list :rotate pi :z :world)))
-		    (kxr-cross-servo-link :apply-list (list (list :rotate pi :z :world) (list :rotate pi/2 :y :world)))
-		    (kxr-cross-servo-link)))
-	  (send self :push-joint :head "neck" :x -120 120
-		:child-link (kxr-l2-head-link :roll (and (eq bod :l4b) (null stand))
-					      :apply-list (list (list :rotate pi/2 :z :world))
-					      :head nil :len 28))
-	  )
-	 (:p
-	  (send self :push-joint :head "neck" :y -120 120
-		:parent-link (setq n (send self :torso-top-link))
-		:parent-name (if (get n :neck) :neck :joint-coord)
-		:child-link (kxr-l2-head-link :roll (and (eq bod :l4b) (null stand))
-					      ;; :sensor neck-p-sensor
-					      :head nil :len head-length))
-	  ))
+	neck
+	(:y
+	 (send self :push-joint :head "neck" :z -170 170
+	       :parent-link (setq n (send self :torso-top-link))
+	       :parent-name (if (get n :neck) :neck :joint-coord)
+	       :child-link 
+	       (kxr-l2-neck-base-link :servo nil :rotate (eq hd :realsense-y)
+				      :base-b neck-jf ;; (eq neck-jf :b)
+				      ;; :sensor neck-p-sensor
+				      :horn t
+				      ))
+	 )
+	((:y-p :y-p-no-horn)
+	 (send self :push-joint :head "neck" :z -170 170
+	       :parent-link (setq n (send self :torso-top-link))
+	       :parent-name (if (get n :neck) :neck :upper-coord)
+	       :child-link 
+	       (kxr-l2-neck-base-link :rotate (eq hd :realsense-y) :base-b neck-jf :horn t))
+	 (send self :push-joint :head "neck" :y -120 120 :child-link
+	       (kxr-l2-head-link :roll (and (eq bod :l4b) (null stand)) :head nil :len head-length))
+	 )
+	(:y-r-p ;;(:m5u3s :m5u3s2 :m5u3sv2 :m5u3sb)
+	 (if (and (eq bod :l4b) (null stand))
+	     (send self :push-joint :head "neck" :x -170 170 :parent-link (send self :torso-top-link)
+		   :parent-name :neck :child-link
+		   (kxr-arm-base-link :from :z :to :x :len 28 :apply-list (list (list :rotate pi/2 :y :world))))
+	   (send self :push-joint :head "neck" :z -170 170 :parent-link (send self :torso-top-link)
+		 :parent-name :neck :child-link (kxr-arm-base-link :from :z :to :x :len 28)))
+	 (if (and (eq bod :l4b) (null stand))
+	     (send self :push-joint :head "neck" :z -120 120 :child-link
+		   (kxr-cross-servo-link :apply-list (list (list :rotate -pi/2 :y :world) )))
+	   (if (eq hd :m5u3sb)
+	       (send self :push-joint :head "neck" :x -120 120 :child-link
+		     (kxr-cross-servo-link :apply-list (list (list :rotate pi :x :world) (list :rotate pi :z :world))))
+	     (send self :push-joint :head "neck" :x -120 120 :child-link
+		   (kxr-cross-servo-link :apply-list (list (list :rotate pi :x :world))))))
+	 (send self :push-joint :head "neck" :y -120 120
+	       :child-link (kxr-l2-head-link :roll (and (eq bod :l4b) (null stand))
+					     :head nil :len 38))
+	 )
+	(:y-p-r ;; (:h3s :h3sn :h3sl :h3sh :h3sv :h3svo :h3svi)
+	 (if (and (eq bod :l4b) (null stand))
+	     (send self :push-joint :head "neck" :x -170 170 :parent-link (send self :torso-top-link)
+		   :parent-name :neck :child-link
+		   (kxr-arm-base-link :from :z :to :y :len 38 :apply-list (list (list :rotate pi/2 :y :world))))
+	   (send self :push-joint :head "neck" :z -170 170 :parent-link (send self :torso-top-link)
+		 :parent-name :neck :child-link
+		 (kxr-arm-base-link :from :z :to :y :len 38)))
+	 (send self :push-joint :head "neck" :y -120 120 :child-link
+	       (if (and (eq bod :l4b) (null stand))
+		   ;;(kxr-cross-servo-link :apply-list (list (list :rotate pi :z :world)))
+		   (kxr-cross-servo-link :apply-list (list (list :rotate pi :z :world) (list :rotate pi/2 :y :world)))
+		 (kxr-cross-servo-link)))
+	 (send self :push-joint :head "neck" :x -120 120
+	       :child-link (kxr-l2-head-link :roll (and (eq bod :l4b) (null stand))
+					     :apply-list (list (list :rotate pi/2 :z :world))
+					     :head nil :len 28))
+	 )
+	(:y-p-p-p
+	 (send self :push-joint :head "neck0" :z -170 170 :parent-link (send self :torso-top-link)
+	       :parent-name :neck :child-link
+	       (kxr-arm-base-link :from :z :to :-y :len 38))
+	 ;;(format t ";;;; parent-link=~A (parent-link . joint)=~A ~%" (send self :torso-top-link)
+	 ;;((send self :torso-top-link) . joint))
+	 (send self :push-joint :head "neck0" :y -140 140 :child-link
+	       (kxr-kxrl4n-neck1-link))
+	 ;;(format t ";;;; (car lst)=~A ((car lst) . joint)=~A ~%" (car lst) ((car lst) . joint))
+	 (send self :push-joint :head "neck1" :y -140 140
+	       :child-link
+	       (kxr-kxrl4n-neck2-link))
+	 (let* ((l0 (kxr-arm-base-link :from :-z :to :y :len 38 :horn nil))
+		l (c (make-cascoords)))
+	   (send l0 :assoc c)
+	   (send l0 :translate (v- (send (get l0 :joint-coord) :worldpos)) :world)
+	   (setq l (kxr-link-create (send l0 :bodies) :joint-coord c))
+	   (setf (get l :joint-coord) c)
+	   (send l :assoc (get l :joint-coord))
+	   (send self :push-joint :head "neck2" :y -140 140 :child-link l)
+	   ))
+	(:p
+	 (send self :push-joint :head "neck" :y -120 120
+	       :parent-link (setq n (send self :torso-top-link))
+	       :parent-name (if (get n :neck) :neck :joint-coord)
+	       :child-link (kxr-l2-head-link :roll (and (eq bod :l4b) (null stand))
+					     ;; :sensor neck-p-sensor
+					     :head nil :len head-length))
+	 ))
        (case
 	   hd
 	 ((:h3 :h3-new)
@@ -822,13 +886,16 @@
      ))
   (:setup-head ;; kxr-robot
    (&rest args &key stand neck-jf ((:body bod)) torso (eye-length 26) (eye-y-rotate 3) (lego-bar 13)
-	  head-sensor (neck-axis :p) head-b head-b-front (3eye-rev 8) (3eye-front t) (3eye-cover t)
+	  neck head-sensor (neck-axis :p) head-b head-b-front (3eye-rev 8) (3eye-front t) (3eye-cover t)
 	  head-lidar (head-length 26) ((:head hd)) m5stack (m5stickv t) &allow-other-keys)
    (let (l hc hl leye reye)
      (case
 	 hd
        ((:d :d1 :d2)
 	(send self :add-gripper-p :head-sensor head-sensor))
+       ((:gripper-y)
+	(setq lst nil jlst nil)
+	(send self :add-gripper-y :head-sensor nil))
        ((:my3eye)
 	;;(send self :push-joint :head "neck" :y -120 120 :parent-link (send self :neck-top-link)
 	;;:child-link (kxr-l2-head-link :head nil :len head-length))
@@ -892,7 +959,7 @@
 	  (dolist (c (get h :cameras)) (send (car lst) :assoc c))
 	  )
 	))
-     (when hd
+     (when (or hd neck)
        (unless head-end-coords
 	 (cond
 	  ((> (length cameras) 1) ;; stereo head
@@ -2859,7 +2926,7 @@
 		   (setq (r . links) (cdr (r . links)))
 		   ))
 		 ))
-	      ((consp ls)   ;; larm, rarm, prop=keyword, grippers
+	      ((and r (consp ls))   ;; larm, rarm, prop=keyword, grippers
 	       (setq l (car (last ls)))
 	       (setq c (get l :joint-coord))
 	       ;;(format t ";; ls=consp l=~A ls=~A, c=~A, prop=~A~%" l ls c prop)
