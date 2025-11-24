@@ -412,7 +412,7 @@ nil
      (32 :head-neck-y -1)       (34 :head-neck-p -1)
      (33 :torso-chest-y -1)
      )
-    (("kxrkamakiri2") ;; same as kxrrobosetkamakiri
+    (("kxrkamakiri2") ;; same as kxrrobosetkamakiri2
      (:project-file
       "kxrkamakiri" ;; "kxra6g"
       ;;:body :l4c :type :l4 :head :d405eyes
@@ -538,6 +538,34 @@ nil
 		 (:mbase "kxrt1l2l5base")
 		 ))
      )
+    ;;
+    (("llegs6f")
+     (:body :mag+7 :type :module :noarm t :limb :lleg :leg :l6s :sole t)
+     (9 :lleg-crotch-r 1)
+     (11 :lleg-crotch-p -1)
+     (13 :lleg-knee-p 1)
+     (15 :lleg-ankle-p -1)
+     (17 :lleg-ankle-r -1)
+     (25 :lleg-crotch-y 1)
+     )
+    (("rlegs6f")
+     (:body :mag+7 :type :module :noarm t :limb :rleg :leg :l6s :sole t)
+     (8 :rleg-crotch-r 1)
+     (10 :rleg-crotch-p -1)
+     (12 :rleg-knee-p 1)
+     (14 :rleg-ankle-p -1)
+     (16 :rleg-ankle-r -1)
+     (24 :rleg-crotch-y 1)
+     )
+    ;;
+    (("kxrrobosetl2l6s")
+     (:robotset ("kxrl2sbody"
+		 (:neck "d405echos")
+		 (:larm "la6" "lg1sx") (:rarm "ra6" "rg1sx")
+		 (:lleg "llegs6f")
+		 (:rleg "rlegs6f"))
+		))
+    ;;
     (("kxrrobosetl2l6")
      (:robotset ("kxrl2body"
 		 (:neck "d405echos")
@@ -563,6 +591,11 @@ nil
 ;;; magnet modules body, base, limb
 ;;; body torso type
 ;;;
+    (("kxrl2sbody")
+     (:body :l2l6s :type :module :noleg t :noarm t
+	    :crotch-front t :shoulder-front nil
+	    :end :mag-7)
+     )
     (("kxrl2body")
      (:body :l2l5m :type :module :noleg t :noarm t :end :mag-7)
      )
@@ -951,6 +984,7 @@ nil
      (14 :rleg-ankle-p -1)
      (16 :rleg-ankle-r -1)
      )
+    ;;
     (("kxrlleg6")
      (:body :mag+7 :type :module :noarm t :limb :lleg :leg :l6 :end :mag-7)
      (9 :lleg-crotch-r 1)
@@ -969,6 +1003,7 @@ nil
      (16 :rleg-ankle-r -1)
      (24 :rleg-crotch-y 1)
      )
+    ;;
     (("kxrlleg6f") (:body :mag+7 :type :module :noarm t :limb :lleg :leg :l6 :sole t)
      (9 :lleg-crotch-r 1)
      (11 :lleg-crotch-p -1)
