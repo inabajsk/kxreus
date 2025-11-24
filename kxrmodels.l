@@ -395,7 +395,7 @@
 		  ((:lwing :rwing) (:gimbal0 :gimbal1 :gimbal2 :gimbal3))
 		  ((:torso) (:chest))
 		  ((:tail) (:roll))
-		  ((:head) (:leye :reye :neck :head :gripper :gripper2))))
+		  ((:head) (:leye :reye :neck :neck0 :neck1 :neck2 :head :gripper :gripper2))))
 	methname)
     (dolist (jo jorder)
       (dolist (limb (car jo))
