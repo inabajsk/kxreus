@@ -2213,6 +2213,21 @@
 	      (kxr-foot-link :l/r l/r :sole sole :sole-sensor sole-sensor :ankle-sensor ankle-sensor))
 	(when end (send self :add-link (kxr-mag-link end)))
 	)
+       (:l6s
+	;;(send self :push-joint l/r 0 :z -90 90 :parent-link body-link :child-link (kxr-wrist-y-link))
+	(send self :push-joint l/r 0 :z -135 133 :parent-link body-link 
+	      :child-link (kxr-arm-base-link :len 28 :horn nil))
+	(send self :push-joint l/r 0 x-axis -135 133
+	      :child-link (kxr-cross-servo-link :l/r l/r :sensor crotch-r-sensor))
+	(send self :push-joint l/r 0 :y -135 90 :child-link (kxr-double-arm-base-link :l/r l/r))
+	(send self :push-joint l/r 1 :y -100 160 :child-link (kxr-angle-arm-link :l/r l/r :sensor knee-p-sensor))
+	(send self :push-joint l/r 2 :y -105 105 :child-link
+	      (kxr-cross-servo-link :l/r l/r :apply-list (list (list :rotate pi :x :world))
+				    :sensor ankle-r-sensor))
+	(send self :push-joint l/r 2 x-axis -170 170 :parent-link l :child-link
+	      (kxr-foot-link :l/r l/r :sole sole :sole-sensor sole-sensor :ankle-sensor ankle-sensor))
+	(when end (send self :add-link (kxr-mag-link end)))
+	)
        (:l6
 	;;(send self :push-joint l/r 0 :z -90 90 :parent-link body-link :child-link (kxr-wrist-y-link))
 	(send self :add-link (kxr-wrist-y-link) :target-link body-link)
@@ -2761,7 +2776,7 @@
   (:find-robot-by-link
    (lnk)
    (find-if #'(lambda (x) (memq lnk (send x :links))) robots))
-  (:attach (r prop &aux m ls c l j top base)
+  (:attach (r prop &aux m n ls c l j top base)
 	   (when (stringp r)
 	     (cond
 	      #|
@@ -2781,6 +2796,20 @@
 	    ((keywordp prop)
 	     (setq ls (send self prop))
 	     (cond
+	      #|
+	      ((null ls)
+	       (warn ";; :attach ls=nil, self=~A, prop=~A, r=~A~%" self prop r)
+	       (when
+		   (setq c (get self prop))
+		 (when
+		     r
+		   (send r :locate (send c :worldpos) :world)
+		   (send self :add-link r :parent-name prop
+			 :target-link (base-robot . body-link))
+		   (when (r . links) (setq (r . links) (cdr (r . links))))
+		   )))
+	      |#
+	      ;;
 	      ((coordinates-p ls)  ;; prop=:mbase
 	       ;;(format t ";;ls=coordinates :attach prop=~A ls=~A~%" prop ls)
 	       (let (pt ptj (offset (float-vector 0 0 0)))
@@ -2801,7 +2830,7 @@
 		     ;;(format t ";; has torso ptj=~A, pt=~A, offset=~A~%" ptj pt offset)
 		     )
 		    (t
-		     (format t ";; :attach top:~A does not have :joint-coord~%" top)
+		     ;;(format t ";; :attach top:~A does not have :joint-coord~%" top)
 		     ))
 		   (setq l (send self :add-link top :parent-name prop
 				 :offset offset :target-link (base-robot . body-link)))
@@ -2832,20 +2861,38 @@
 		 ))
 	      ((consp ls)   ;; larm, rarm, prop=keyword, grippers
 	       (setq l (car (last ls)))
-	       ;;(format t ";; ls=consp :attach ls=~A, prop=~A~%" ls prop)
 	       (setq c (get l :joint-coord))
+	       ;;(format t ";; ls=consp l=~A ls=~A, c=~A, prop=~A~%" l ls c prop)
+	       ;;
 	       (setq top (send r :torso-top-link))
-	       (setq m (send self :add-link top :target-link l))
-	       ;; (send m :assoc top) ;; 2024.1.8
-	       (dolist (cl (top . child-links)) (setq ((cl . joint) . parent-link) m))
-	       (setq (r . links) (cdr (r . links)))
-	       (setq (m . child-links) (top . child-links))
-	       ;;(setq ((r . body-link) . parent-link) m)
-	       (setq m (send self :find-robot-by-link l))
-	       (setf (get m :attached) (append (get m :attached) (list r)))
+	       (when (and top (top . child-links))
+		 (setq m (send self :add-link top :target-link l))
+		 ;; (send m :assoc top) ;; 2024.1.8
+		 ;;(format t ";; top =~A, (top . child-links) =~A~%" top (top . child-links))
+		 (dolist (cl (top . child-links))
+		   (when (cl . joint)
+		     (setq ((cl . joint) . parent-link) m))
+		   )
+		 ;;(format t ";; r=~A, (r . links) =~A~%" r (r . links))
+		 (when (r . links)
+		   (setq (r . links) (cdr (r . links)))
+		   ;;(format t ";;2 r=~A, (r . links) =~A, m=~A~%" r (r . links) m)
+		   (when 
+		       m
+		     ;;(format t ";;3 m=~A, (m . child-links) =~A~%" m (m . child-links))
+		     (setq (m . child-links) (top . child-links))
+		     ;;(setq ((r . body-link) . parent-link) m)
+		     (when 
+			 (setq n (send self :find-robot-by-link l))
+		       ;;(format t ";;4 n=~A (get n :attached) =~A~%" n (get n :attached))
+		       (setf (get n :attached) (append (get n :attached) (list r)))
+		       ;;(format t ";;5 n=~A (get n :attached) =~A~%" n (get n :attached))
+		       )))
+		 )
 	       )
-	      ((setq c (get self prop))  ;; neck ls=nil
-	       ;; (format t ";;ls=~A :attach r=~A c=~A, prop=~A~%" ls r c prop)
+	      ((null ls)
+	       (setq c (get self prop))  ;; neck ls=nil
+	       ;;(format t ";;;;;; ls=~A :attach r=~A c=~A, prop=~A~%" ls r c prop)
 	       (when (coordinates-p c)
 		 (setq top (send r :torso-top-link))
 		 ;;(format t ";; :attach c=~A, top=~A~%" c top)
@@ -2872,9 +2919,9 @@
 	    )
 	   (unless (memq r robots)
 	     (setq robots (append robots (list r))))
-	   ;;(format t ";; before :init-ending self=~A r=~A prop=~A~%" self r prop)
 	   (send self :init-ending)
 	   (send self :update-objects)
+	   ;; (format t ";; after :update-objects self=~A r=~A prop=~A~%" self r prop)
 	   )
   (:find-from-robots
    (r)
