@@ -1911,7 +1911,7 @@
     (send b3l :rotate pi/2 :-x :world)
     (cond
       (crotch-front
-       (send b3l :rotate pi :x :world)
+;;       (send b3l :rotate pi :x :world)
        (send b3l :locate #f(14.5 33.0 0) :world))
       (t (send b3l :locate #f(0 33.0 0) :world)))
     (if side-front (send b3l :rotate pi :z :world))
@@ -1919,7 +1919,7 @@
     (send b3r :rotate pi/2 :-x :world)
     (cond
       (crotch-front
-       (send b3r :rotate pi :x :world)
+;;       (send b3r :rotate pi :x :world)
        (send b3r :locate #f(14.5 -33.0 0) :world))
       (t (send b3r :locate #f(0 -33.0 0) :world)))
     (if side-front (send b3r :rotate pi :z :world))
