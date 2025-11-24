@@ -625,13 +625,19 @@
     (send b :assoc c)
     b))
 (defun kxr-finger-bodyset (&key sensor gripper-axis with-wheel sensor-z-rotation
-				attachment)
+				magbase attachment)
   (let* ((a (kxr-finger-a))
-	 (b (kxr-finger-b)) (c (make-cascoords)) w blist s
+	 (b (kxr-finger-b)) (c (make-cascoords)) w blist s m
 	 (p (kxr-finger-palm-bodyset :attachment attachment
 				     :sensor sensor :sensor-z-rotation sensor-z-rotation)))
     (send a :locate #f(15.5 0 0))
     (send b :locate #f(-15.5 0 0))
+    (when magbase
+      (setq m (kxr-magbase :thickness 6))
+      (send m :translate #f(0 5 3) :world)
+      (send p :assoc m)
+      (push m blist)
+      )
     (send p :locate #f(0 30 10))
     (when with-wheel
       (setq w (kxr-passive-wheel-base-bodyset))

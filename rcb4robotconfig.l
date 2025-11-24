@@ -587,6 +587,16 @@ nil
 		 (:mbase "kxrl2l6base")
 		 ))
      )
+    (("head-gripper")
+     (:body :mag+7 :noleg t :noarm t :type :module  ;; :limb :head 
+	    :limb :head
+	    :neck nil
+	    :head :gripper-y)
+     (19 :head-gripper-p 1/2)   (19 :head-gripper2-p 1/2)
+     )
+    (("kxrl4nh4gir")
+     (:robotset ("kxrl4nh4"
+		 (:head "head-gripper"))))
 ;;;
 ;;; magnet modules body, base, limb
 ;;; body torso type
@@ -2363,6 +2373,17 @@ nil
      (19 :head-gripper-p -1/2)
      (19 :head-gripper2-p -1/2)
      )
+    (("kxrl4nh4-old")
+     (:body :l4t :type :l4 :arm :j2 :leg :j2
+	    :neck :y-p-p-p
+	    )
+     (11 :head-neck0-y 1)      (13 :head-neck0-p -1)
+     (17 :head-neck1-p -1)      (21 :head-neck2-p 1)
+     (2 :rarm-shoulder-y -1)  (3 :larm-shoulder-y -1)
+     (4 :rarm-shoulder-r -1)  (5 :larm-shoulder-r 1)
+     (6 :rleg-crotch-y -1)    (7 :lleg-crotch-y -1)
+     (8 :rleg-crotch-r -1)    (9 :lleg-crotch-r 1)
+     )
     (("kxrl4nh4")
      (:body :l4t :type :l4 :arm :j2 :leg :j2 :head :h2s
 	    )
@@ -2370,9 +2391,22 @@ nil
      (16 :head-joint2 1)      (20 :head-joint3 1)
      (18 :head-gripper 1/2)   (19 :rarm-gripper2 1/2)
      (2 :rarm-shoulder-y -1)  (3 :larm-shoulder-y -1)
-     (4 :rarm-shoulder-w -1)  (5 :larm-shoulder-w 1)
+     (4 :rarm-shoulder-r -1)  (5 :larm-shoulder-r 1)
      (6 :rleg-crotch-y -1)    (7 :lleg-crotch-y -1)
-     (8 :rleg-crotch-w -1)    (9 :lleg-crotch-w 1)
+     (8 :rleg-crotch-r -1)    (9 :lleg-crotch-r 1)
+     )
+    (("kxrl4nh4g")
+     (:body :l4t :type :l4 :arm :j2 :leg :j2
+	    :neck :y-p-p-p
+	    :head :gripper-y
+	    )
+     (11 :head-neck0-y 1)      (13 :head-neck0-p -1)
+     (17 :head-neck1-p -1)      (21 :head-neck2-p 1)
+     (19 :head-gripper-y 1/2)   (19 :head-gripper2-y 1/2)
+     (2 :rarm-shoulder-y -1)  (3 :larm-shoulder-y -1)
+     (4 :rarm-shoulder-r -1)  (5 :larm-shoulder-r 1)
+     (6 :rleg-crotch-y -1)    (7 :lleg-crotch-y -1)
+     (8 :rleg-crotch-r -1)    (9 :lleg-crotch-r 1)
      )
     (("kxrl4b1")
      (:body :l4b :type :l4 :head :h2s :neck :y-p-r ;; :y-r-p;; :h3sn
@@ -12208,15 +12242,22 @@ nil
 #-:arm
 (format t ";; (check-same-model-params)~%")
 
-(defparameter *kxr-body-config-hashtable* (make-hash-table :size 1000 :test #'string=))
-(dolist (conf *kxr-body-config-alist*)
-  (cond
-   ((listp (car conf));; names
-    (dolist (name (car conf))
-      (setf (gethash name *kxr-body-config-hashtable*) conf)))
-   ((stringp (car conf))
-    (setf (gethash (car conf) *kxr-body-config-hashtable*) conf)))
-  )
+(defparameter *kxr-body-config-hashtable*
+  (make-hash-table :size 1000 :test #'string=))
+
+(defun rcb4robotconfig-init nil
+  (dolist (conf *kxr-body-config-alist*)
+    (cond
+     ((listp (car conf));; names
+      (dolist (name (car conf))
+	(if (stringp name)
+	    (setf (gethash name *kxr-body-config-hashtable*) conf)
+	  (format t ";; not string conf=~A name=~A~%" conf name))))
+     ((stringp (car conf))
+      (setf (gethash (car conf) *kxr-body-config-hashtable*) conf)))
+    ))
+
+(rcb4robotconfig-init)
 
 (defun kxr-find-config-by-name (nm)
   (gethash nm *kxr-body-config-hashtable*))

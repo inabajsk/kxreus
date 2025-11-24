@@ -2166,6 +2166,24 @@
     (setq blist (append (send b0 :bodies) (send g :bodies)))
     (kxr-link-create blist :joint-coord c)))
 
+(defun kxr-kxrl4n-neck1-link ()
+  (let (l l2 blist c)
+    (setq l (kxr-y-wrist-p-link))
+    (setq l2 (kxr-arm-base-bodyset 38))
+    (send l2 :rotate pi/2 :z)
+    (setq c (get l2 :joint-coord))
+    (send l :assoc l2)
+    (send l :translate (v- (send (get l :joint-coord) :worldpos)) :world)
+    (setq blist (append (send l :bodies) (send l2 :bodies)))
+    (kxr-link-create blist :joint-coord c)
+    ))
+
+(defun kxr-kxrl4n-neck2-link nil
+  (let* ((l (kxr-l6-knee-link))
+	 (c (get l :joint-coord)))
+    (send l :rotate -pi/2 :y :world)
+    (kxr-link-create (send l :bodies) :joint-coord c)))
+
 (defun kxr-shoulder-r-link (&key (l/r :larm) (len 26) frontal)
   (let ((b0 (kxr-servo-s3301))
 	(b1f (kxr-joint-frame-a))
@@ -2262,8 +2280,8 @@
     (setq blist (append (send b0 :bodies) (send g :bodies)))
     (kxr-link-create blist :joint-coord (get g :joint-coord))))
 
-(defun kxr-finger1-link (&key (l/r :larm) sensor with-wheel gripper-axis attachment)
-  (let* ((f1 (kxr-finger-bodyset :attachment attachment :sensor sensor
+(defun kxr-finger1-link (&key (l/r :larm) sensor with-wheel gripper-axis attachment magbase)
+  (let* ((f1 (kxr-finger-bodyset :attachment attachment :sensor sensor :magbase magbase
 				 :gripper-axis gripper-axis :with-wheel with-wheel))
 	 w blist l (c (get f1 :joint-coord)))
     (cond
@@ -2276,8 +2294,8 @@
        ))
     (kxr-link-create (append (send f1 :bodies) blist) :joint-coord c)))
 
-(defun kxr-finger2-link (&key (l/r :larm) sensor gripper-axis attachment)
-  (let* ((f2 (kxr-finger-bodyset :attachment attachment
+(defun kxr-finger2-link (&key (l/r :larm) sensor gripper-axis attachment magbase)
+  (let* ((f2 (kxr-finger-bodyset :attachment attachment :magbase magbase
 				 :sensor sensor :gripper-axis gripper-axis))
 	 blist l (c (get f2 :joint-coord)))
     (send f2 :rotate pi :y)
@@ -2291,16 +2309,18 @@
     (kxr-link-create (send f2 :bodies) :joint-coord c)))
 
 (defun kxr-fingers-links (&key (l/r :larm) gripper-inner sensor gripper-axis
-			       attachment with-wheel)
+			       attachment with-wheel magbase)
   (let ((f1 (kxr-finger1-link
 	     :l/r l/r :with-wheel with-wheel :gripper-axis gripper-axis
 	     :attachment (when attachment (if (eq attachment :up) :rarm :larm))
+	     :magbase magbase
 	     :sensor
 	     (or (member sensor (list t l/r :finger1 '(:finger1)) :test #'equal)
 		 (and (memq :finger1 sensor) (memq l/r sensor)))))
 	(f2 (kxr-finger2-link 
 	     :l/r l/r :gripper-axis gripper-axis
 	     :attachment (when attachment (if (eq attachment :up) :larm :rarm))
+	     :magbase magbase
 	     :sensor (or (member sensor (list t l/r :finger2 '(:finger2)) :test #'equal)
 			 (and (memq :finger2 sensor) (memq l/r sensor))))))
     (if (or (eq gripper-inner t) (eq-memq l/r gripper-inner))

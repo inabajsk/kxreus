@@ -415,7 +415,27 @@
     )
   )
 
-(defun kxr-irsensor-head-bodyset (&optional b-a)
+(defun kxr-irsensor-head-bodyset (&key (len 20) base magbase)
+  (let ((b (kxr-irsensor-head))
+	(a (kxr-bottom-arm len))
+	blist l (c (make-cascoords)))
+
+    (if (or magbase base) (push (kxr-joint-base) blist))
+    (send b :move-named-coords "baseh0" a "downh2")
+    (send b :translate #f(4 0 0))
+    (send a :locate #f(13 0 0))
+    (push b blist)
+    (push a blist)
+    (dolist (o (cdr blist)) (send a :assoc o))
+    (send a :translate #f(0 0 3) :world)
+    (when
+	magbase
+      (send a :translate #f(0 0 6) :world)
+      (push (kxr-magbase :thickness 7) blist))
+    (kxr-bodyset-create blist c)
+    ))
+
+(defun kxr-irsensor-head-bodyset-old (&optional b-a)
   (let ((b (kxr-irsensor-head))
 	(a (kxr-bottom-arm26))
 	l (c (make-cascoords)))
@@ -576,7 +596,33 @@
     bod)
   )
 
-(defun kxr-magbase (&optional (hl 13.5) (thickness 4) (hl2 16) (dr 0.5) (dh 6))
+(defun kxr-magbase (&key (hl 13.5) (thickness 4) (hl2 16) (dr 0.5) (dh 6)
+			 (name "magbase"))
+  (let ((b
+	 (make-prism
+	  (list
+	   (float-vector (- dr hl) (- hl) 0)
+	   (float-vector (- hl) (- dr hl) 0)
+	   (float-vector (- hl2) (- dh) 0)
+	   (float-vector (- hl2)   dh   0)
+	   (float-vector (- hl) (- hl dr) 0)
+	   (float-vector (- dr hl) hl 0)
+	   (float-vector (- dh) hl2 0)
+	   (float-vector  dh hl2 0)
+	   (float-vector (- hl dr) hl 0)
+	   (float-vector hl (- hl dr) 0)
+	   (float-vector hl2 dh 0)
+	   (float-vector hl2 (- dh) 0)
+	   (float-vector hl (- dr hl) 0)
+	   (float-vector (- hl dr) (- hl) 0)
+	   (float-vector dh (- hl2) 0)
+	   (float-vector (- dh) (- hl2) 0))
+	  (float-vector 0 0 thickness)))
+	(h (make-fillet-cube 19 19 (* 3 thickness) 5 :segments 2)))
+    (setq b (body- b h))
+    (kxr-make-kxr-body name b b nil)))
+
+(defun kxr-magbase-old (&optional (hl 13.5) (thickness 4) (hl2 16) (dr 0.5) (dh 6))
   (make-prism
    (list
     (float-vector (- dr hl) (- hl) 0)
