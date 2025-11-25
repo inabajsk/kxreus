@@ -597,7 +597,7 @@
   )
 
 (defun kxr-magbase (&key (hl 13.5) (thickness 4) (hl2 16) (dr 0.5) (dh 6)
-			 (name "magbase"))
+			 (name "square-magbase"))
   (let ((b
 	 (make-prism
 	  (list
@@ -1203,11 +1203,11 @@
 (defun kxr-twinmagbase (&optional (name "twinmagbase") (height 11))
   (kxr-battery-mag-plate-aux :name name :height 9.5 :name name))
 
-(defun kxr-battery-mag-plate (&optional (name "battery-mag-plate"))
+(defun kxr-battery-mag-plate (&optional (name "battery-mag-plate-9.5"))
   (kxr-battery-mag-plate-aux :height 9.5 :name name))
-(defun kxr-battery-doublemag-plate (&optional (name "battery-doublemag-plate"))
+(defun kxr-battery-doublemag-plate (&optional (name "battery-doublemag-plate19"))
   (kxr-battery-mag-plate-aux :height 19 :name name))
-(defun kxr-battery-mag-plate-aux (&key (height 8) (name "battery-mag-plate"))
+(defun kxr-battery-mag-plate-aux (&key (height 8) (name "battery-mag-plate8"))
   (let* ((h- (- height))
 	 (bod
 	  (make-prism
