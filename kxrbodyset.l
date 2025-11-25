@@ -1952,6 +1952,25 @@
        (send bwr :rotate pi :z :world)
        ))
     ;;
+    (when (null shoulder-servo)
+      (setq al (kxr-arm-base-bodyset 28))
+      (send al :rotate -pi/2 :x :world)
+      (send al :rotate  pi/2 :y :world)
+      (send al :locate (send (get b3l :joint-coord) :worldpos) :world)
+      (send al :translate (float-vector (if shoulder-front -10.5 10.5) -7.5 0) :world)
+      (send bwl :assoc al)
+      (setf (get bwl :joint-coord) (get al :joint-coord))
+      ;;
+      (setq ar (kxr-arm-base-bodyset 28))
+      (send ar :rotate pi/2 :x :world)
+      (send ar :rotate pi/2 :y :world)
+      (send ar :locate (send (get bwr :joint-coord) :worldpos) :world)
+      (send ar :translate (float-vector (if shoulder-front -10.5 10.5) 7.5 0) :world)
+      (send bwr :assoc ar)
+      (setf (get bwr :joint-coord) (get ar :joint-coord))
+      ;;(send bwr :assoc (get bwr :joint-coord))
+      (setq blist (append (send al :bodies) (send ar :bodies))))
+    ;;
     (send b3h :rotate pi/2 :x :world)
     (send b3h :locate (float-vector 0 0 (+ 10.5 21)) :world)
     (send ca :locate (midpoint 0.5 (send ra :worldpos) (send la :worldpos)))
@@ -1964,6 +1983,7 @@
 			(send bwl :bodies) (send bwr :bodies)
 			(send b3l :bodies) (send b3r :bodies)
 			(send b3h :bodies)))
+
     (setq l (kxr-bodyset-create blist))
     (setf (get l :neck) hc)
     (setf (get l :torso) hc (get l :lleg) la (get l :rleg) ra)
