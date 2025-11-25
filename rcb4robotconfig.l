@@ -583,7 +583,7 @@ nil
      (24 :rleg-crotch-y 1)
      )
     ;;
-    (("kxrrobosetl2l6s")
+    (("kxrrobosetl2l6s0")
      (:robotset ("kxrl2sbody"
 		 (:neck "d405echos")
 		 (:larm "la6" "lg1sx") (:rarm "ra6" "rg1sx")
@@ -591,12 +591,26 @@ nil
 		 (:rleg "rlegs6f"))
 		))
     ;;
-    (("kxrrobosetl2l6s2")
+    (("kxrrobosetl2l6s")
      (:robotset ("kxrl2sbody"
 		 (:neck "d405echos")
 		 (:larm "la6" "lg1sx") (:rarm "ra6" "rg1sx")
 		 (:lleg "llegs6" "llegf")
 		 (:rleg "rlegs6" "rlegf"))
+		))
+    ;;
+    (("lsf")
+     (:body :mag+7 :type :module :noarm t :limb :lleg :leg :foot :sole-sensor t)
+     )
+    (("rsf")
+     (:body :mag+7 :type :module :noarm t :limb :rleg :leg :foot :sole-sensor t)
+     )
+    (("kxrrobosetl2l6s1")
+     (:robotset ("kxrl2sbody"
+		 (:neck "d405echos")
+		 (:larm "la6" "lg1sx") (:rarm "ra6" "rg1sx")
+		 (:lleg "llegs6" "lsf")
+		 (:rleg "rlegs6" "rsf"))
 		))
     ;;
     (("kxrrobosetl2l6")
