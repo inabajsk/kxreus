@@ -126,9 +126,10 @@
 	(send l :assoc (get l m))))
     l))
 
-(defun kxr-l2w2-body-link (&key center-front shoulder-front side-front front-cut crotch-front shoulder-center)
+(defun kxr-l2w2-body-link (&key center-front shoulder-front side-front front-cut crotch-front shoulder-center (shoulder-servo t))
   (let ((bs (kxr-l2w2-body-bodyset
 	     :shoulder-front shoulder-front :crotch-front crotch-front :shoulder-center shoulder-center
+	     :shoulder-servo shoulder-servo
 	     :side-front side-front :center-front center-front :front-cut front-cut))
 	l)
     (setq l (kxr-link-create bs))

@@ -1102,6 +1102,7 @@
 			      :side-front crotch-side-front)))
      (:l2l6s (setq body-link (kxr-l2w2-body-link
 			      :shoulder-front shoulder-front
+			      :shoulder-servo (not (eq shoulder :ypry-cross))
 			      :crotch-front crotch-front
 			      :shoulder-center shoulder-center)))
      ;;

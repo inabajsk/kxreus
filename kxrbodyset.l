@@ -658,7 +658,8 @@
     s)
   )
 
-(defun kxr-servo-half-arm-supporter-a-bodyset (&key bottom roll bridge neck-front)
+(defun kxr-servo-half-arm-supporter-a-bodyset (&key bottom roll bridge neck-front
+						    (servo t))
   (let* ((b (kxr-servo-s3301))
 	 jf0 jf1
 	 (b1b (kxr-joint-base))
@@ -711,7 +712,10 @@
     (send b :rotate pi/2 :x :world)
     (if bottom
 	(setq blist (append (list b b0 f1 b1b b1f) bs (send l :bodies)))
-	(setq blist (append (list b f1 b1b b1f) bs)))
+      (setq blist (append (list b f1 b1b b1f) bs)))
+    (when (null servo)
+      (pop blist)
+      (dolist (b (cdr blist)) (send (car blist) :assoc b)))
     (setq l (kxr-bodyset-create blist))
     (send l :assoc jc)
     (send l :assoc bc)
@@ -1879,7 +1883,7 @@
 
 
 (defun kxr-l2w2-body-bodyset (&key center-front shoulder-front crotch-front shoulder-center
-				side-front front-cut (back-pack t))
+				   side-front front-cut (back-pack t) (shoulder-servo t))
   (let* ((b3h (kxr-servo-double-arm-supporter-a-bodyset))
 	 (b3l (kxr-servo-double-arm-supporter-a-bodyset :front crotch-front))
 	 (b3r (kxr-servo-double-arm-supporter-a-bodyset :front crotch-front))
@@ -1887,10 +1891,12 @@
 	 (ra (get b3r :joint-coord))
 	 (bwl (if shoulder-center
 		  (kxr-servo-double-joint-frame-bodyset t)
-		  (kxr-servo-half-arm-supporter-a-bodyset :neck-front (null shoulder-front))))
+		(kxr-servo-half-arm-supporter-a-bodyset :neck-front (null shoulder-front)
+							:servo shoulder-servo)))
 	 (bwr (if shoulder-center
 		  (kxr-servo-double-joint-frame-bodyset t)
-		  (kxr-servo-half-arm-supporter-a-bodyset :neck-front (null shoulder-front))))
+		(kxr-servo-half-arm-supporter-a-bodyset :neck-front (null shoulder-front)
+							:servo shoulder-servo)))
 	 (wla (get bwl :joint-coord))
 	 (wra (get bwr :joint-coord))
 	 (pf (kxr-body-plate))
