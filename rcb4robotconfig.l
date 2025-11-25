@@ -1044,7 +1044,7 @@ nil
      )
     ;;
     (("la7")
-     (:body :mag+7 :noleg t :limb :larm :type :module 
+     (:body :mag-0 :noleg t :limb :larm :type :module 
 	    :shoulder :ypry-cross :shoulder-front t :shoulder-low t :flat-shoulder nil ;;:shoulder :ly-p-rb
 	    :elbow :angle :wrist :cross-pr :upper-arm-length 38 
 	    :end :horn-mag-
@@ -1058,7 +1058,7 @@ nil
      (29 :larm-wrist-r -1)
      )
     (("ra7")
-     (:body :mag+7 :noleg t :limb :rarm :type :module
+     (:body :mag-0 :noleg t :limb :rarm :type :module
 	    :shoulder :ypry-cross :shoulder-front t :shoulder-low t :flat-shoulder nil ;;:shoulder :ly-p-rb
 	    :elbow :angle :wrist :cross-pr :upper-arm-length 38 
 	    :end :horn-mag-

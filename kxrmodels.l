@@ -1235,7 +1235,7 @@
 	      (setf (get body-link :neck) (get body-link :joint-coord))
 	      (setf (get body-link :torso) (get body-link :joint-coord)))
 	    )
-     ((:mag-4 :mag-7 :mag+7 :horn-mag- :horn-mag+ :sensor-mag+ :horn-sensor-mag+)
+     ((:mag-0 :mag-4 :mag-7 :mag+7 :horn-mag- :horn-mag+ :sensor-mag+ :horn-sensor-mag+)
       (setq body-link (kxr-mag-link bod)))
      )
    (when backpack

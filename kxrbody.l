@@ -647,6 +647,7 @@
 (defun kxr-joint-mag (typ)
   (case
       typ
+    (:mag-0 (kxr-joint-mag-0))
     (:mag-4 (kxr-joint-mag-4))
     (:mag+7 (kxr-joint-mag+7))
     (:horn-mag- (kxr-joint-horn-mag-))
@@ -656,6 +657,8 @@
     (t (kxr-joint-mag-7)))
   )
 
+(defun kxr-joint-mag-0 nil
+  (let ((b (make-cube 0.1 0.1 0.1)) holes) (kxr-make-kxr-body "joint-mag-0" b b holes)))
 (defun kxr-joint-mag-4 nil  (kxr-joint-mag-aux 4 "joint-mag-4" :center-hole t))
 (defun kxr-joint-mag-7 nil  (kxr-joint-mag-aux 7 "joint-mag-7" :sensor-hole t))
 (defun kxr-joint-mag+7 nil  (kxr-joint-mag-aux 7 "joint-mag+7" :sensor-hole :all))
