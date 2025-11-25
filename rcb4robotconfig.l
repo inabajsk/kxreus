@@ -234,9 +234,17 @@ nil
 (defparameter *kxr-body-config-alist*
   '(
 ;;; robot set models with magnet detachable modules
-    (("kxrroboset2")
+    (("kxrroboset1")
      (:robotset ("kxrl2body"   ;; "kxrl2a6h2body"
-		 (:neck "d405cam")
+		 (:neck "d405eyes") ;; (:neck "d405cam")
+		 (:larm "la6" "lg1sx") (:rarm "ra6" "rg1sx")
+		 (:lleg "lleg5" "lsf")
+		 (:rleg "rleg5" "rsf"))
+		)
+     )
+    (("kxrroboset2")
+     (:robotset ("kxrl2sbody"   ;; "kxrl2a6h2body"
+		 (:neck "d405eyes") ;; (:neck "d405cam")
 		 (:larm "la6" "lg1sx") (:rarm "ra6" "rg1sx")
 		 (:lleg "llegs6" "lsf")
 		 (:rleg "rlegs6" "rsf"))
@@ -244,14 +252,14 @@ nil
      )
     (("kxrroboset3")
      (:robotset ("kxrl27body"   ;; "kxrl2a6h2body"
-		 (:neck "d405cam")
+		 (:neck "d405eyes")
 		 (:larm "la7" "lg1sx") (:rarm "ra7" "rg1sx")
 		 (:lleg "lleg5" "lsf")
 		 (:rleg "rleg5" "rsf"))
 		))
     (("kxrroboset4")
      (:robotset ("kxrl27sbody"   ;; "kxrl2a6h2body"
-		 (:neck "d405cam")
+		 (:neck "d405eyes");; "d405cam"
 		 (:larm "la7" "lg1sx") (:rarm "ra7" "rg1sx")
 		 (:lleg "llegs6" "lsf")
 		 (:rleg "rlegs6" "rsf"))
@@ -263,6 +271,7 @@ nil
 		 (:lleg "lleg6" "lsf")
 		 (:rleg "rleg6" "rsf"))
 		))
+    ;;
     (("kxrroboset2-bug")
      (:robotset ("kxrl2a6h2body"
 		 ;;(:lleg "llegs6" "lsf")
