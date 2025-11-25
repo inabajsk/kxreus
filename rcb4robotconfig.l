@@ -607,10 +607,18 @@ nil
      )
     (("kxrrobosetl2l6s1")
      (:robotset ("kxrl2sbody"
-		 (:neck "d405echos")
+		 ;;(:neck "d405echos")
+		 (:neck "d405cam")
 		 (:larm "la6" "lg1sx") (:rarm "ra6" "rg1sx")
 		 (:lleg "llegs6" "lsf")
 		 (:rleg "rlegs6" "rsf"))
+		))
+    (("kxrrobosetl2l6s2")
+     (:robotset ("kxrl2sbody"
+		 (:neck "d405cam")
+		 (:larm "la6" "lg1sx") (:rarm "ra6" "rg1sx")
+		 (:lleg "llegs6" "llegf")
+		 (:rleg "rlegs6" "rlegf"))
 		))
     ;;
     (("kxrrobosetl2l6")
