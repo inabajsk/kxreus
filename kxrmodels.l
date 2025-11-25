@@ -722,6 +722,8 @@
      (send head-end-coords :translate (float-vector -1 0 18) :local)
      l))
   ;;(:limb-top-link (limb) (or (car (last (send self limb))) body-link))
+  (:limb-start-link (limb) (or (car (assocdr limb lst-alist)) body-link))
+  (:limb-end-link (limb) (or (car (last (assocdr limb lst-alist))) body-link))
   (:limb-top-link (limb) (or (car (last (assocdr limb lst-alist))) body-link))
   (:torso-top-link () (or (car (last (assocdr :torso lst-alist))) body-link))
   (:neck-top-link () (or (car (last (assocdr :neck lst-alist))) (send self :torso-top-link)))
@@ -1489,6 +1491,12 @@
 	   (setf (get l p) (get add-child-link p))
 	   (when (derivedp (get l p) cascaded-coords)
 	     (send l :assoc (get l p)))))
+       ;;
+       (dolist (cl (add-child-link . child-links))
+	 (send l :assoc cl)
+	 (setq ((cl . joint) . parent-link) l)
+	 (setq ((cl . joint) . child-link) cl))
+       ;;
        (when jlst
 	 (send (send (car jlst) :parent-link) :assoc l))
        l)))
@@ -1585,9 +1593,10 @@
      (send j :put :rotor-inertia rotor-inertia)
      j))
   (:push-joint
-   (&optional limb i-str axis min max &rest args &key parent-link &allow-other-keys &aux j)
+   (&optional limb i-str axis min max &rest args &key parent-link child-link &allow-other-keys &aux j)
    (if (and (null parent-link) jlst) (setq parent-link (send (car jlst) :child-link)))
-   (setq j (send* self :create-joint limb i-str axis min max :parent-link parent-link args))
+   (setq j (send* self :create-joint limb i-str axis min max
+		  :parent-link parent-link :child-link child-link args))
    (push (send j :child-link) lst)
    (push j jlst)
    j)
@@ -2284,15 +2293,11 @@
 	(when end (send self :add-link (kxr-mag-link end)))
 	)
        (:foot
-	;;(format t ";; sole=~A, l/r=~A, leg=~A, limb-type=~A~%" sole l/r leg limb-type)
-	(when sole
-	  (let (cl l)
-	    (setq cl (kxr-foot-link :l/r l/r :sole sole :sole-sensor sole-sensor
-				    :ankle-sensor ankle-sensor :arm nil))
-	    (setq l (send self :add-link cl :target-link body-link :parent-name :joint-coord))
-	    ;;(format t ";; cl=~A, l=~A, lst=~A, jlst=~A~%" cl l lst jlst)
-	    ))
-	)
+	(let (cl l)
+	  (setq cl (kxr-foot-link :l/r l/r :sole t :sole-sensor sole-sensor
+				  :ankle-sensor ankle-sensor :arm nil))
+	  (setq l (send self :add-link cl :target-link body-link :parent-name :joint-coord))
+	  ))
        (:l6s
 	;;(send self :push-joint l/r 0 :z -90 90 :parent-link body-link :child-link (kxr-wrist-y-link))
 	(send self :push-joint l/r 0 :z -135 133 :parent-link body-link 
@@ -2334,14 +2339,14 @@
 		   (if gripper-straight nil
 		       (if (not (memq shoulder '(:y-p-r :ly-p-r :ly-p-rb :uy-p-r))) (if wrist-inner :y- :y+)
 			   wrist-inner))
-		   :gripper-sensor gripper-sensor)))
+		   :gripper-sensor gripper-sensor))
+	      j1 j2)
 	  (if (eq gripper-axis :y)
 	      (send body-link :rotate -pi/2 :y :world))
 	  ;; gs= (l:base l0:finger1 l1:finger2 {l2:passive-wheel})
 	  (setq l (send self :add-link (elt gs 0) :target-link body-link))
 	  (setq ec (get (elt gs 0) :end-coords))
-	  (send body-link :assoc ec)
-	  ;;
+	  (send l :assoc ec)
 	  (send self :push-joint l/r "gripper" :x -100 100
 		:child-link (elt gs 1) :parent-link l)
 	  (send self :push-joint l/r "gripper2" :x -100 100
@@ -2858,17 +2863,37 @@
   (:find-robot-by-link
    (lnk)
    (find-if #'(lambda (x) (memq lnk (send x :links))) robots))
+  (:attach*
+   (prop rlst)
+   (let (rr r m n j target-link)
+     (setq rr (mapcar
+	       #'(lambda (r)
+		   (when (stringp r)
+		     (cond
+		      ((setq n (find-if #'(lambda (x) (string= r (send x :name))) robots)) n)
+		      (t (kxr-create-robot r :model nil)))))
+	       rlst))
+     (setq robots (union robots rr))
+     (setq target-link (base-robot . body-link))
+     (while (setq r (pop rr))
+       (setq r-link (r . body-link))
+       (setq m (send self :add-link r-link :target-link target-link :parent-name prop))
+       (when (setq j (car (r . joint-list)))
+	 (setq (j . parent-link) m)
+	 )
+       (setq (r . links) (cdr (r . links)))
+       (setq joint-list (append joint-list (r . joint-list)))
+       (when (setq target-link (send r :limb-end-link prop))
+	 (when (get target-link :joint-coord)
+	   (setf (get target-link prop) (get target-link :joint-coord)))
+	 )
+       )
+     (send self :init-ending)
+     (send self :update-objects)
+     ))
   (:attach (r prop &aux m n ls c l j top base)
 	   (when (stringp r)
 	     (cond
-	      #|
-	      ((setq m
-	      (find-if #'(lambda (x) (string= r (send x :name))) detached-robots))
-	      (setq detached-robots (remove-if 
-	      #'(lambda (x) (string= r (send x :name)))
-	      detached-robots))
-	      (setq r m))
-	      |#
 	      ((setq m (find-if #'(lambda (x) (string= r (send x :name))) robots))
 	       (setq r m))
 	      (t
@@ -2878,20 +2903,6 @@
 	    ((keywordp prop)
 	     (setq ls (send self prop))
 	     (cond
-	      #|
-	      ((null ls)
-	       (warn ";; :attach ls=nil, self=~A, prop=~A, r=~A~%" self prop r)
-	       (when
-		   (setq c (get self prop))
-		 (when
-		     r
-		   (send r :locate (send c :worldpos) :world)
-		   (send self :add-link r :parent-name prop
-			 :target-link (base-robot . body-link))
-		   (when (r . links) (setq (r . links) (cdr (r . links))))
-		   )))
-	      |#
-	      ;;
 	      ((coordinates-p ls)  ;; prop=:mbase
 	       ;;(format t ";;ls=coordinates :attach prop=~A ls=~A~%" prop ls)
 	       (let (pt ptj (offset (float-vector 0 0 0)))
@@ -2945,7 +2956,6 @@
 	       (setq l (car (last ls)))
 	       (setq c (get l :joint-coord))
 	       ;;(format t ";; ls=consp l=~A ls=~A, c=~A, prop=~A~%" l ls c prop)
-	       ;;
 	       ;;(setq top (send r :limb-top-link prop))
 	       (setq top (send r :torso-top-link))
 	       (format t ";;; top=~A, prop=~A, l=~A,c=~A~%" top prop l c)
@@ -2955,8 +2965,7 @@
 		 ;;(format t ";; top =~A, (top . child-links) =~A~%" top (top . child-links))
 		 (dolist (cl (top . child-links))
 		   (when (cl . joint)
-		     (setq ((cl . joint) . parent-link) m))
-		   )
+		     (setq ((cl . joint) . parent-link) m)))
 		 ;;(format t ";; r=~A, (r . links) =~A~%" r (r . links))
 		 (when (r . links)
 		   (setq (r . links) (cdr (r . links)))
