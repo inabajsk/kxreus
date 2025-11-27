@@ -188,7 +188,7 @@
       (setq r (eval form))
       r)))
     
-(defun kxr-create-robot (&optional name-str &key (model 0) generate head);;((:viewer create-viewer))
+(defun kxr-create-robot (&optional name-str &key (model 0) generate head)
   (let* ((bconfig (kxr-body-config name-str))
 	 (model-params (if bconfig (cadr bconfig) nil))
 	 (file (cadr (assoc :file (plist-to-alist model-params))))
@@ -296,6 +296,7 @@
 
 (defun kxr-make-robot (&optional name-str &key (initial-pos (float-vector 0 0 0))
 				 ((:viewer vw) (xwindow-ready?))
+				 (width 400) (height 400)
 				 (model 0) generate head)
   (let (r)
     (if (derivedp name-str robot-model) (setq name-str (send name-str :name)))
@@ -306,7 +307,7 @@
 	     (push (set (robot-gvar name-str) r) *robots-made*)
 	     (send (car *robots-made*) :locate initial-pos :world)
 	     (when vw
-	       (setq *irtviewer* (make-irtviewer :width 400 :height 400))
+	       (setq *irtviewer* (make-irtviewer :width width :height height))
 	       (send *irtviewer* :change-background (float-vector 0 0.9 0.7))
 	       (send *irtviewer* :title (send r :name))
 	       (setf (get r :viewer) *irtviewer*)
@@ -316,19 +317,22 @@
 	     *robot*))))
 
 (defun kxr-make-robot-interface (&optional name-str
-					   &key ((:viewer create-viewer)) (model 0) rcb4 head)
-  (make-kxr-robot-interface name-str :viewer create-viewer :model model :rcb4 rcb4 :head head))
+					   &key ((:viewer create-viewer)) (model 0) rcb4 head
+					   (width 400) (height 400))
+  (make-kxr-robot-interface name-str :viewer create-viewer :model model :rcb4 rcb4 :head head
+			    :width width :height height))
 
 (defvar *ris-made*)
 (defun make-kxr-robot-interface (&optional name-str &key ((:viewer create-viewer)) (model 0)
-					   (rcb4 t) head)
+					   (width 400) (height 400) (rcb4 t) head)
   (if rcb4 (setq *rcb4-interface-class* rcb4-interface))
   (setq *ri* (instance *rcb4-interface-class* :init))
   (unless name-str (setq name-str (unix::getenv "ROBOT_NAME")))
   (unless name-str
     (send *ri* :com-init)
     (setq name-str (send *ri* :scan-robot-name)))
-  (send *ri* :create-robot name-str :create-viewer create-viewer :model model :head head)
+  (send *ri* :create-robot name-str :create-viewer create-viewer :model model :head head
+	:width width :height height)
   (set (intern (format nil "*RI-~A*" (string-upcase name-str))) *ri*)
   (pushnew *ri* *ris-made*)
   *ri*)
@@ -341,6 +345,7 @@
   (setq *kxr-model-panel* (instance x::kxr-model-panel :create)))
 
 (defun make-kxr-robot (&optional name-str &key ((:viewer vw) (xwindow-ready?)) (ri t) (model 0)
+				 (width 400) (height 400)
 				 (rcb4 t) generate head)
   (unless name-str (setq name-str (unix::getenv "ROBOT_NAME")))
   (unless
@@ -356,12 +361,13 @@
   (cond
    ((and name-str
 	 (setq *robot* (kxr-make-robot name-str :model model :generate generate
+				       :width width :height height
 				       :viewer vw :head head)))
     (when ri
       (if (derivedp ri rcb4-interface)
 	  (setq *ri* ri)
 	(setq *ri* (send *robot* :create-ri :viewer vw :model (if generate t model) :rcb4 rcb4
-			 :head head))))
+			 :width width :height height :head head))))
     (when vw
       (if (and (boundp 'x::kxr-model-panel)
 	       (memq :create-control-panel (send *robot* :methods)))

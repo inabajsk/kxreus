@@ -967,12 +967,12 @@
    (&optional (name-str (send robot :config-name)))
    (send self :set-project-file name-str))
   (:setup
-   (&optional create-viewer)
+   (&optional create-viewer &key (width 400) (height 400))
    (let* ((name-str (send robot :config-name))
 	  (pdir (rcb4-robot-project-dir name-str))
 	  (conf (kxr-body-config name-str))
 	  (board (assoc :board (plist-to-alist (cadr conf)))))
-     (send self :setup-vectors robot create-viewer)
+     (send self :setup-vectors robot create-viewer :width width :height height)
      (send self :config conf)
      (send self :set-device-config)
      (send self :set-project-file)
@@ -984,15 +984,16 @@
      (send self :setup-cboard control-board)
      self))
   (:setup-vectors
-   (robo &optional create-viewer)
+   (robo &optional create-viewer &key (width 400) (height 400))
    (setq robot robo)
    (setq name (send robot :config-name))
    (if (null name) (error ";; robot name becomes nil, robot=~A~%" robot))
    (unless rcb4machine (setq rcb4machine (instance rcb4-machine :init)))
    (send rcb4machine :set-robot robot)
    (if (send rcb4machine :viewer)
-       (send rcb4machine :create-viewer :viewer (send rcb4machine :viewer))
-     (if create-viewer (send rcb4machine :create-viewer)))
+       (send rcb4machine :create-viewer :viewer (send rcb4machine :viewer)
+	     :width width :height height)
+     (if create-viewer (send rcb4machine :create-viewer :width width :height height)))
    (setq av-length (length (send robot :angle-vector)))
    (setq free-vector (make-sequence vector av-length :initial-element t))
    (setq servo-vector 
@@ -1019,20 +1020,22 @@
    (setq servo-ary (instantiate integer-vector (* 3 rcb4-dof)))
    )
   ;; rcb4-interface
-  (:init (&optional robo-or-str &key (create-viewer (xwindow-ready?)) (sv-len *rcb4-dof*) (model t) head)
+  (:init (&optional robo-or-str &key (create-viewer (xwindow-ready?)) (sv-len *rcb4-dof*) (model t) head
+		    (width 400) (height 400))
 	 (setq rcb4-dof *rcb4-dof*)
 	 (setq sv-length sv-len)
 	 (when robo-or-str
 	   (send self :create-robot robo-or-str :create-viewer create-viewer :model model
-		 :head head))
+		 :width width :height height :head head))
 	 self)
   ;;
   (:create-robot
-   (robo-or-str &key (create-viewer (xwindow-ready?)) (model t) head)
+   (robo-or-str &key (create-viewer (xwindow-ready?)) (model t) head
+		(width 400) (height 400))
    (if (derivedp robo-or-str robot-model)
        (setq robot robo-or-str)
      (setq robot (kxr-create-robot robo-or-str :model model :head head)))
-   (when robot (send self :setup create-viewer))
+   (when robot (send self :setup create-viewer :width width :height height))
    #|
    (when (and create-viewer
 	      (boundp '*irtviewer*) (send *irtviewer* :objects)

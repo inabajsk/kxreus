@@ -802,12 +802,13 @@
       (t (kxr-config-name (send self :model-params))))
      ))
   (:create-ri
-   (&key ((:viewer create-viewer) (xwindow-ready?)) (model t) rcb4 head)
+   (&key ((:viewer create-viewer) (xwindow-ready?)) (model t) rcb4 head
+	 (width 400) (height height))
    (when (get self :ri) (send self :delete-ri))
    (send self :set-ri
 	 (make-kxr-robot-interface (send self :config-name) :viewer create-viewer :model model
-				   :rcb4 rcb4 :head head)
-	 ))
+				   :rcb4 rcb4 :head head :width width :height height))
+   )
   (:delete-ri
    ()
    (when (xwindow-ready?) (send self :ri :robot :viewer :quit))
