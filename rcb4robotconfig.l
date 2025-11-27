@@ -1314,7 +1314,7 @@ nil
      (32 :head-neck-y -1)       (34 :head-neck-p -1)
      )
     (("kxrt1l6a6h2m")
-     (:body :t1l6base :type :module :leg0 :j3-3m :leg1 :j3-3m :leg2 :j3-3m
+     (:body :t1l6base :leg0 :j3-3m :leg1 :j3-3m :leg2 :j3-3m
 	    :head :d405eyes
 	    :shoulder :pry-cross :shoulder-front t :shoulder-low t :flat-shoulder nil
 	    :elbow :angle :wrist :cross-pr :upper-arm-length 38 
@@ -12404,7 +12404,28 @@ nil
   )
 
 (defun samples0 nil
-  (dolist (x (mapcar #'caar *kxr-robotset-modules*)) (print x) (make-kxr-robot x :ri nil))
+  (let*
+      ((x0 100) (y0 50) (x x0) (y y0)
+       (sx 3) (sy 50)
+       (root-w (- (send x::*root* :width) x0))
+       (root-h (- (send x::*root* :height) y0))
+       (w (round (- (sqrt (/ (* root-w root-h) (length *kxr-robotset-modules*))) sy)))
+       (nx (round (- (/ root-w (+ w sx)) 1)))
+       (ny (round (/ root-h (+ w sy))))
+       (i 0) (j 0)
+       )
+    (dolist (r (mapcar #'caar *kxr-robotset-modules*))
+      (print r)
+      (make-kxr-robot r :ri nil :width w :height w)
+      (send *irtviewer* :move x y)
+      (send *irtviewer* :draw-objects)
+      (cond
+       ((>= i nx)
+	(setq i 0) (setq j (1+ j))
+	(setq x x0)
+	(setq y (+ y0 (* (+ w sy) j))))
+       (t (incf i) (setq x (+ x0 (* i (+ sx w)))))))
+    )
   #|
   (make-kxr-robot "kxrl2l6a6h2" :ri nil)
   (make-kxr-robot "kxrl2l5a6h2" :ri nil)
