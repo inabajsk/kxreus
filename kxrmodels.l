@@ -2882,6 +2882,7 @@
        (setf (get target-link prop) (get target-link :joint-coord)))
      (while (setq r (pop rr))
        (setq r-link (r . body-link))
+       (setq jlst nil lst nil)
        (setq m (send self :add-link r-link :target-link target-link :parent-name prop))
        ;;(when (setq j (car (r . joint-list))) (setq (j . parent-link) m))
        (setq (r . links) (cdr (r . links)))

@@ -272,28 +272,26 @@ nil
 		 (:rleg "rleg6" "rsf"))
 		))
     ;;
-    (("kxrroboset2-bug")
+    (("kxrroboset6b")
      (:robotset ("kxrl2a6h2body"
-		 ;;(:lleg "llegs6" "lsf")
-		 ;;(:rleg "rlegs6" "rsf"))
 		 (:lleg "kxrlleg1y" "kxrlleg1rf")
 		 (:rleg "kxrrleg1y" "kxrrleg1rf"))
 		)
      )
-    (("kxrroboset5-bug")
+    (("kxrroboset6")
      (:robotset ("kxrl2a6h2body"
 		 (:lleg "kxrlleg5f")
 		 (:rleg "kxrrleg5f"))
 		)
      )
-    (("kxrroboset5g-nooffset")
+    (("kxrroboset5g")
      (:robotset ("kxrl2a6h2body"
 		 (:larm "lg1sx") (:rarm "rg1sx")
 		 (:lleg "kxrlleg5f")
 		 (:rleg "kxrrleg5f"))
 		)
      )
-    (("kxrroboset5g")
+    (("kxrroboset6g")
      (:robotset ("kxrl2a6h2body"
 		 (:larm "lg1sx") (:rarm "rg1sx")
 		 (:lleg "kxrlleg5f")
@@ -326,13 +324,13 @@ nil
 		 (:mbase "kxrt1mw4base")
 		 ))
      )
-    (("kxrrobosetmw4-bug")
+    (("kxrrobosetmw4b")
      (:robotset ("kxrl2a6h2body"
 		 (:larm "lg1sx") (:rarm "rg1sx")
 		 (:mbase "kxrmw4base")
 		 ))
      )
-    (("kxrrobosett1mw4-bug")
+    (("kxrrobosett1mw4b")
      (:robotset ("kxrl2a6h2body"
 		 (:larm "lg1sx") (:rarm "rg1sx")
 		 (:mbase "kxrt1mw4base")
@@ -352,13 +350,13 @@ nil
 		 (:mbase "kxrt1ow4base")
 		 ))
      )
-    (("kxrrobosetow4-bug")
+    (("kxrrobosetow4b")
      (:robotset ("kxrl2a6h2body"
 		 (:larm "lg1sx") (:rarm "rg1sx")
 		 (:mbase "kxrow4base")
 		 ))
      )
-    (("kxrrobosett1ow4-bug")
+    (("kxrrobosett1ow4b")
      (:robotset ("kxrl2a6h2body"
 		 (:larm "lg1sx") (:rarm "rg1sx")
 		 (:mbase "kxrt1ow4base")
@@ -378,13 +376,13 @@ nil
 		 (:mbase "kxrt1dw4base")
 		 ))
      )
-    (("kxrrobosetdw4-bug")
+    (("kxrrobosetdw4b")
      (:robotset ("kxrl2a6h2body"
 		 (:larm "lg1sx") (:rarm "rg1sx")
 		 (:mbase "kxrdw4base")
 		 ))
      )
-    (("kxrrobosett1dw4-bug")
+    (("kxrrobosett1dw4b")
      (:robotset ("kxrl2a6h2body"
 		 (:larm "lg1sx") (:rarm "rg1sx")
 		 (:mbase "kxrt1dw4base")
@@ -520,7 +518,7 @@ nil
 		 (:mbase "kxrt1l6base")
 		 ))
      )
-    (("kxrrobosetl6-bug")
+    (("kxrrobosetl6b")
      (:project-file
       "kxra6g"
       :robotset ("kxrl2a6h2body"
@@ -528,7 +526,7 @@ nil
 		 (:mbase "kxrl6base")
 		 ))
      )
-    (("kxrrobosett1l6-bug")
+    (("kxrrobosett1l6b")
      (:project-file
       "kxra6g"
       :robotset ("kxrl2a6h2body"
