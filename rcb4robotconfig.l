@@ -12132,7 +12132,7 @@ nil
     ))
 
 (defun samples8 nil
-  (make-kxr-robot "kxrroboset5")
+  (make-kxr-robot "kxrroboset5g" :model nil)
   (send *ri* :robot :detach "kxrlleg5f")
   (send *ri* :robot :detach "kxrrleg5f")
   (send *ri* :robot :attach "kxrlleg1y" :lleg)
@@ -12142,7 +12142,7 @@ nil
   )
 
 (defun samples7 nil
-  (make-kxr-robot "kxrroboset")
+  (make-kxr-robot "kxrroboset" :model nil)
   (send *ri* :robot :detach "kxrlleg1y")
   (send *ri* :robot :detach "kxrrleg1y")
   (send *ri* :robot :attach "kxrlleg5f" :lleg)
@@ -12150,7 +12150,7 @@ nil
   )
 
 (defun samples6 nil
-  (setq *robot* (instance kxr-robotset :init "kxrl2a6h2body" :viewer t))
+  (setq *robot* (instance kxr-robotset :init "kxrl2a6h2body" :model nil :viewer t))
   (send *robot* :attach "kxrlleg1y" :lleg)
   (send *robot* :attach "kxrrleg1y" :rleg)
   (send *robot* :attach "kxrlleg1r" "kxrlleg1y")
@@ -12162,8 +12162,8 @@ nil
   (send *robot* :attach "kxrlleg5f" "kxrlleg1y")
   (send *robot* :attach "kxrrleg5f" "kxrrleg1y")
   (objects (list *robot*))
-  (load "bvh/vault-demo.l")
-  (animate)
+  ;;(load "bvh/vault-demo.l")
+  ;;(animate)
   )
 
 (defun samples5 nil

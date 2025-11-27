@@ -2895,8 +2895,23 @@
      (send self :init-ending)
      (send self :update-objects)
      ))
-  (:attach (r prop &aux m n ls c l j top base)
-	   (when (stringp r)
+  (:attach
+   (r prop)
+   (cond
+    ((keywordp prop)
+     (send self :attach* prop (list r))
+     (setf (get prop :attach) r))
+    ((stringp prop)
+     (let (newp)
+     (dolist (k (list :neck :larm :rarm :lleg :rleg :mbase :head))
+       (when
+	   (string= prop (get k :attach))
+	 (setq newp k)
+	 (setf (get k :attach) prop)))
+     (send self :attach* newp (list r))
+     ))))
+  (:attach-org (r prop &aux m n ls c l j top base)
+	       (when (stringp r)
 	     (cond
 	      ((setq m (find-if #'(lambda (x) (string= r (send x :name))) robots))
 	       (setq r m))
