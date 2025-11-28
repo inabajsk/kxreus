@@ -2039,7 +2039,8 @@
 	   )
 	 (when
 	     (not (memq bod '(:backpack :board)))
-	   (send self :ln-ending type l/r gripper gripper-inner gripper-straight l) ;; :setup-arm
+	   (send self :ln-ending type l/r gripper gripper-inner gripper-straight
+		 (if wrist-sensor l nil)) ;; :setup-arm
 	   (setq lst nil)
 	   )))
      ))
@@ -2539,7 +2540,8 @@
        (push (cons l/r ec) end-coords-alist)
        (send (car lst) :assoc ec)
        (if (null l0) (setq l0 (car lst))))
-     (send self :ln-ending type l/r gripper gripper-inner gripper-straight l0) ;; :setup-ln-limb
+     (send self :ln-ending type l/r gripper gripper-inner gripper-straight
+	   (if wrist-sensor l0 nil)) ;; :setup-ln-limb
      ))
   (:setup-leg
    (&rest args &key (l/r :lleg) knee-type active-wheel ankle type crotch-z
