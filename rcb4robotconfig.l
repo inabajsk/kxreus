@@ -268,6 +268,13 @@ nil
      (:robotset ("kxrl27body"   ;; "kxrl2a6h2body"
 		 (:neck "d405cam")
 		 (:larm "la7" "lg1sx") (:rarm "ra7" "rg1sx")
+		 (:lleg "kxrlleg1y" "lleg5" "lsf")
+		 (:rleg "kxrrleg1y" "rleg5" "rsf"))
+		))
+    (("kxrroboset5b")
+     (:robotset ("kxrl27body"   ;; "kxrl2a6h2body"
+		 (:neck "d405cam")
+		 (:larm "la7" "lg1sx") (:rarm "ra7" "rg1sx")
 		 (:lleg "lleg6" "lsf")
 		 (:rleg "rleg6" "rsf"))
 		))
@@ -12096,7 +12103,14 @@ nil
     (and typ (eq (cadr typ) type))))
 
 (defun robotset-module-type? (x) (config-type? x :module))
+(defun robotset-robot-type? (x)
+  (let* ((mparam (cadr x))
+	 (alist (plist-to-alist mparam))
+	 (typ (assoc :robotset alist)))
+    typ))
   
+(setq *kxr-robotset-robots*
+      (remove-if-not #'robotset-robot-type? *kxr-body-config-alist*))
 (setq *kxr-robotset-modules*
       (remove-if-not #'robotset-module-type? *kxr-body-config-alist*))
 
@@ -12403,20 +12417,32 @@ nil
   (objects (list *robot*))
   )
 
-(defun samples0 nil
+(defun samples0 nil (show-robots *kxr-robotset-modules*)
+       #|
+       (make-kxr-robot "kxrl2l6a6h2" :ri nil)
+       (make-kxr-robot "kxrl2l5a6h2" :ri nil)
+       (make-kxr-robot "kxrl2l2a6h2" :ri nil)
+       (make-kxr-robot "kxrl2l1a6h2" :ri nil)
+       (make-kxr-robot "kxrl2mw4a6h2" :ri nil)
+       (make-kxr-robot "kxrmw4a6h2" :ri nil)
+       (make-kxr-robot "kxrow4a6h2" :ri nil)
+       |#
+       )
+(defun sampler0 nil (show-robots *kxr-robotset-robots*))
+(defun show-robots (&optional (robots *kxr-robotset-modules*))
   (let*
       ((x0 100) (y0 50) (x x0) (y y0)
        (sx 3) (sy 50)
        (root-w (- (send x::*root* :width) x0))
        (root-h (- (send x::*root* :height) y0))
-       (w (round (- (sqrt (/ (* root-w root-h) (length *kxr-robotset-modules*))) sy)))
+       (w (round (- (sqrt (/ (* root-w root-h) (length robots))) sy)))
        (nx (round (- (/ root-w (+ w sx)) 1)))
        (ny (round (/ root-h (+ w sy))))
        (i 0) (j 0)
        )
-    (dolist (r (mapcar #'caar *kxr-robotset-modules*))
+    (dolist (r (mapcar #'caar robots))
       (print r)
-      (make-kxr-robot r :ri nil :width w :height w)
+      (make-kxr-robot r :ri nil :width w :height w) ;; :model nil)
       (send *irtviewer* :move x y)
       (send *irtviewer* :draw-objects)
       (cond
@@ -12426,15 +12452,6 @@ nil
 	(setq y (+ y0 (* (+ w sy) j))))
        (t (incf i) (setq x (+ x0 (* i (+ sx w)))))))
     )
-  #|
-  (make-kxr-robot "kxrl2l6a6h2" :ri nil)
-  (make-kxr-robot "kxrl2l5a6h2" :ri nil)
-  (make-kxr-robot "kxrl2l2a6h2" :ri nil)
-  (make-kxr-robot "kxrl2l1a6h2" :ri nil)
-  (make-kxr-robot "kxrl2mw4a6h2" :ri nil)
-  (make-kxr-robot "kxrmw4a6h2" :ri nil)
-  (make-kxr-robot "kxrow4a6h2" :ri nil)
-  |#
   )
 
 #-:arm
