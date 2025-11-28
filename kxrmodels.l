@@ -2167,44 +2167,6 @@
 	(send self :push-joint l/r 1 :w -10000 10000
 	      :child-link (kxr-l6-foot-link :l/r l/r :axis :x :sensor wrist-sensor))
 	)
-
-       (:j6w
-	(cond
-	  ((substringp "MAG" (string (send (car (send body-link :bodies)) :name)))
-	   (let ((org (make-cascoords)))
-	     (send org :assoc body-link)
-	     (if (kxr-left-limb? l/r)
-		 (send org :rotate pi/2 :x :world)
-		 (send org :rotate -pi/2 :x :world))
-	     (send self :push-joint l/r 0 :y -181 181 :parent-link body-link
-		   :child-link (kxr-arm-base-link :from :y :to :x :l/r l/r :len 28 :horn nil))))
-	  (t 
-	   (send self :push-joint l/r 0 :y -181 181 :parent-link body-link :parent-name l/r
-		 :child-link (kxr-arm-base-link :from :y :to :x :l/r l/r :len 28))))
-	(send self :push-joint l/r 0 x-axis -90 90 :child-link
-	      (kxr-cross-servo-link
-	       ;;:l/r l/r :canti (if (eq l/r :rleg) :-y t)
-	       :l/r l/r :canti (if (eq l/r :rleg) :-y)
-	       :apply-list
-	       (list (list :rotate pi :z :world)
-		     (list :rotate pi/2 (if (eq l/r :rleg) :-x :x) :world))))
-	(send self :push-joint l/r 0 :z -170 170 :parent-name :upper-coord :child-link
-	      (kxr-y-wrist-p-link
-	       :l/r l/r :base-b (not (eq knee-type :lp))
-	       :apply-list (list (list :rotate pi :z :world))))
-	(send self :push-joint l/r 1 :y -181 181 :child-link
-	      (if (eq knee-type :lp)
-		  (kxr-wheel-knee-lp-link
-		   :l/r l/r :len-u 26 :len-d 38 :wheel-offset 6)
-		  (kxr-wheel-knee-p-link
-		   :l/r l/r :len-u 38 :len-d 38 :wheel-offset 6)))
-	(setq l (car lst) j (car jlst))
-	(send self :push-joint l/r 1 :w -10000 10000 :parent-name :upper-coord :child-link
-	      (kxr-wheel-link :l/r l/r :offset 6.5))
-	(send self :push-joint l/r 2 :y -105 105 :parent-link l :child-link
-	      (kxr-cross-servo-link :l/r l/r :apply-list (list (list :rotate pi :x :world))))
-	(send self :push-joint l/r 2 x-axis -170 170 :child-link
-	      (kxr-foot-link :l/r l/r :sole sole :sole-sensor sole-sensor)))
        (:j4
 	(send self :push-joint l/r 0 :y -135 135 :parent-link body-link :parent-name l/r :child-link 
 	      (if leg-frontal
@@ -2264,27 +2226,6 @@
 	      (kxr-foot-link :l/r l/r :sole sole :sole-sensor sole-sensor :ankle-sensor ankle-sensor))
 	(when end (send self :add-link (kxr-mag-link end)))
 	)
-       (:foot
-	(let (cl l)
-	  (setq cl (kxr-foot-link :l/r l/r :sole t :sole-sensor sole-sensor
-				  :ankle-sensor ankle-sensor :arm nil))
-	  (setq l (send self :add-link cl :target-link body-link :parent-name :joint-coord))
-	  ))
-       (:l6s
-	;;(send self :push-joint l/r 0 :z -90 90 :parent-link body-link :child-link (kxr-wrist-y-link))
-	(send self :push-joint l/r 0 :z -135 133 :parent-link body-link 
-	      :child-link (kxr-arm-base-link :len 28 :horn nil))
-	(send self :push-joint l/r 0 x-axis -135 133
-	      :child-link (kxr-cross-servo-link :l/r l/r :sensor crotch-r-sensor))
-	(send self :push-joint l/r 0 :y -135 90 :child-link (kxr-double-arm-base-link :l/r l/r))
-	(send self :push-joint l/r 1 :y -100 160 :child-link (kxr-angle-arm-link :l/r l/r :sensor knee-p-sensor))
-	(send self :push-joint l/r 2 :y -105 105 :child-link
-	      (kxr-cross-servo-link :l/r l/r :apply-list (list (list :rotate pi :x :world))
-				    :sensor ankle-r-sensor))
-	(send self :push-joint l/r 2 x-axis -170 170 :parent-link l :child-link
-	      (kxr-foot-link :l/r l/r :sole sole :sole-sensor sole-sensor :ankle-sensor ankle-sensor))
-	(when end (send self :add-link (kxr-mag-link end)))
-	)
        (:l6
 	;;(send self :push-joint l/r 0 :z -90 90 :parent-link body-link :child-link (kxr-wrist-y-link))
 	(send self :add-link (kxr-wrist-y-link) :target-link body-link)
@@ -2301,6 +2242,64 @@
 	      (kxr-foot-link :l/r l/r :sole sole :sole-sensor sole-sensor :ankle-sensor ankle-sensor))
 	(when end (send self :add-link (kxr-mag-link end)))
 	)
+       (:l6s
+	;;(send self :push-joint l/r 0 :z -90 90 :parent-link body-link :child-link (kxr-wrist-y-link))
+	(send self :push-joint l/r 0 :z -135 133 :parent-link body-link 
+	      :child-link (kxr-arm-base-link :len 28 :horn nil))
+	(send self :push-joint l/r 0 x-axis -135 133
+	      :child-link (kxr-cross-servo-link :l/r l/r :sensor crotch-r-sensor))
+	(send self :push-joint l/r 0 :y -135 90 :child-link (kxr-double-arm-base-link :l/r l/r))
+	(send self :push-joint l/r 1 :y -100 160 :child-link (kxr-angle-arm-link :l/r l/r :sensor knee-p-sensor))
+	(send self :push-joint l/r 2 :y -105 105 :child-link
+	      (kxr-cross-servo-link :l/r l/r :apply-list (list (list :rotate pi :x :world))
+				    :sensor ankle-r-sensor))
+	(send self :push-joint l/r 2 x-axis -170 170 :parent-link l :child-link
+	      (kxr-foot-link :l/r l/r :sole sole :sole-sensor sole-sensor :ankle-sensor ankle-sensor))
+	(when end (send self :add-link (kxr-mag-link end)))
+	)
+       (:foot
+	(let (cl l)
+	  (setq cl (kxr-foot-link :l/r l/r :sole t :sole-sensor sole-sensor
+				  :ankle-sensor ankle-sensor :arm nil))
+	  (setq l (send self :add-link cl :target-link body-link :parent-name :joint-coord))
+	  ))
+       (:l6w
+	(cond
+	  ((substringp "MAG" (string (send (car (send body-link :bodies)) :name)))
+	   (let ((org (make-cascoords)))
+	     (send org :assoc body-link)
+	     (if (kxr-left-limb? l/r)
+		 (send org :rotate pi/2 :x :world)
+		 (send org :rotate -pi/2 :x :world))
+	     (send self :push-joint l/r 0 :y -181 181 :parent-link body-link
+		   :child-link (kxr-arm-base-link :from :y :to :x :l/r l/r :len 28 :horn nil))))
+	  (t 
+	   (send self :push-joint l/r 0 :y -181 181 :parent-link body-link :parent-name l/r
+		 :child-link (kxr-arm-base-link :from :y :to :x :l/r l/r :len 28))))
+	(send self :push-joint l/r 0 x-axis -90 90 :child-link
+	      (kxr-cross-servo-link
+	       ;;:l/r l/r :canti (if (eq l/r :rleg) :-y t)
+	       :l/r l/r :canti (if (eq l/r :rleg) :-y)
+	       :apply-list
+	       (list (list :rotate pi :z :world)
+		     (list :rotate pi/2 (if (eq l/r :rleg) :-x :x) :world))))
+	(send self :push-joint l/r 0 :z -170 170 :parent-name :upper-coord :child-link
+	      (kxr-y-wrist-p-link
+	       :l/r l/r :base-b (not (eq knee-type :lp))
+	       :apply-list (list (list :rotate pi :z :world))))
+	(send self :push-joint l/r 1 :y -181 181 :child-link
+	      (if (eq knee-type :lp)
+		  (kxr-wheel-knee-lp-link
+		   :l/r l/r :len-u 26 :len-d 38 :wheel-offset 6)
+		  (kxr-wheel-knee-p-link
+		   :l/r l/r :len-u 38 :len-d 38 :wheel-offset 6)))
+	(setq l (car lst) j (car jlst))
+	(send self :push-joint l/r 1 :w -10000 10000 :parent-name :upper-coord :child-link
+	      (kxr-wheel-link :l/r l/r :offset 6.5))
+	(send self :push-joint l/r 2 :y -105 105 :parent-link l :child-link
+	      (kxr-cross-servo-link :l/r l/r :apply-list (list (list :rotate pi :x :world))))
+	(send self :push-joint l/r 2 x-axis -170 170 :child-link
+	      (kxr-foot-link :l/r l/r :sole sole :sole-sensor sole-sensor)))
        (:g1
 	(let ((gs (kxr-wrist-gripper-links
 		   :l/r l/r :gripper-axis gripper-axis
