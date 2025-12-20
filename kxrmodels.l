@@ -1494,10 +1494,11 @@
 	   (when (derivedp (get l p) cascaded-coords)
 	     (send l :assoc (get l p)))))
        ;;
-       (dolist (cl (add-child-link . child-links))
-	 (send l :assoc cl)
-	 (setq ((cl . joint) . parent-link) l)
-	 (setq ((cl . joint) . child-link) cl))
+       (when (derivedp add-child-link bodyset-link)
+	 (dolist (cl (add-child-link . child-links))
+	   (send l :assoc cl)
+	   (setq ((cl . joint) . parent-link) l)
+	   (setq ((cl . joint) . child-link) cl)))
        ;;
        (when jlst
 	 (send (send (car jlst) :parent-link) :assoc l))
@@ -2683,7 +2684,8 @@
 		 :name (format nil "~A-end-coords" l/r)))
        (push (cons l/r ec) end-coords-alist)
        (send (car lst) :assoc ec)
-       (send self :ln-ending type l/r nil nil nil (car lst)) ;; :setup-leg
+       (send self :ln-ending type l/r nil nil nil
+	     (if ankle-sensor (car lst) nil)) ;; :setup-leg
        )
      ))
   )
