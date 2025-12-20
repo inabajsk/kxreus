@@ -31,7 +31,8 @@
  *kxr-body-config-alist*)
 
 (defun robot-init (&optional (name "iarm0") &key (stretch 1))
-  (make-kxr-robot name :viewer t)
+  ;;(make-kxr-robot name :viewer t)
+  (setq *ri* (kxr-make-robot-interface name :viewer t))
   (send *ri* :com-init :baud *baudrate*) (send *ri* :timer-on)
   (send *ri* :hold) (send *ri* :send-stretch stretch))
 
@@ -56,16 +57,19 @@
 
 (defun leader-recv nil
   (while (setq msg (unix::recvfrom *ssock*))
+    ;;(format t ";; msg=~A~%" msg)
     (when (stringp msg) (setq sym (read-from-string msg))
 	  (when (float-vector-p sym) (setq *real-vector* sym)))
     ;;(unix::usleep (* 1 1000))
     ))
 
-(defun leader-init (&key (ips *follower-ip*) (ipc *leader-ip*) (port *port-number*))
-  (robot-init "iarm0")
-  (setq *csock* (unix::socket
-		 (send (setq *caddr* (make-socket-address
-				      :domain af_inet :host ips :port port)) :domain) 2 0))
+(defun leader-init (&key (name "iarm0")
+			 (ips *follower-ip*) (ipc *leader-ip*) (port *port-number*))
+  (robot-init name)
+  (setq *csock*
+	(unix::socket
+	 (send (setq *caddr* (make-socket-address
+			      :domain af_inet :host ips :port port)) :domain) 2 0))
   (setq *ssock* (make-dgram-socket
 		 (make-socket-address :domain af_inet :host ipc :port port)))
   (unix::sleep 1) (need-thread 4)
@@ -89,8 +93,8 @@
    (send *ri* :robot :angle-vector *angle-vector*)
    (send *ri* :viewer :draw-objects)
    (when (boundp '*real-vector*)
-     (send *robot* :angle-vector *real-vector*)
-     (send *robot* :viewer :draw-objects)
+     (send *ri* :robot :angle-vector *real-vector*)
+     (send *ri* :robot :viewer :draw-objects)
      (send *ri* :angle-vector *real-vector* 1)
      ))
   )
