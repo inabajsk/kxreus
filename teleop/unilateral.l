@@ -7,8 +7,8 @@
 (defparameter *leader-ip* "192.168.1.34")
 (defparameter *follower-ip* "192.168.1.18")
 (defparameter *port-number* 2000)
-;;(defparameter *baudrate* 115200)
-(defparameter *baudrate* 1250000)
+(defparameter *baudrate* 115200)
+;;(defparameter *baudrate* 1250000)
 
 (push
  '("iarm0"  ;; leader
