@@ -22,6 +22,7 @@
   (let ((am (khr-arm-link))
 	l)
     (setq l (instance bodyset-link :init coords :bodies (send am :bodies)))
+    (dolist (b (send l :bodies)) (send l :assoc b))
     (setf (get l :joint-coord) (get am :joint-coord))
     l))
 
