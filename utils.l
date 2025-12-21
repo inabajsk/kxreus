@@ -803,7 +803,7 @@
      ))
   (:create-ri
    (&key ((:viewer create-viewer) (xwindow-ready?)) (model t) rcb4 head
-	 (width 400) (height height))
+	 (width 400) (height width))
    (when (get self :ri) (send self :delete-ri))
    (send self :set-ri
 	 (make-kxr-robot-interface (send self :config-name) :viewer create-viewer :model model
@@ -1537,6 +1537,7 @@
 (defclass kxr-body  :super gl::glbody :slots ())
 
 (defmethod joint
+  (:axis nil axis)
   (:joint-type nil (get self :joint-type))
   (:method-name nil (get self :joint-method-name))
   (:servo-index () (get self :servo-index))
@@ -1569,7 +1570,6 @@
 	  (setf (get self :joint-free-state) nil))
 	 (t (warn "; joint-hold to ~A no servo-index~%"  self)))
    (get self :joint-free-state))
-  (:axis nil axis)
   (:id (&optional v)
        (if v (setf (get self :id) v))
        (get self :id))
