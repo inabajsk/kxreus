@@ -34,11 +34,11 @@
 (push
  '("iarm"  ;; leader
    (:file "iarm.l" :form (instance iarmclass :init))
-   (10 :joint0 -1)
-   (12 :joint1 1)
-   (16 :joint2 -1)
-   (20 :joint3 -1)
-;;   (18 :joint4 -1)
+   (11 :joint0 -1)
+   (13 :joint1 -1 -90)
+   (17 :joint2 -1)
+   (21 :joint3 1)
+   ;;   (18 :joint4 -1)
    )
  *kxr-body-config-alist*)
 
