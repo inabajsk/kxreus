@@ -632,7 +632,7 @@
     co))
 
 (defmethod robot-model
-    (:pressure-sensor (sensor-name) (send self :get-sensor-method :pressure-sensor sensor-name))
+  (:pressure-sensor (sensor-name) (send self :get-sensor-method :pressure-sensor sensor-name))
   (:proximity-sensor (sensor-name) (send self :get-sensor-method :proximity-sensor sensor-name))
   (:button-sensor (sensor-name) (send self :get-sensor-method :button-sensor sensor-name))
   (:kjs-sensors
@@ -845,7 +845,10 @@
    nil
    (let* ((av (send self :ri :read-angle-vector))
 	  ori)
-     (when (and av (setq ori (send self :ri :real-orientation)))
+     (when (and av 
+		(send self :ri)
+		((send self :ri) . gravity-method)
+		(setq ori (send self :ri :real-orientation)))
        (send self :newcoords ori)
        ;;(send self :newcoords (send self :ri :backpack-orientation))
        (dotimes (i (length joint-list))
