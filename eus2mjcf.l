@@ -13,10 +13,7 @@
 (require :tiny-xml)
 ;;(require :read-stl)
 (require :rcb4robots)
-
-(defun load-robot (name)
-  (load (format nil "models/~A.l" (string-downcase name)))
-  (setq *robot* (apply (read-from-string name) nil)))
+(require :load-robot)
 
 (defun trim-vector (v)
   (string-trim "#f()" (format nil "~S" v)))
