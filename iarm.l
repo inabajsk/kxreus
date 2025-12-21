@@ -77,6 +77,7 @@
 
 (defmethod iarmclass
   (:end-coords (&rest args) (forward-message-to end-coords args))
+  (:reset-pose nil (send self :angle-vector (float-vector 0 -45 45 90)))
   (:joint0 (&rest args) (forward-message-to joint0 args))
   (:joint1 (&rest args) (forward-message-to joint1 args))
   (:joint2 (&rest args) (forward-message-to joint2 args))
@@ -116,6 +117,64 @@
    (send self :init-ending)
    self
    )
+  (:inverse-kinematics-
+   (&rest args)
+   (let* ((link-list (if (memq :link-list args)
+			 (cadr (memq :link-list args))
+		       (send self :link-list
+			     (send self :end-coords :parent)
+			     (send self :root-link))))
+	  (collision-avoidance-link-pair
+	   (if (memq :collision-avoidance-link-pair args)
+	       (cadr (memq :collision-avoidance-link-pair args))
+	     (send self :collision-avoidance-link-pair-from-link-list link-list
+		   :collision-avoidance-links (send self :collision-avoidance-links)))))
+     (send* self :inverse-kinematics (car args)
+	    :move-target (if (memq :move-target args)
+			     (cadr (memq :move-target args))
+			   (send self :end-coords))
+	    :collision-avoidance-link-pair collision-avoidance-link-pair
+	    :link-list link-list
+	    (cdr args))))
+  (:root-link
+   (&rest args)
+   (user::forward-message-to (car (send self :links)) args))
+  (:move-end
+   (&rest args)
+   (send* self :inverse-kinematics- args))
+  (:move-end-pos
+   (&rest args) ;; pos wrt
+   (let ((coords (send self :end-coords :copy-worldcoords))
+	 (pos (pop args)) (wrt (pop args)))
+     (unless wrt (setq wrt :local))
+     (send* self :move-end (send coords :translate pos wrt) args)))
   )
 
 (defun iarm nil (setq *iarm* (instance iarmclass :init)))
+
+(defun init nil
+  (make-kxr-robot "iarm0")
+  )
+
+(defun demo (&key (dx 40.0) (dz 20) (da 5) (tm 100))
+  (do-until-key
+   (send *robot* :reset-pose)
+   (send *robot* :viewer :draw-objects)
+   (dotimes (i 18)
+     (send *robot* :joint0 :joint-angle (* i da))
+     (dolist (dv (list
+		  (float-vector dx 0 0)
+		  (float-vector 0 0 (- dz))
+		  (float-vector (- dx) 0 0)
+		  (float-vector 0.0 0 dz)))
+       (send *robot* :move-end-pos dv)
+       (send *robot* :viewer :draw-objects)
+       (x::window-main-one)
+       (unix:usleep (* tm 1000)))
+     )
+   (send *robot* :reset-pose)
+   (send *robot* :viewer :draw-objects)
+   )
+  )
+
+
