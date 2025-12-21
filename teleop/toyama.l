@@ -9,6 +9,12 @@
 (defparameter *baudrate* 115200)
 ;;(defparameter *baudrate* 1250000)
 
+(defparameter *sensor-idx* 5) ;; force sensor index of :read-analog
+
+(defmethod rcb4-interface
+  (:force-sense nil (elt (send self :read-analog) *sensor-idx*))
+  )
+
 (push
  '("iarm0"  ;; leader
    (:file "iarm.l" :form (instance iarmclass :init))
