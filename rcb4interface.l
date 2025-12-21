@@ -696,7 +696,8 @@
      (dotimes (i sv-length) 
        (setq v (elt servo-ary index))
        (when (> v 0.0)
-	 (setf (elt servo-vector i) v))
+	 (setf (elt servo-vector i) (- v (elt trim-vector i))) ;; 2025.12.21
+	 )
        (setq index (+ index 3))))
    servo-vector)
   (:servo-trim-vector-name
