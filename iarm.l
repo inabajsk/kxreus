@@ -104,7 +104,7 @@
    (setq joint0 (instance rotational-joint
 			  :init :parent-link iarm-b0 :child-link iarm-b1 :name :joint0 :axis :z :min -135 :max 135))
    (setq joint1 (instance rotational-joint
-			  :init :parent-link iarm-b1 :child-link iarm-b2 :name :joint1 :axis :y :min -135 :max 135))
+			  :init :parent-link iarm-b1 :child-link iarm-b2 :name :joint1 :axis :y :min -270 :max 135))
    (setq joint2 (instance rotational-joint
 			  :init :parent-link iarm-b2 :child-link iarm-b3 :name :joint2 :axis :y :min -135 :max 135))
    (setq joint3 (instance rotational-joint
