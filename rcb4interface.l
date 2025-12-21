@@ -2549,7 +2549,7 @@
   )
 
 (defmethod rcb4-interface
-    (:servo-id-list
+  (:servo-id-list
      ()
      (mapcan #'(lambda (j)
 		 (if (get j :active)
