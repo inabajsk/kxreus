@@ -1025,7 +1025,7 @@
 	       ,'(send *robot* :angle-vector)
 	       )))
   (:angle-alist  ;; 2023.9.10 not dotted pair to enable alist-to-plist, plist-to-alist
-   (&optional alist) 
+   (&optional alist)
    (if alist
        (dolist (al alist) (if (find-method self (car al))
 			      (send self (car al) :joint-angle (cadr al)))))
@@ -1544,7 +1544,9 @@
   (:servo-sign () (get self :servo-sign))
   (:angle-index () (get self :angle-index))
   (:joint-list () (list self))
-  (:joint-method-name nil (get self :joint-method-name))
+  (:joint-method-name nil (if (null (get self :joint-method-name))
+			      (send self :name)
+			    (get self :joint-method-name)))
   (:joint-stretch
    (&optional v)
    (if v (setf (get self :joint-stretch) v))
