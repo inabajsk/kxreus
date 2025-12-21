@@ -303,7 +303,7 @@ nil
 		 (:larm "lg1sx") (:rarm "rg1sx")
 		 (:lleg "kxrlleg5f")
 		 (:rleg "kxrrleg5f"))
-      )
+		)
      )
     (("kxrroboset")
      (:robotset ("kxrl2a6h2body"
@@ -824,7 +824,7 @@ nil
      (:body :l2l5m :type :module :noleg t :head :h1 :head-length 20;; :end :mag-7
 	    :shoulder :pry-cross :shoulder-front t :shoulder-low t :flat-shoulder nil
 	    :elbow :angle :wrist :cross-pr :upper-arm-length 38 
-	    :head-sensor :horn-mag-7 :wrist-sensor :mag-7 
+	    :head-sensor :horn-mag-7 :wrist-sensor nil ;;:mag-7 
 	    ;;:gripper t :gripper-straight t :gripper-axis :y
 	    )
      (2 :rarm-shoulder-p 1)     (3 :larm-shoulder-p -1)
@@ -1174,7 +1174,7 @@ nil
      (16 :rleg-crotch-r 1)
      (42 rleg-crotch-r-KJS-03))
     ;;
-    (("lleg5")
+    (("lleg5" "kxrlleg5")
      (:body :mag+7 :type :module :noarm t :limb :lleg :leg :l5 :end :mag-7)
      (9 :lleg-crotch-r 1)
      (11 :lleg-crotch-p -1)
@@ -1182,7 +1182,7 @@ nil
      (15 :lleg-ankle-p -1)
      (17 :lleg-ankle-r -1)
      )
-    (("rleg5")
+    (("rleg5" "kxrrleg5")
      (:body :mag+7 :type :module :noarm t :limb :lleg :leg :l5 :end :mag-7)
      (8 :rleg-crotch-r 1)
      (10 :rleg-crotch-p -1)
@@ -1190,7 +1190,7 @@ nil
      (14 :rleg-ankle-p -1)
      (16 :rleg-ankle-r -1)
      )
-    (("lleg5f")
+    (("lleg5f" "kxrlleg5f")
      (:body :mag+7 :type :module :noarm t :limb :lleg :leg :l5 :sole t)
      (9 :lleg-crotch-r 1)
      (11 :lleg-crotch-p -1)
@@ -1198,7 +1198,7 @@ nil
      (15 :lleg-ankle-p -1)
      (17 :lleg-ankle-r -1)
      )
-    (("rleg5f")
+    (("rleg5f" "kxrrleg5f")
      (:body :mag+7 :type :module :noarm t :limb :rleg :leg :l5 :sole t)
      (8 :rleg-crotch-r 1)
      (10 :rleg-crotch-p -1)
@@ -1207,10 +1207,10 @@ nil
      (16 :rleg-ankle-r -1)
      )
     ;;
-    (("lleg6w") (:body :mag+7 :type :module :noarm t :limb :lleg :leg :l6w :end :mag-7))
-    (("rleg6w") (:body :mag+7 :type :module :noarm t :limb :rleg :leg :l6w :end :mag-7))
-    (("lleg6wf") (:body :mag+7 :type :module :noarm t :limb :lleg :leg :l6w :sole t))
-    (("rleg6wf") (:body :mag+7 :type :module :noarm t :limb :rleg :leg :l6w :sole t))
+    (("lleg6w" "kxrlleg6w") (:body :mag+7 :type :module :noarm t :limb :lleg :leg :l6w :end :mag-7))
+    (("rleg6w" "kxrrleg6w") (:body :mag+7 :type :module :noarm t :limb :rleg :leg :l6w :end :mag-7))
+    (("lleg6wf" "kxrlleg6wf") (:body :mag+7 :type :module :noarm t :limb :lleg :leg :l6w :sole t))
+    (("rleg6wf" "kxrrleg6wf") (:body :mag+7 :type :module :noarm t :limb :rleg :leg :l6w :sole t))
 ;;;
 ;;; whole-body robots
 ;;;
@@ -12432,7 +12432,7 @@ nil
        )
     (dolist (r (mapcar #'caar robots))
       (print r)
-      (make-kxr-robot r :ri nil :width w :height w) ;; :model nil)
+      (make-kxr-robot r :ri nil :width w :height w) ;;  :model nil)
       (send *irtviewer* :move x y)
       (send *irtviewer* :draw-objects)
       (cond
