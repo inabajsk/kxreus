@@ -137,6 +137,7 @@
 			     (cadr (memq :move-target args))
 			   (send self :end-coords))
 	    :collision-avoidance-link-pair collision-avoidance-link-pair
+	    :rotation-axis :z   ;; 2025.12.21
 	    :link-list link-list
 	    (cdr args))))
   (:root-link
@@ -153,14 +154,12 @@
      (send* self :move-end (send coords :translate pos wrt) args)))
   (:push (&optional (l 2)) (send self :push-z l))
   (:push-z (&optional (l 2)) (send self :push-dxyz 0 0 l))
-  (:push-x (&optional (l 5) (dx 0.5))
-	   (dotimes (i (round (/ (abs l) dx)))
-	     (send self :push-dxyz (if (> l 0) dx (- dx)) 0 0)))
   (:push-x (&optional (l 5.0)
 		      &aux (dist (norm (send self :end-coords :worldpos)))
 		      (ang (send self :joint0 :joint-angle)))
 	   (send self :joint0 :joint-angle
 		 (- ang (rad2deg (atan2 l dist)))))
+  (:push-x (&optional (l 5)) (send self :push-dxyz l 0 0))
   (:push-y (&optional (l 5)) (send self :push-dxyz 0 l 0))
   (:push-dxyz
    (&optional (dx 5) (dy 5) (dz 0))
