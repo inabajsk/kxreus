@@ -3,6 +3,7 @@
 ;;
 (require :khrmodels)
 (provide :iarm)
+(require :itimer-viewer)
 
 (defun iarm-link0 (&optional (coords (make-cascoords)))
   (let* ((s0 (khr-servo-s2552))
@@ -66,7 +67,7 @@
     (setq blist (send am :bodies))
     (dolist (b (cdr blist)) (send (car blist) :assoc b))
     (setq l (instance bodyset-link :init coords :bodies blist))
-    (setf (get l :joint-coord) (send am :worldcoords))
+    (setf (get l :joint-coord) (send (send am :worldcoords) :rotate pi/2 :y))
     l))
 
 (defclass iarmclass
@@ -110,6 +111,8 @@
 			  :init :parent-link iarm-b3 :child-link iarm-b4 :name :joint3 :axis :y :min -135 :max 135))
    ;;
    (setq end-coords (make-cascoords :coords (send iarm-b4 :copy-worldcoords)))
+   (send end-coords :rotate -pi/2 :z)
+   (send end-coords :rotate -pi/2 :x)
    (send end-coords :translate #f(25 0 0) :world)
    (send iarm-b4 :assoc end-coords)
    (setq links (list iarm-b0 iarm-b1 iarm-b2 iarm-b3 iarm-b4))
@@ -148,25 +151,40 @@
 	 (pos (pop args)) (wrt (pop args)))
      (unless wrt (setq wrt :local))
      (send* self :move-end (send coords :translate pos wrt) args)))
+  (:push (&optional (l 2)) (send self :push-z l))
+  (:push-z (&optional (l 2)) (send self :push-dxyz 0 0 l))
+  (:push-x (&optional (l 5) (dx 0.5))
+	   (dotimes (i (round (/ (abs l) dx)))
+	     (send self :push-dxyz (if (> l 0) dx (- dx)) 0 0)))
+  (:push-x (&optional (l 5.0)
+		      &aux (dist (norm (send self :end-coords :worldpos)))
+		      (ang (send self :joint0 :joint-angle)))
+	   (send self :joint0 :joint-angle
+		 (- ang (rad2deg (atan2 l dist)))))
+  (:push-y (&optional (l 5)) (send self :push-dxyz 0 l 0))
+  (:push-dxyz
+   (&optional (dx 5) (dy 5) (dz 0))
+   (send self :move-end-pos (float-vector dx dy dz))
+   )
   )
 
 (defun iarm nil (setq *iarm* (instance iarmclass :init)))
 
-(defun init nil
-  (make-kxr-robot "iarm0")
-  )
-
-(defun demo (&key (dx 40.0) (dz 20) (da 5) (tm 100))
+(format t ";;(init)~%")
+(defun init nil (make-kxr-robot "iarm0"))
+(format t ";;(demo)~%")
+(defun demo (&key (dz 40.0) (dy 20) (da 5) (tm 100))
   (do-until-key
    (send *robot* :reset-pose)
    (send *robot* :viewer :draw-objects)
    (dotimes (i 18)
      (send *robot* :joint0 :joint-angle (* i da))
      (dolist (dv (list
-		  (float-vector dx 0 0)
+		  (float-vector 0 0 dz)
+		  (float-vector 0 dy 0)
 		  (float-vector 0 0 (- dz))
-		  (float-vector (- dx) 0 0)
-		  (float-vector 0.0 0 dz)))
+		  (float-vector 0 (- dy) 0)
+		  ))
        (send *robot* :move-end-pos dv)
        (send *robot* :viewer :draw-objects)
        (x::window-main-one)
@@ -176,5 +194,3 @@
    (send *robot* :viewer :draw-objects)
    )
   )
-
-
