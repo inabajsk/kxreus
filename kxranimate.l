@@ -7,15 +7,7 @@
 (require :rcb4robots)
 (require :eus2wrl)
 (require :eus2mjcf)
-
-(defun load-robot (name)
-  (let ((fname (format nil "~A/models/~A.l" *rcb4eus-dir*
-		       (string-downcase (string name)))))
-    (unless (probe-file fname)
-      (eus2collada-robot name))
-    (load fname)
-    (setq *robot* (apply (read-from-string (string name)) nil))
-    *robot*))
+(require :load-robot)
 
 (defun bvh-load nil
   (load (format nil "~A/bvh/sfu-demo.l" *rcb4eus-dir*)))
