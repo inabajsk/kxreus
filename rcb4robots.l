@@ -30,6 +30,7 @@
 (require :rcb4interface)
 (require :rcb4file)
 (require :kxrmodels)
+(require :load-robot)
 
 (defmethod object (:describe nil (describe self)))
 (defmethod object (:pprint nil (pprint self)))
@@ -137,17 +138,6 @@
 (defun kxr-all-robot-names ()
   (flatten (mapcar #'(lambda (x) (if (atom (car x)) (list (car x)) (car x)))
 		   *kxr-body-config-alist*)))
-
-(defun robot-class-name (name-str)
-  (read-from-string (string-upcase (format nil "~A-robot" name-str))))
-(defun robot-model-file-name (name-str) (format nil "models/~a.l" name-str))
-
-(defun load-robot (name-str)
-  (let ((cls (robot-class-name name-str)))
-    (unless (boundp cls)
-      (load (robot-model-file-name name-str)))
-    (instance (eval cls) :init)
-    ))
 
 (defun rcb4-robot-project-dir (robo)
   (if (derivedp robo robot-model) (setq robo (send robo :name)))
