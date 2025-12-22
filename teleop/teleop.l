@@ -179,7 +179,7 @@
     ))
 
 (defun follower3-init (&key (name "iarm1") (ips *follower-ip*) (ipc *leader-ip*) (port *port-number*)
-			   (stretch 1))
+			    (stretch 1))
   (robot3-init name :stretch stretch)
   (setq *ssock* (make-dgram-socket
 		 (make-socket-address :domain af_inet :host ips :port port)))
@@ -194,7 +194,8 @@
     (do-until-key
      (send *ri* :angle-vector *angle-vector* 1)
      (setq *real-vector* (send *ri* :read-angle-vector))
-     (unix::sendto *csock* *caddr* (format nil "~A" *real-vector*))
+     (unix::sendto *csock* *caddr*
+		   (format nil "(~A ~A)" *real-vector* (send *ri* :read-analog)))
      (send *ri* :robot :angle-vector *angle-vector*)
      (send *ri* :viewer :draw-objects)
      (x::window-main-one))
@@ -203,7 +204,9 @@
 (defun leader3-recv nil
   (while (setq msg (unix::recvfrom *ssock*))
     (when (stringp msg) (setq sym (read-from-string msg))
-	  (when (float-vector-p sym) (setq *real-vector* sym)))
+	  (when (consp sym)
+	    (setq *real-vector* (car sym))
+	    (setq *real-analog* (cadr sym))))
     ))
 
 (defun leader3-init (&key (ips *follower-ip*) (ipc *leader-ip*) (port *port-number*))
