@@ -341,7 +341,7 @@
 (defun compare-fuzzy (Fx Fy Fz StL Dist RV)
   (let* ((s (fuzzy-evaluate-sugeno  Fx Fy Fz StL Dist RV))
          (m (fuzzy-evaluate-mamdani Fx Fy Fz StL Dist RV)))
-    (format t "~%[Input] Fx=~A Fy=~A Fz=~A StL=~A Dist=~A RV=~A~%"
+    (format t "~%[Input] Fx=~A Fy=~A Fz=~A StL=~A Dist=~A RV=~A"
             Fx Fy Fz StL Dist RV)
     (format t "~%Sugeno : degmov=~6,3F degarm=~6,3F degrisk=~6,3F intent=~A"
             (getf s :degmov) (getf s :degarm) (getf s :degrisk) (getf s :intent))
@@ -351,19 +351,69 @@
  
 ;;
 ;;; ---------- サンプル ----------
-(format t ";; (compare-demo)~%") 
 (defun compare-demo ()
   ;; サンプル入力（必要に応じて変更）
   (compare-fuzzy 8.0 -2.0 3.0 250.0 450.0 80.0))
+(defun compare-demo1 ()
+  (format t "~%移 動 操 作 を 想 定 し た 検 証")
+  ;;[Input] Fx=12.0 Fy=-6.0 Fz=-6.0 StL=250.0 Dist=220.0 RV=40.0
+  (compare-fuzzy 12.0 -6.0 -6.0 250.0 220.0 40.0))
+(defun compare-demo2 ()
+  (format t "~%回 避 操 作 を 想 定 し た 検 証")
+  ;;[Input] Fx=6.0 Fy=13.0 Fz=-5.0 StL=230.0 Dist=230.0 RV=110.0
+  (compare-fuzzy 6.0 13.0 -5.0 230.0 230.0 110.0))
+(defun compare-demo3 ()
+  (format t "~%移 動 操 作 中 の 誤 操 作 を 想 定 し た 検 証")
+  ;;[Input] Fx=6.0 Fy=12.0 Fz=-11.0 StL=250.0 Dist=210.0 RV=40.0
+  (compare-fuzzy 6.0 12.0 -11.0 250.0 210.0 40.0))
+(defun compare-demo4 ()
+  (format t "~%ア ー ム 操 作 を 想 定 し た 検 証")
+  ;;[Input] Fx=6.0 Fy=4.0 Fz=12.0 StL=120.0 Dist=50.0 RV=0.0
+  (compare-fuzzy 6.0 4.0 12.0 120.0 50.0 0.0))
+(defun compare-demo5 ()
+  (format t "~%ア ー ム 操 作 中 の 誤 操 作 を 想 定 し た 検 証")
+  ;;[Input] Fx=6.0 Fy=4.0 Fz=12.0 StL=220.0 Dist=60.0 RV=0.0
+  (compare-fuzzy 6.0 4.0 12.0 220.0 60.0 0.0))
+
+(format t "(demo)~%")
+(defun demo nil
+  (compare-demo)
+  (compare-demo1)  
+  (compare-demo2)
+  (compare-demo3)  
+  (compare-demo4)
+  (compare-demo5)
+  )
 #|
-compare-demo
+(demo)
 
 [Input] Fx=8.0 Fy=-2.0 Fz=3.0 StL=250.0 Dist=450.0 RV=80.0
-
 Sugeno : degmov= 0.114 degarm=-0.516 degrisk=-0.250 intent=移動
 Mamdani: degmov= 0.065 degarm=-0.255 degrisk=-0.250 intent=移動
-(:sugeno (:degmov 0.114286 :degarm -0.516129 :degrisk -0.25 :intent "移動")
- :mamdani (:degmov 0.065184 :degarm -0.255115 :degrisk -0.25 :intent "移動"))
-2.irteusgl$ 
-|#
 
+移 動 操 作 を 想 定 し た 検 証
+[Input] Fx=12.0 Fy=-6.0 Fz=-6.0 StL=250.0 Dist=220.0 RV=40.0
+Sugeno : degmov= 0.457 degarm=-0.516 degrisk=-0.139 intent=移動
+Mamdani: degmov= 0.213 degarm=-0.255 degrisk=-0.095 intent=移動
+
+回 避 操 作 を 想 定 し た 検 証
+[Input] Fx=6.0 Fy=13.0 Fz=-5.0 StL=230.0 Dist=230.0 RV=110.0
+Sugeno : degmov= 0.370 degarm=-0.566 degrisk= 0.833 intent=停止
+Mamdani: degmov= 0.161 degarm=-0.277 degrisk= 0.650 intent=停止
+
+移 動 操 作 中 の 誤 操 作 を 想 定 し た 検 証
+[Input] Fx=6.0 Fy=12.0 Fz=-11.0 StL=250.0 Dist=210.0 RV=40.0
+Sugeno : degmov= 0.457 degarm=-0.464 degrisk=-0.152 intent=移動
+Mamdani: degmov= 0.213 degarm=-0.236 degrisk=-0.105 intent=移動
+
+ア ー ム 操 作 を 想 定 し た 検 証
+[Input] Fx=6.0 Fy=4.0 Fz=12.0 StL=120.0 Dist=50.0 RV=0.0
+Sugeno : degmov=-0.717 degarm= 0.530 degrisk=-0.500 intent=アーム
+Mamdani: degmov=-0.374 degarm= 0.257 degrisk=-0.500 intent=アーム
+
+ア ー ム 操 作 中 の 誤 操 作 を 想 定 し た 検 証
+[Input] Fx=6.0 Fy=4.0 Fz=12.0 StL=220.0 Dist=60.0 RV=0.0
+Sugeno : degmov=-0.212 degarm=-0.256 degrisk=-0.500 intent=停止
+Mamdani: degmov=-0.120 degarm=-0.105 degrisk=-0.500 intent=停止
+
+|#
