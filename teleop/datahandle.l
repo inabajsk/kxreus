@@ -9,7 +9,7 @@
 	ad addata av avdata tmdata tm0 tm1 xyz xyzdata)
     (unless (boundp '*ri*)
       (setq *ri* (kxr-make-robot-interface robot :viewer t))
-      (send *ri* :com-init)
+      (send *ri* :com-init :baud *baudrate*)
       (send *ri* :free-all)
       )
     (unless fname
