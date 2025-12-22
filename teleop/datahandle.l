@@ -4,32 +4,41 @@
 (provide :datahandle)
 (require :teleop)
 
-(defun store-loop (&optional (fname (format nil "~A ~A.dat"
-					    (send *ri* :robot :name)
-					    (car (unix::gettimeofday))))
-			     &key (show t) (send t))
+(defun store-loop (&key fname show send (robot "iarm0"))
   (let ((mt (instance mtimer :init))
-	av avdata tmdata tm0 tm1 xyz xyzdata)
+	ad addata av avdata tmdata tm0 tm1 xyz xyzdata)
+    (unless (boundp '*ri*)
+      (setq *ri* (kxr-make-robot-interface robot :viewer t))
+      (send *ri* :com-init)
+      (send *ri* :free-all)
+      )
+    (unless fname
+      (setq fname (format nil "~A ~A.dat"
+			  (send *ri* :robot :name)
+			  (car (unix::gettimeofday)))))
     (setq tm0 (list (unix::localtime) (unix:gettimeofday)))
     (send mt :start)
     (do-until-key
      (setq av (send *ri* :read-angle-vector))
+     (setq ad (send *ri* :read-analog))
      (if send (unix::sendto *csock* *caddr* (format nil "~A" av)))
      (when show
        (send *ri* :robot :angle-vector av)
        (send *ri* :robot :viewer :draw-objects)
        )
      (push av avdata)
+     (push ad addata)
      (push (send mt :stop) tmdata)
-     (unix::sendto *csock* *caddr* (format nil "~A" av))
+     (if send (unix::sendto *csock* *caddr* (format nil "~A" av)))
      )
     (setq tm1 (list (unix::localtime) (unix:gettimeofday)))
     (setq *robot-name* (send *ri* :robot :name))
     (setq *start-end-time* (list tm0 tm1))
     (setq *av-data* (reverse avdata))
+    (setq *ad-data* (reverse addata))
     (setq *time-data* (reverse tmdata))
     (dump-loadable-structure fname *robot-name*
-			     *start-end-time* *av-data* *time-data*)
+			     *start-end-time* *av-data* *ad-data* *time-data*)
     (joint-plot)
     (xyz-2dplot)
     (xyz-3dplot)
@@ -47,6 +56,30 @@
        (reverse data)
        *time-data*
        :keylist '("joint0" "joint1" "joint2" "joint3")
+       :xrange (list (round (apply #'min *time-data*))
+		     (round (apply #'max *time-data*)))
+       :yrange yrange
+       :graph-instance (setq *gp* (gnuplot))
+       :title (format nil "~A Joints  ~A"
+		      *robot-name*
+		      (if fname fname
+			(subseq stimestr 0 (1- (length stimestr)))))
+       ))
+    ))
+
+(defun analog-plot (&key fname (yrange '(0 1000))
+			 (idxs '(0 1 2 3 4 5 6 7 8 9 10)))
+  (if (and fname (probe-file fname)) (load fname))
+  (when
+      (boundp '*ad-data*)
+    (let (data (stimestr (unix::asctime (caar *start-end-time*))))
+      (dolist (i idxs)
+	(push (mapcar #'(lambda (fv) (elt fv i)) *ad-data*) data))
+      (graph-view
+       (reverse data)
+       *time-data*
+       :keylist
+       (mapcar #'(lambda (i) (format nil "ad~A" i)) idxs)
        :xrange (list (round (apply #'min *time-data*))
 		     (round (apply #'max *time-data*)))
        :yrange yrange
@@ -121,7 +154,7 @@
        ))
     ))
 
-(defun animate-data (&key fname (name "iarm0") (send t))
+(defun animate-data (&key fname (name "iarm0") send)
   (if (and fname (probe-file fname)) (load fname))
   (unless (boundp '*ri*) (robot-model-init name))
   (when (boundp '*av-data*)
@@ -137,12 +170,20 @@
 	(setq pre now)))
     ))
 
-(format t "(store-loop \"test.dat\")~%")
-(format t "(store-loop \"test.dat\" :send nil :show nil)~%")
+(format t "(store-loop)~%")
 (format t "(joint-plot)~%")
-(format t "(joint-plot \"test.dat\")~%")
-(format t "(xyz-plot)~%")
-(format t "(xyz-plot \"test.dat\")~%")
+(format t "(analog-plot)~%")
+(format t "(xyz-2dplot)~%")
+(format t "(xyz-3dplot)~%")
+;;
+(format t "(store-loop :fname \"test.dat\")~%")
+(format t "(store-loop :fname \"test.dat\" :send t :show t)~%")
+;;
+(format t "(joint-plot :fname \"test.dat\")~%")
+(format t "(analog-plot :fname \"test.dat\")~%")
+(format t "(xyz-2dplot :fname \"test.dat\")~%")
+(format t "(xyz-3dplot :fname \"test.dat\")~%")
+;;
 (format t "(animate-data)~%")
-(format t "(animate-data \"test.dat\")~%")
-(format t "(animate-data \"test.dat\" :send t})~%")
+(format t "(animate-data :fname \"test.dat\")~%")
+(format t "(animate-data :fname \"test.dat\" :send t})~%")
