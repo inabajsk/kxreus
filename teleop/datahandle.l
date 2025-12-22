@@ -40,6 +40,7 @@
     (dump-loadable-structure fname *robot-name*
 			     *start-end-time* *av-data* *ad-data* *time-data*)
     (joint-plot)
+    (analog-plot)
     (xyz-2dplot)
     (xyz-3dplot)
     (animate-data)
@@ -68,7 +69,9 @@
     ))
 
 (defun analog-plot (&key fname (yrange '(0 1000))
-			 (idxs '(0 1 2 3 4 5 6 7 8 9 10)))
+			 (idxs (if (boundp '*sensor-idxs*)
+				   *sensor-idxs*
+				 '(0 1 2 3 4 5 6 7 8 9 10))))
   (if (and fname (probe-file fname)) (load fname))
   (when
       (boundp '*ad-data*)
