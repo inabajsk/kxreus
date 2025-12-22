@@ -2,6 +2,7 @@
 ;; Data store/plot/animate 2025.11.14 M.I
 ;;
 (provide :datahandle)
+(require :teleop)
 
 (defun store-loop (&optional (fname (format nil "~A ~A.dat"
 					    (send *ri* :robot :name)
@@ -16,7 +17,7 @@
      (if send (unix::sendto *csock* *caddr* (format nil "~A" av)))
      (when show
        (send *ri* :robot :angle-vector av)
-       (send *ri* :viewer :draw-objects)
+       (send *ri* :robot :viewer :draw-objects)
        )
      (push av avdata)
      (push (send mt :stop) tmdata)
@@ -59,13 +60,16 @@
 
 (defun xyz-2dplot (&key fname)
   (if (and fname (probe-file fname)) (load fname))
+  (unless (boundp '*ri*) (robot-model-init))
   (when
       (boundp '*av-data*)
     (let (data (stimestr (unix::asctime (caar *start-end-time*)))
 	       xyz xyzdata)
       (dolist (av *av-data*)
-	(send *ri* :robot :angle-vector av)
-	(setq xyz (copy-object (send *ri* :robot :end-coords :worldpos)))
+	(when (boundp '*ri*)
+	  (send *ri* :robot :angle-vector av)
+	  (setq xyz (copy-object (send *ri* :robot :end-coords :worldpos)))
+	  )
 	(push xyz xyzdata))
       (setq *xyz-data* (reverse xyzdata))
       (dotimes (i 3)
@@ -88,6 +92,7 @@
 
 (defun xyz-3dplot (&key fname)
   (if (and fname (probe-file fname)) (load fname))
+  (unless (boundp '*ri*) (robot-model-init))
   (when
       (boundp '*av-data*)
     (let (data (stimestr (unix::asctime (caar *start-end-time*)))
@@ -126,7 +131,7 @@
 	    (unix::sendto *csock* *caddr*
 			  (format nil "~A" (elt *av-data* i))))
 	(send *ri* :robot :angle-vector (elt *av-data* i))
-	(send *ri* :viewer :draw-objects)
+	(send *ri* :robot :viewer :draw-objects)
 	(unix:usleep (round (* 1000000
 			       (- (setq now (elt *time-data* i)) pre))))
 	(setq pre now)))
