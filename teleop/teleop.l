@@ -3,7 +3,9 @@
 ;;
 (require :rcb4robots)
 (require :iarm)
+(require :utils)
 (provide :teleop)
+
 
 (push
  '("iarm1"  ;; follower
