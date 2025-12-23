@@ -129,24 +129,24 @@
   (if (and fname (probe-file fname)) (load fname))
   (unless (boundp '*ri*) (robot-model-init))
   (when
-      (boundp '*av-data*)
+      (and (boundp '*av-data*) (boundp '*rv-data*) *rv-data*)
     (let (data (stimestr (unix::asctime (caar *start-end-time*))))
       (dotimes (i 4)
 	(push (mapcar #'(lambda (fv) (elt fv i)) *av-data*) data))
-      (when (and (boundp '*rv-data*) *rv-data*)
-	(dotimes (i 4)
-	  (push (mapcar #'(lambda (fv) (elt fv i)) *rv-data*) data)))
+      (dotimes (i 4)
+	(push (mapcar #'(lambda (fv) (elt fv i)) *rv-data*) data))
       (graph-view
        (reverse data)
        *time-data*
        :keylist
-       (if (and (boundp '*rv-data*) *rv-data*)
-	   '("leader-joint0" "leader-joint1" "leader-joint2" "leader-joint3"
-	     "follower-joint0" "follower-joint1" "follower-joint2" "follower-joint3")
-	 '("joint0" "joint1" "joint2" "joint3"))
+       '("leader-joint0" "leader-joint1" "leader-joint2" "leader-joint3"
+	 "follower-joint0" "follower-joint1" "follower-joint2" "follower-joint3")
        :xrange (list (round (apply #'min *time-data*))
 		     (round (apply #'max *time-data*)))
-       :yrange yrange
+       :yrange (list
+		(apply #'min (flatten data))
+		(apply #'max (flatten data))
+		)
        :graph-instance (setq *gp* (gnuplot))
        :title (format nil "~A Joints  ~A"
 		      *robot-name*
@@ -160,8 +160,9 @@
 				   *sensor-idxs*
 				 '(0 1 2 3 4 5 6 7 8 9 10))))
   (if (and fname (probe-file fname)) (load fname))
-  (when
-      (boundp '*ad-data*)
+  (unless (boundp '*ad-data*)
+    (when (boundp '*ra-data*) (setq *ad-data* *ra-data*)))
+  (when (boundp '*ad-data*)
     (let (data (stimestr (unix::asctime (caar *start-end-time*))))
       (dolist (i idxs)
 	(push (mapcar #'(lambda (fv) (elt fv i)) *ad-data*) data))
@@ -244,22 +245,21 @@
   (if (and fname (probe-file fname)) (load fname))
   (unless (boundp '*ri*) (robot-model-init))
   (when
-      (boundp '*av-data*)
+      (and (boundp '*av-data*)
+	   (boundp '*rv-data*) *rv-data*)
     (let (data (stimestr (unix::asctime (caar *start-end-time*)))
 	       xyz xyzdata)
-      (dotimes (i (min (length *av-data*) (length *rv-data*)))
-	(when (boundp '*ri*)
-	  (send *ri* :robot :angle-vector (elt *av-data* i))
-	  (setq xyz (copy-object (send *ri* :robot :end-coords :worldpos)))
-	  (when (and (boundp '*rv-data*) *rv-data*)
-	    (send *robot* :angle-vector (elt *rv-data* i))
-	    (setq xyz2 (copy-object (send *robot* :end-coords :worldpos)))
-	    (setq xyz (concatenate float-vector xyz xyz2))
-	    ))
+      (dotimes (i (length *av-data*))
+	(send *ri* :robot :angle-vector (elt *av-data* i))
+	(setq xyz (copy-object (send *ri* :robot :end-coords :worldpos)))
+	(send *robot* :angle-vector (elt *rv-data* i))
+	(setq xyz2 (copy-object (send *robot* :end-coords :worldpos)))
+	(setq xyz (concatenate float-vector xyz xyz2))
 	(push xyz xyzdata))
       (setq *xyz-data* (reverse xyzdata))
-      (dotimes (i (length xyz))
-	(push (mapcar #'(lambda (fv) (elt fv i)) *xyz-data*) data))
+      (dotimes (i 6)
+	(push (mapcar #'(lambda (fv) (elt fv i)) *xyz-data*)
+	      data))
       (graph-view
        (reverse data)
        *time-data*
@@ -315,23 +315,58 @@
   (if (and fname (probe-file fname)) (load fname))
   (unless (boundp '*ri*) (robot-model-init))
   (when
-      (boundp '*av-data*)
+      (and (boundp '*av-data*) (boundp '*rv-data*) *rv-data*)
     (let (data (stimestr (unix::asctime (caar *start-end-time*)))
 	       xyz xyz2 xydata zdata xydata2 zdata2)
-      (dotimes (i (min (length *av-data*) (length *rv-data*)))
+      (dotimes (i (length *av-data*))
 	(send *ri* :robot :angle-vector (elt *av-data* i))
+	(send *ri* :robot :viewer :draw-objects)
 	(setq xyz (copy-object (send *ri* :robot :end-coords :worldpos)))
-	(when (and (boundp '*rv-data*) *rv-data*)
-	  (send *robot* :angle-vector (elt *rv-data* i))
-	  (setq xyz2 (copy-object (send *robot* :end-coords :worldpos)))
-	  (push (elt xyz 2) zdata2))
 	(push (list (elt xyz 0) (elt xyz 1)) xydata)
 	(push (elt xyz 2) zdata)
+	(send *robot* :angle-vector (elt *rv-data* i))
+	(send *robot* :viewer :draw-objects)
+	(setq xyz2 (copy-object (send *robot* :end-coords :worldpos)))
+	(push (elt xyz2 2) zdata2)
+	(push (list (elt xyz2 0) (elt xyz2 1)) xydata2)
 	)
+      (setq *z-data* (list (reverse zdata) (reverse zdata2)))
       (setq *xy-data* (reverse xydata))
-      (if zdata2
-	  (setq *z-data* (list (reverse zdata) (reverse zdata2)))
-	(setq *z-data* (list (reverse zdata))))
+      (graph-view
+       *z-data*
+       *xy-data*
+       :xrange (list (round (apply #'min (mapcar #'car *xy-data*)))
+		     (round (apply #'max (mapcar #'car *xy-data*))))
+       :yrange (list (round (apply #'min (mapcar #'cadr *xy-data*)))
+		     (round (apply #'max (mapcar #'cadr *xy-data*))))
+       :zrange (list (round (apply #'min (car *z-data*)))
+		     (round (apply #'max (car *z-data*))))
+       :graph-instance (setq *gp* (gnuplot))
+       :title (format nil "~A end-pos  ~A"
+		      *robot-name*
+		      (if fname fname
+			(subseq stimestr 0 (1- (length stimestr)))))
+       ))
+    ))
+
+(defun xyz-3dplot3 (&key fname) ;; 3D *rv-data*
+  (if (and fname (probe-file fname)) (load fname))
+  (unless (boundp '*ri*) (robot-model-init))
+  (when
+      (and (boundp '*rv-data*) *rv-data*)
+    (let (data (stimestr (unix::asctime (caar *start-end-time*)))
+	       xyz xyz2 xydata zdata xydata2 zdata2)
+      (dotimes (i (length *rv-data*))
+	(send *ri* :robot :angle-vector (elt *rv-data* i))
+	(send *ri* :robot :viewer :draw-objects)
+	(setq xyz (copy-object (send *ri* :robot :end-coords :worldpos)))
+	(push (list (elt xyz 0) (elt xyz 1)) xydata)
+	(push (elt xyz 2) zdata)
+	(send *robot* :angle-vector (elt *rv-data* i))
+	(send *robot* :viewer :draw-objects)
+	)
+      (setq *z-data* (list (reverse zdata)))
+      (setq *xy-data* (reverse xydata))
       (graph-view
        *z-data*
        *xy-data*
@@ -383,6 +418,7 @@
   (xyz-2dplot2)
   (xyz-3dplot)
   (xyz-3dplot2)
+  (xyz-3dplot3)
   (animate-data)
   )
 
