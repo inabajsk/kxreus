@@ -85,6 +85,7 @@
 
 (defun follower2-recv nil
   (while (setq msg (unix::recvfrom *ssock*))
+    (print (list 'follower2-recv-msg= msg))
     (when (stringp msg)
       (setq sym (read-from-string msg))
       (when (float-vector-p sym) (setq *angle-vector* sym)))
@@ -116,6 +117,7 @@
 
 (defun leader2-recv nil
   (while (setq msg (unix::recvfrom *ssock*))
+    (print (list 'leader2-recv-msg= msg))
     (when (stringp msg) (setq sym (read-from-string msg))
 	  (when (float-vector-p sym)
 	    (setq *real-vector* sym)
@@ -458,6 +460,7 @@
 
 (defun follower6-recv nil
   (while (setq msg (unix::recvfrom *ssock*))
+    (format t ";; follower6-rev msg=~A~%" msg)
     (when (stringp msg)
       (setq sym (read-from-string msg))
       (when (float-vector-p sym) (setq *angle-vector* sym)))
@@ -468,6 +471,7 @@
   (robot6-init name :stretch stretch)
   (setq *ssock* (make-dgram-socket
 		 (make-socket-address :domain af_inet :host ips :port *l2f-port*)))
+  ;;
   (setq *csock* (unix::socket (send
 			       (setq *caddr* (make-socket-address
 					      :domain af_inet :host ipc :port *f2l-port*)) :domain) 6 0))
@@ -489,7 +493,7 @@
 
 (defun leader6-recv nil
   (while (setq msg (unix::recvfrom *ssock*))
-    (print (list 'msg== msg))
+    (format t ";; leader6-rev msg=~A~%" msg)
     (when (stringp msg) (setq sym (read-from-string msg))
 	  (when (consp sym)
 	    (setq *real-vector* (car sym))
