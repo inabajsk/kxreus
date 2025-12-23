@@ -233,7 +233,7 @@
 
 (defun leader3-init (&key (name "iarm0") (ips *follower-ip*)
 			  (ipc *leader-ip*) (port *port-number*))
-  (robot3-init name :free t :timer-on nil)
+  (robot3-init name :hold t :timer-on nil :stretch 1)
   (send *ri* :free-all)
   (setq *csock* (unix::socket
 		 (send (setq *caddr* (make-socket-address
@@ -258,6 +258,7 @@
 (defun leader3-update nil
   (setq *angle-vector* (send *ri* :read-angle-vector))
   (unix::sendto *csock* *caddr* (format nil "~A" *angle-vector*))
+  (send *ri* :angle-vector *angle-vector* 1)
   (send *ri* :robot :angle-vector *angle-vector*)
   (send *ri* :viewer :draw-objects)
   (when (boundp '*real-vector*)
