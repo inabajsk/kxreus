@@ -345,10 +345,11 @@
 	 (send *robot* :viewer :draw-objects)
 	 )
        )
-     (when (boundp '*real-vector*) (push *real-vector* rvdata))
-     (when (boundp '*real-analog*) (push *real-analog* radata))
-     (push av avdata)
-     (push (send mt :stop) tmdata)
+     (when (boundp '*real-vector*)
+       (push *real-vector* rvdata)
+       (push *real-analog* radata)
+       (push av avdata)
+       (push (send mt :stop) tmdata))
      )
     (setq tm1 (list (unix::localtime) (unix:gettimeofday)))
     (setq *robot-name* (send *ri* :robot :name))
@@ -362,6 +363,9 @@
 				 *start-end-time* *av-data* *time-data*)
       (dump-loadable-structure fname *robot-name*
 			       *start-end-time* *av-data* *time-data*))
+    (unless
+	(= (length *av-data*) (length *rv-data*))
+      (format t ";; not equal length *av-data* *rv-data*~%"))
     (data-plot2)
     ))
 
