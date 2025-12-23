@@ -185,7 +185,8 @@
     ;;(unix::usleep (* 1 1000))
     ))
 
-(defun follower3-init (&key (name "iarm1") (ips *follower-ip*) (ipc *leader-ip*) (port *port-number*)
+(defun follower3-init (&key (name "iarm1") (ips *follower-ip*)
+			    (ipc *leader-ip*) (port *port-number*)
 			    (stretch 80))
   (robot3-init name :stretch stretch :hold t)
   (setq *ssock* (make-dgram-socket
@@ -208,6 +209,18 @@
    (send *ri* :viewer :draw-objects)
    (x::window-main-one))
   )
+
+(defun follower3-update nil
+  (while (not (boundp '*angle-vector*)) (unix::usleep (* 500 1000)))
+  (send *ri* :angle-vector *angle-vector* 1)
+  (setq *real-vector* (send *ri* :read-angle-vector))
+  (unix::sendto *csock* *caddr*
+		(format nil "(~A ~A)" *real-vector* (send *ri* :read-analog)))
+  (send *ri* :robot :angle-vector *angle-vector*)
+  (send *ri* :viewer :draw-objects)
+  (x::window-main-one)
+  )
+
 
 (defun leader3-recv nil
   (while (setq msg (unix::recvfrom *ssock*))
@@ -255,8 +268,14 @@
 (format t "(follower3)~%")
 (defun follower3 nil
   (follower3-init)
-  (while (not (boundp '*angle-vector*)) (unix::sleep 1))
-  (follower3-loop)
+  (while (not (boundp '*angle-vector*))
+    (when (boundp '*ri*)
+      (send *ri* :robot :viewer :draw-objects)
+      (x::window-main-one))
+    (unix::usleep (* 100 1000))
+    )
+  (setq *top-selector-interval* 0.01)
+  (pushnew 'follower3-update *timer-job*)
   )
 ;;
 ;; type 4 unilateral and receive follower states
