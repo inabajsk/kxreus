@@ -140,7 +140,7 @@
        *time-data*
        :keylist
        (if (and (boundp '*rv-data*) *rv-data*)
-	   '("leader-joint0" "leader-joint1" "leader-joint2" "leaader-joint3"
+	   '("leader-joint0" "leader-joint1" "leader-joint2" "leader-joint3"
 	     "follower-joint0" "follower-joint1" "follower-joint2" "follower-joint3")
 	 '("joint0" "joint1" "joint2" "joint3"))
        :xrange (list (round (apply #'min *time-data*))
@@ -324,9 +324,10 @@
 	  (send *robot* :angle-vector (elt *rv-data* i))
 	  (setq xyz2 (copy-object (send *robot* :end-coords :worldpos)))
 	  )
+	(push (list (elt xyz 0) (elt xyz 1)) xydata)
+	(push (elt xyz 2) zdata)
 	(if xyz2 (push (elt xyz 2) zdata2))
-	(push (list (elt xyz 2)) zdata))
-      (push (list (elt xyz 0) (elt xyz 1)) xydata)
+	)
       (setq *xy-data* (reverse xydata))
       (if zdata2
 	  (setq *z-data* (list (reverse zdata) (reverse zdata2)))
@@ -338,8 +339,8 @@
 		     (round (apply #'max (mapcar #'car *xy-data*))))
        :yrange (list (round (apply #'min (mapcar #'cadr *xy-data*)))
 		     (round (apply #'max (mapcar #'cadr *xy-data*))))
-       :zrange (list (round (apply #'min *z-data*))
-		     (round (apply #'max *z-data*)))
+       :zrange (list (round (apply #'min (car *z-data*)))
+		     (round (apply #'max (car *z-data*))))
        :graph-instance (setq *gp* (gnuplot))
        :title (format nil "~A end-pos  ~A"
 		      *robot-name*
