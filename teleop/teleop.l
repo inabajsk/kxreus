@@ -464,14 +464,13 @@
     ;;(unix::usleep (* 1 1000))
     ))
 
-(defun follower6-init (&key (name "iarm1") (ips *follower-ip*) (ipc *leader-ip*) (port *port-number*)
-			   (stretch 1))
+(defun follower6-init (&key (name "iarm1") (ips *follower-ip*) (ipc *leader-ip*) (stretch 1))
   (robot6-init name :stretch stretch)
   (setq *ssock* (make-dgram-socket
-		 (make-socket-address :domain af_inet :host ips :port port)))
+		 (make-socket-address :domain af_inet :host ips :port *l2f-port*)))
   (setq *csock* (unix::socket (send
 			       (setq *caddr* (make-socket-address
-					      :domain af_inet :host ipc :port port)) :domain) 6 0))
+					      :domain af_inet :host ipc :port *f2l-port*)) :domain) 6 0))
   (unix::sleep 1) (need-thread 4)
   (sys::thread-no-wait #'follower6-recv))
 
@@ -490,6 +489,7 @@
 
 (defun leader6-recv nil
   (while (setq msg (unix::recvfrom *ssock*))
+    (print (list 'msg== msg))
     (when (stringp msg) (setq sym (read-from-string msg))
 	  (when (consp sym)
 	    (setq *real-vector* (car sym))
@@ -499,13 +499,13 @@
     ;;(unix::usleep (* 1 1000))
     ))
 
-(defun leader6-init (&key (ips *follower-ip*) (ipc *leader-ip*) (port *port-number*))
+(defun leader6-init (&key (ips *follower-ip*) (ipc *leader-ip*))
   (robot6-init "iarm0")
   (setq *csock* (unix::socket
 		 (send (setq *caddr* (make-socket-address
-				      :domain af_inet :host ips :port port)) :domain) 6 0))
+				      :domain af_inet :host ips :port *l2f-port*)) :domain) 6 0))
   (setq *ssock* (make-dgram-socket
-		 (make-socket-address :domain af_inet :host ipc :port port)))
+		 (make-socket-address :domain af_inet :host ipc :port *f2l-port*)))
   (unix::sleep 1) (need-thread 4)
   (sys::thread-no-wait #'leader6-recv))
 
