@@ -170,9 +170,10 @@
 ;;
 ;; type 3 unilateral and receive follower states
 ;;
-(defun robot3-init (&optional (name "iarm0") &key (stretch 1) free hold)
+(defun robot3-init (&optional (name "iarm0") &key (stretch 1) free hold timer-on)
   (make-kxr-robot name :viewer t)
-  (send *ri* :com-init :baud *baudrate*) (send *ri* :timer-on)
+  (send *ri* :com-init :baud *baudrate*)
+  (if timer-on (send *ri* :timer-on))
   (if free (send *ri* :free))
   (if hold (send *ri* :hold))
   (send *ri* :send-stretch stretch))
@@ -188,7 +189,7 @@
 (defun follower3-init (&key (name "iarm1") (ips *follower-ip*)
 			    (ipc *leader-ip*) (port *port-number*)
 			    (stretch 80))
-  (robot3-init name :stretch stretch :hold t)
+  (robot3-init name :stretch stretch :hold t :timer-on nil)
   (setq *ssock* (make-dgram-socket
 		 (make-socket-address :domain af_inet :host ips :port port)))
   (setq *csock* (unix::socket
@@ -230,8 +231,9 @@
 	    (setq *real-analog* (cadr sym))))
     ))
 
-(defun leader3-init (&key (name "iarm0") (ips *follower-ip*) (ipc *leader-ip*) (port *port-number*))
-  (robot3-init name :free t)
+(defun leader3-init (&key (name "iarm0") (ips *follower-ip*)
+			  (ipc *leader-ip*) (port *port-number*))
+  (robot3-init name :free t :timer-on nil)
   (send *ri* :free-all)
   (setq *csock* (unix::socket
 		 (send (setq *caddr* (make-socket-address
@@ -253,6 +255,17 @@
      ))
   )
 
+(defun leader3-update nil
+  (setq *angle-vector* (send *ri* :read-angle-vector))
+  (unix::sendto *csock* *caddr* (format nil "~A" *angle-vector*))
+  (send *ri* :robot :angle-vector *angle-vector*)
+  (send *ri* :viewer :draw-objects)
+  (when (boundp '*real-vector*)
+    (send *robot* :angle-vector *real-vector*)
+    (send *robot* :viewer :draw-objects)
+    )
+  )
+
 (format t "(leader3-init)~%")
 (format t "(leader3-loop)~%")
 (format t "(follower3-init)~%")
@@ -262,7 +275,14 @@
 (defun leader3 nil
   (leader3-init)
   (unix::sleep 1)
-  (leader3-loop)
+  (setq *top-selector-interval* 0.01)
+  (pushnew 'leader3-update *timer-job*)
+  )
+(defun stop-follower3 nil
+  (setq *timer-job* (remove 'follower3-update *timer-job*))
+  )
+(defun stop-leader3 nil
+  (setq *timer-job* (remove 'leader3-update *timer-job*))
   )
 
 (format t "(follower3)~%")
