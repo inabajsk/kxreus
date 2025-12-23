@@ -4,14 +4,14 @@
 (require :teleop)
 
 (defparameter *leader-ip* "192.168.1.34")
-(defparameter *follower-ip* "192.168.1.18")
-(defparameter *leader-ip* "192.168.88.137")
-(defparameter *follower-ip* "192.168.88.137")
+(defparameter *follower-ip* "192.168.1.23")
+;;(defparameter *leader-ip* "192.168.88.137")
+;;(defparameter *follower-ip* "192.168.88.137")
 
 (defparameter *port-number* 2000)
 (defparameter *baudrate* 1250000)
 
-(defparameter *sensor-idxs* (list 4 5)) ;; force sensor index of :read-analog
+(defparameter *sensor-idxs* (list 5)) ;; force sensor index of :read-analog
 
 (defmethod rcb4-interface
   (:force-sense nil (elt (send self :read-analog) *sensor-idx*))
