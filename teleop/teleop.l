@@ -117,7 +117,10 @@
 (defun leader2-recv nil
   (while (setq msg (unix::recvfrom *ssock*))
     (when (stringp msg) (setq sym (read-from-string msg))
-	  (when (float-vector-p sym) (setq *real-vector* sym)))
+	  (when (float-vector-p sym)
+	    (setq *real-vector* sym)
+	    (print (list '*real-vector* *real-vector*))
+	    ))
     ;;(unix::usleep (* 1 1000))
     ))
 
@@ -364,6 +367,7 @@
   ;;
   (setq *caddr* (make-socket-address :domain af_inet :host ipc :port port))
   (setq *csock* (unix::socket (send *caddr* :domain) 5 0))
+  ;;
   (unix::sleep 1) (need-thread 4)
   (sys::thread-no-wait #'follower5-recv))
 
@@ -409,6 +413,7 @@
 	    (setq *real-vector* (car sym))
 	    (send *robot* :angle-vector *real-vector*)
 	    (setq *real-analog* (cadr sym))
+	    (print (list 'sim= sym))
 	    ))
     ;;(unix::usleep (* 1 1000))
     ))
