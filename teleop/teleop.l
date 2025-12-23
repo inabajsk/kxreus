@@ -93,7 +93,7 @@
     ))
 
 (defun follower2-init (&key (name "iarm1") (ips *follower-ip*) (ipc *leader-ip*) (port *port-number*)
-			   (stretch 1))
+			    (stretch 40))
   (robot2-init name :stretch stretch)
   (setq *ssock* (make-dgram-socket
 		 (make-socket-address :domain af_inet :host ips :port port)))
@@ -125,8 +125,9 @@
     ;;(unix::usleep (* 1 1000))
     ))
 
-(defun leader2-init (&key (ips *follower-ip*) (ipc *leader-ip*) (port *port-number*))
-  (robot2-init "iarm0")
+(defun leader2-init (&key (name "iarm0") (ips *follower-ip*) (ipc *leader-ip*) (port *port-number*)
+			  (stretch 20))
+  (robot2-init name :stretch stretch)
   (setq *csock* (unix::socket
 		 (send (setq *caddr* (make-socket-address
 				      :domain af_inet :host ips :port port)) :domain) 2 0))
@@ -367,7 +368,7 @@
   (setq *ssock* (make-dgram-socket (make-socket-address :domain af_inet :host ips :port port)))
   ;;
   (setq *caddr* (make-socket-address :domain af_inet :host ipc :port port))
-  (setq *csock* (unix::socket (send *caddr* :domain) 5 0))
+  (setq *csock* (unix::socket (send *caddr* :domain) 2 0))
   ;;
   (unix::sleep 1) (need-thread 4)
   (sys::thread-no-wait #'follower5-recv))
@@ -399,7 +400,7 @@
 (defun leader5-init (&key (ips *follower-ip*) (ipc *leader-ip*) (port *port-number*))
   (robot5-init "iarm0" :free t)
   (setq *faddr* (make-socket-address :domain af_inet :host ips :port port))
-  (setq *fsock* (unix::socket (send *faddr* :domain) 5 0))
+  (setq *fsock* (unix::socket (send *faddr* :domain) 2 0))
   ;;
   (setq *lsock* (make-dgram-socket
 		 (make-socket-address :domain af_inet :host ipc :port port)))
@@ -473,7 +474,7 @@
   ;;
   (setq *csock* (unix::socket (send
 			       (setq *caddr* (make-socket-address
-					      :domain af_inet :host ipc :port *f2l-port*)) :domain) 6 0))
+					      :domain af_inet :host ipc :port *f2l-port*)) :domain) 2 0))
   (unix::sleep 1) (need-thread 4)
   (sys::thread-no-wait #'follower6-recv))
 
@@ -506,7 +507,7 @@
   (robot6-init "iarm0")
   (setq *csock* (unix::socket
 		 (send (setq *caddr* (make-socket-address
-				      :domain af_inet :host ips :port *l2f-port*)) :domain) 6 0))
+				      :domain af_inet :host ips :port *l2f-port*)) :domain) 2 0))
   (setq *ssock* (make-dgram-socket
 		 (make-socket-address :domain af_inet :host ipc :port *f2l-port*)))
   (unix::sleep 1) (need-thread 4)
