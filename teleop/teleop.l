@@ -357,6 +357,16 @@
   (send *ri* :send-stretch stretch)
   )
 
+(defun follower5-init (&key (name "iarm1") (ips *follower-ip*) (ipc *leader-ip*) (port *port-number*)
+			   (stretch 1))
+  (robot5-init name :stretch stretch :hold t)
+  (setq *ssock* (make-dgram-socket (make-socket-address :domain af_inet :host ips :port port)))
+  ;;
+  (setq *caddr* (make-socket-address :domain af_inet :host ipc :port port))
+  (setq *csock* (unix::socket (send *caddr* :domain) 5 0))
+  (unix::sleep 1) (need-thread 4)
+  (sys::thread-no-wait #'follower5-recv))
+
 (defun follower5-recv nil
   (while (setq msg (unix::recvfrom *ssock*))
     (when (stringp msg)
@@ -366,42 +376,32 @@
     ;;(unix::usleep (* 1 1000))
     ))
 
-(defun follower5-init (&key (name "iarm1") (ips *follower-ip*) (ipc *leader-ip*) (port *port-number*)
-			   (stretch 1))
-  (robot5-init name :stretch stretch :hold t)
-  (setq *ssock* (make-dgram-socket
-		 (make-socket-address :domain af_inet :host ips :port port)))
-  (setq *csock* (unix::socket (send
-			       (setq *caddr* (make-socket-address
-					      :domain af_inet :host ipc :port port)) :domain) 5 0))
-  (unix::sleep 1) (need-thread 4)
-  (sys::thread-no-wait #'follower5-recv))
-
 (defun follower5-loop nil
-  (when (boundp '*angle-vector*)
-    (do-until-key
+  (do-until-key
+   (setq *real-vector* (send *ri* :read-angle-vector))
+   (setq *real-analog* (send *ri* :read-analog))
+   (unix::sendto *csock* *caddr* (format nil "(~A *real-analog*)" *real-vector* *real-analog*))
+   (when
+       (boundp '*angle-vector*)
      (send *ri* :angle-vector *angle-vector* 1)
-     (setq *real-vector* (send *ri* :read-angle-vector))
-     (setq *real-analog* (send *ri* :read-analog))
-     (unix::sendto *csock* *caddr* (format nil "(~A *real-analog*)" *real-vector* *real-analog*))
-     (send *ri* :robot :angle-vector *angle-vector*)
-     (send *ri* :viewer :draw-objects)
-     (x::window-main-one))
-    )
+     (send *ri* :robot :angle-vector *angle-vector*))
+   (send *ri* :viewer :draw-objects)
+   (x::window-main-one))
   )
 
 (defun leader5-init (&key (ips *follower-ip*) (ipc *leader-ip*) (port *port-number*))
   (robot5-init "iarm0" :free t)
-  (setq *csock* (unix::socket
-		 (send (setq *caddr* (make-socket-address
-				      :domain af_inet :host ips :port port)) :domain) 5 0))
-  (setq *ssock* (make-dgram-socket
+  (setq *faddr* (make-socket-address :domain af_inet :host ips :port port))
+  (setq *fsock* (unix::socket (send *faddr* :domain) 5 0))
+  ;;
+  (setq *lsock* (make-dgram-socket
 		 (make-socket-address :domain af_inet :host ipc :port port)))
   (unix::sleep 1) (need-thread 4)
   (sys::thread-no-wait #'leader5-recv))
 
 (defun leader5-recv nil
-  (while (setq msg (unix::recvfrom *ssock*))
+  (while (setq msg (unix::recvfrom *lsock*))
+    (format t ";; msg=~A~%" msg)
     (when (stringp msg) (setq sym (read-from-string msg))
 	  (when (consp sym)
 	    (setq *real-vector* (car sym))
@@ -414,7 +414,7 @@
 (defun leader5-loop nil
   (do-until-key
    (setq *angle-vector* (send *ri* :read-angle-vector))
-   (unix::sendto *csock* *caddr* (format nil "~A" *angle-vector*))
+   (unix::sendto *fsock* *faddr* (format nil "~A" *angle-vector*))
    (send *ri* :robot :angle-vector *angle-vector*)
    (send *ri* :viewer :draw-objects)
    (send *robot* :viewer :draw-objects)
