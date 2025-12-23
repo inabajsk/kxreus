@@ -16,7 +16,7 @@
 (defmethod rcb4-interface
   (:force-sense nil (elt (send self :read-analog) *sensor-idx*))
   )
-
+#|
 (push
  '("iarm0"  ;; leader
    (:file "iarm.l" :form (instance iarmclass :init))
@@ -36,9 +36,31 @@
    (8 :joint3 -1)
    )
  *kxr-body-config-alist*)
-
+|#
 (push
  '("iarm"  ;; leader
+   (:file "iarm.l" :form (instance iarmclass :init))
+   (11 :joint0 -1)
+   (13 :joint1 -1)
+   (17 :joint2 -1)
+   (21 :joint3 1)
+   ;;   (18 :joint4 -1)
+   )
+ *kxr-body-config-alist*)
+
+(push
+ '("iarm0"  ;; leader
+   (:file "iarm.l" :form (instance iarmclass :init))
+   (11 :joint0 -1)
+   (13 :joint1 -1)
+   (17 :joint2 -1)
+   (21 :joint3 1)
+   ;;   (18 :joint4 -1)
+   )
+ *kxr-body-config-alist*)
+
+(push
+ '("iarm1"  ;; leader
    (:file "iarm.l" :form (instance iarmclass :init))
    (11 :joint0 -1)
    (13 :joint1 -1)
