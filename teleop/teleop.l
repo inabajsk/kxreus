@@ -40,13 +40,12 @@
   )
 
 (defun follower1-loop nil
-  (when (boundp '*angle-vector*)
-    (do-until-key
-     (send *ri* :angle-vector *angle-vector* 1)
-     (send *ri* :robot :angle-vector *angle-vector*)
-     (send *ri* :viewer :draw-objects)
-     (x::window-main-one))
-    )
+  (while (not (boundp '*angle-vector*)) (unix::usleep (* 500 1000)))
+  (do-until-key
+   (send *ri* :angle-vector *angle-vector* 1)
+   (send *ri* :robot :angle-vector *angle-vector*)
+   (send *ri* :viewer :draw-objects)
+   (x::window-main-one))
   )
 
 (defun leader1-init (&key (name "iarm0")
@@ -106,15 +105,14 @@
   (sys::thread-no-wait #'follower2-recv))
 
 (defun follower2-loop nil
-  (when (boundp '*angle-vector*)
-    (do-until-key
-     (send *ri* :angle-vector *angle-vector* 1)
-     (setq *real-vector* (send *ri* :read-angle-vector))
-     (unix::sendto *csock* *caddr* (format nil "~A" *real-vector*))
-     (send *ri* :robot :angle-vector *angle-vector*)
-     (send *ri* :viewer :draw-objects)
-     (x::window-main-one))
-    )
+  (while (not (boundp '*angle-vector*)) (unix::usleep (* 500 1000)))
+  (do-until-key
+   (send *ri* :angle-vector *angle-vector* 1)
+   (setq *real-vector* (send *ri* :read-angle-vector))
+   (unix::sendto *csock* *caddr* (format nil "~A" *real-vector*))
+   (send *ri* :robot :angle-vector *angle-vector*)
+   (send *ri* :viewer :draw-objects)
+   (x::window-main-one))
   )
 
 (defun leader2-recv nil
@@ -200,16 +198,16 @@
   (sys::thread-no-wait #'follower3-recv))
 
 (defun follower3-loop nil
-  (when (boundp '*angle-vector*)
-    (do-until-key
-     (send *ri* :angle-vector *angle-vector* 1)
-     (setq *real-vector* (send *ri* :read-angle-vector))
-     (unix::sendto *csock* *caddr*
-		   (format nil "(~A ~A)" *real-vector* (send *ri* :read-analog)))
-     (send *ri* :robot :angle-vector *angle-vector*)
-     (send *ri* :viewer :draw-objects)
-     (x::window-main-one))
-    ))
+  (while (not (boundp '*angle-vector*)) (unix::usleep (* 500 1000)))
+  (do-until-key
+   (send *ri* :angle-vector *angle-vector* 1)
+   (setq *real-vector* (send *ri* :read-angle-vector))
+   (unix::sendto *csock* *caddr*
+		 (format nil "(~A ~A)" *real-vector* (send *ri* :read-analog)))
+   (send *ri* :robot :angle-vector *angle-vector*)
+   (send *ri* :viewer :draw-objects)
+   (x::window-main-one))
+  )
 
 (defun leader3-recv nil
   (while (setq msg (unix::recvfrom *ssock*))
@@ -375,7 +373,6 @@
 (format t "(leader4)~%")
 (defun leader4 nil
   (leader4-init)
-  (unix::sleep 1)
   (leader4-loop)
   )
 
