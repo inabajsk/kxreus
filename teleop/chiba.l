@@ -9,9 +9,6 @@
 ;;(defparameter *follower-ip* "192.168.88.137")
 
 (defparameter *port-number* 2000)
-(defparameter *l2f-port* 2000)
-(defparameter *f2l-port* 2001)
-
 (defparameter *baudrate* 1250000)
 
 (defparameter *sensor-idxs* (list 5)) ;; force sensor index of :read-analog

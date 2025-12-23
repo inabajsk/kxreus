@@ -193,7 +193,7 @@
   (setq *csock* (unix::socket
 		 (send
 		  (setq *caddr* (make-socket-address
-				 :domain af_inet :host ipc :port port)) :domain) 4 0))
+				 :domain af_inet :host ipc :port port)) :domain) 2 0))
   (unix::sleep 1) (need-thread 4)
   (sys::thread-no-wait #'follower4-recv))
 
@@ -222,7 +222,7 @@
   (send *ri* :free-all)
   (setq *csock* (unix::socket
 		 (send (setq *caddr* (make-socket-address
-				      :domain af_inet :host ips :port port)) :domain) 4 0))
+				      :domain af_inet :host ips :port port)) :domain) 2 0))
   (setq *ssock* (make-dgram-socket
 		 (make-socket-address :domain af_inet :host ipc :port port)))
   (unix::sleep 1) (need-thread 4)
@@ -285,7 +285,7 @@
   (setq *csock* (unix::socket
 		 (send
 		  (setq *caddr* (make-socket-address
-				 :domain af_inet :host lip :port port)) :domain) 4 0))
+				 :domain af_inet :host lip :port port)) :domain) 2 0))
   (unix::sleep 1) (need-thread 4)
   (sys::thread-no-wait #'follower3-recv)
   )
@@ -460,7 +460,6 @@
 
 (defun follower6-recv nil
   (while (setq msg (unix::recvfrom *ssock*))
-    (format t ";; follower6-rev msg=~A~%" msg)
     (when (stringp msg)
       (setq sym (read-from-string msg))
       (when (float-vector-p sym) (setq *angle-vector* sym)))
@@ -493,7 +492,6 @@
 
 (defun leader6-recv nil
   (while (setq msg (unix::recvfrom *ssock*))
-    (format t ";; leader6-rev msg=~A~%" msg)
     (when (stringp msg) (setq sym (read-from-string msg))
 	  (when (consp sym)
 	    (setq *real-vector* (car sym))
