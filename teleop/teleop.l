@@ -121,7 +121,6 @@
     (when (stringp msg) (setq sym (read-from-string msg))
 	  (when (float-vector-p sym)
 	    (setq *real-vector* sym)
-	    (print (list '*real-vector* *real-vector*))
 	    ))
     ;;(unix::usleep (* 1 1000))
     ))
