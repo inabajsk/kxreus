@@ -364,7 +364,7 @@
 
 (defun follower5-init (&key (name "iarm1") (ips *follower-ip*) (ipc *leader-ip*) (port *port-number*)
 			   (stretch 1))
-  (robot5-init name :stretch stretch)
+  (robot5-init name :stretch stretch :hold t)
   (setq *ssock* (make-dgram-socket
 		 (make-socket-address :domain af_inet :host ips :port port)))
   (setq *csock* (unix::socket (send
@@ -397,7 +397,7 @@
     ))
 
 (defun leader5-init (&key (ips *follower-ip*) (ipc *leader-ip*) (port *port-number*))
-  (robot5-init "iarm0")
+  (robot5-init "iarm0" :free t)
   (setq *csock* (unix::socket
 		 (send (setq *caddr* (make-socket-address
 				      :domain af_inet :host ips :port port)) :domain) 5 0))
@@ -412,10 +412,10 @@
    (unix::sendto *csock* *caddr* (format nil "~A" *angle-vector*))
    (send *ri* :robot :angle-vector *angle-vector*)
    (send *ri* :viewer :draw-objects)
+   (x::window-main-one)
    (when (boundp '*real-vector*)
      (send *robot* :angle-vector *real-vector*)
      (send *robot* :viewer :draw-objects)
-     (send *ri* :angle-vector *real-vector* 1)
      ))
   )
 
