@@ -379,13 +379,15 @@
 (defun follower5-loop nil
   (do-until-key
    (setq *real-vector* (send *ri* :read-angle-vector))
+   (send *ri* :robot :angle-vector *real-vector*)
    (setq *real-analog* (send *ri* :read-analog))
    (unix::sendto *csock* *caddr* (format nil "(~A *real-analog*)" *real-vector* *real-analog*))
    (when
        (boundp '*angle-vector*)
      (send *ri* :angle-vector *angle-vector* 1)
-     (send *ri* :robot :angle-vector *angle-vector*))
-   (send *ri* :viewer :draw-objects)
+     (send *robot* :angle-vector *angle-vector*))
+   (send *robot* :viewer :draw-objects)
+   (send *ri* :robot :viewer :draw-objects)
    (x::window-main-one))
   )
 
