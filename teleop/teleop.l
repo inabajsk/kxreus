@@ -361,7 +361,8 @@
   (while (setq msg (unix::recvfrom *ssock*))
     (when (stringp msg)
       (setq sym (read-from-string msg))
-      (when (float-vector-p sym) (setq *angle-vector* sym)))
+      (when (float-vector-p sym)
+	(setq *angle-vector* sym)))
     ;;(unix::usleep (* 1 1000))
     ))
 
@@ -389,16 +390,6 @@
     )
   )
 
-(defun leader5-recv nil
-  (while (setq msg (unix::recvfrom *ssock*))
-    (when (stringp msg) (setq sym (read-from-string msg))
-	  (when (consp sym)
-	    (setq *real-vector* (car sym))
-	    (setq *real-analog* (cadr sym))
-	    ))
-    ;;(unix::usleep (* 1 1000))
-    ))
-
 (defun leader5-init (&key (ips *follower-ip*) (ipc *leader-ip*) (port *port-number*))
   (robot5-init "iarm0" :free t)
   (setq *csock* (unix::socket
@@ -409,17 +400,26 @@
   (unix::sleep 1) (need-thread 4)
   (sys::thread-no-wait #'leader5-recv))
 
+(defun leader5-recv nil
+  (while (setq msg (unix::recvfrom *ssock*))
+    (when (stringp msg) (setq sym (read-from-string msg))
+	  (when (consp sym)
+	    (setq *real-vector* (car sym))
+	    (send *robot* :angle-vector *real-vector*)
+	    (setq *real-analog* (cadr sym))
+	    ))
+    ;;(unix::usleep (* 1 1000))
+    ))
+
 (defun leader5-loop nil
   (do-until-key
    (setq *angle-vector* (send *ri* :read-angle-vector))
    (unix::sendto *csock* *caddr* (format nil "~A" *angle-vector*))
    (send *ri* :robot :angle-vector *angle-vector*)
    (send *ri* :viewer :draw-objects)
+   (send *robot* :viewer :draw-objects)
    (x::window-main-one)
-   (when (boundp '*real-vector*)
-     (send *robot* :angle-vector *real-vector*)
-     (send *robot* :viewer :draw-objects)
-     ))
+   )
   )
 
 (format t "(leader5-init)~%")
