@@ -308,14 +308,14 @@
     ))
 
 (defun leader3-init (&key (name "iarm0")
-			  (ip *follower-ip*) (port 2000) (free t))
+			  (fip *follower-ip*) (lip *leader-ip*) (port 2000) (free t))
   (robot3-init name :free free)
   (setq *csock* (unix::socket
 		 (send
-		  (setq *caddr* (make-socket-address :domain af_inet :host ip :port port))
+		  (setq *caddr* (make-socket-address :domain af_inet :host lip :port port))
 		  :domain) 2 0))
   (setq *ssock* (make-dgram-socket
-		 (make-socket-address :domain af_inet :host ipc :port port)))
+		 (make-socket-address :domain af_inet :host fip :port port)))
   (unix::sleep 1) (need-thread 4)
   (sys::thread-no-wait #'leader3-recv)
   )
