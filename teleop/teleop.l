@@ -8,9 +8,10 @@
 (provide :teleop)
 
 (defun robot-model-init (&optional (name "iarm0"))
-  (setq *ri* (kxr-make-robot-interface name :viewer t))
-  (send *ri* :viewer :change-background (float-vector 0.9 0.9 0.7))
-  (send *ri* :viewer :look-all)
+  ;;(setq *ri* (kxr-make-robot-interface name :viewer t))
+  (make-kxr-robot name :viewer t)
+  (send *ri* :robot :viewer :change-background (float-vector 0.9 0.9 0.7))
+  (send *ri* :robot :viewer :look-all)
   )
 
 (defun robot1-init (&optional (name "iarm0") &key free stretch)
@@ -277,8 +278,9 @@
     ;;(unix::usleep (* 1 1000))
     ))
 
-(defun follower4-init (&key (name "iarm1") (ips *follower-ip*) (ipc *leader-ip*) (port *port-number*)
-			    (stretch 80))
+(defun follower4-init (&key (name "iarm1") (ips *follower-ip*) (ipc *leader-ip*)
+			    (port *port-number*)
+			    (stretch 127))
   (robot4-init name :stretch stretch :hold t)
   (setq *ssock* (make-dgram-socket
 		 (make-socket-address :domain af_inet :host ips :port port)))
@@ -309,7 +311,8 @@
 	    (setq *real-analog* (cadr sym))))
     ))
 
-(defun leader4-init (&key (name "iarm0") (ips *follower-ip*) (ipc *leader-ip*) (port *port-number*))
+(defun leader4-init (&key (name "iarm0") (ips *follower-ip*) (ipc *leader-ip*)
+			  (port *port-number*))
   (robot4-init name :free t)
   (send *ri* :free-all)
   (setq *csock* (unix::socket
@@ -363,15 +366,6 @@
 			       *start-end-time* *av-data* *time-data*))
     (data-plot2)
     ))
-
-(defun data-plot2 nil
-  (joint-plot2)
-  (analog-plot2)
-  (xyz-2dplot2)
-  (xyz-3dplot)
-  (xyz-3dplot2)
-  (animate-data)
-  )
 
 (format t "(leader4-init)~%")
 (format t "(leader4-loop)~%")

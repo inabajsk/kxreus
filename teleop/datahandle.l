@@ -127,6 +127,7 @@
 
 (defun joint-plot2 (&key fname (yrange '(-90 90)))
   (if (and fname (probe-file fname)) (load fname))
+  (unless (boundp '*ri*) (robot-model-init))
   (when
       (boundp '*av-data*)
     (let (data (stimestr (unix::asctime (caar *start-end-time*))))
@@ -364,6 +365,17 @@
 			       (- (setq now (elt *time-data* i)) pre))))
 	(setq pre now)))
     ))
+
+(format t "(data-plot2)~%")
+(defun data-plot2 nil
+  (unless (boundp '*ri*) (robot-model-init))
+  (joint-plot2)
+  (analog-plot2)
+  (xyz-2dplot2)
+  (xyz-3dplot)
+  (xyz-3dplot2)
+  (animate-data)
+  )
 
 (format t "(store-loop)~%")
 (format t "(joint-plot)~%")
