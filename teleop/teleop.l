@@ -276,7 +276,7 @@
   (setq *csock* (unix::socket
 		 (send
 		  (setq *caddr* (make-socket-address
-				 :domain af_inet :host ipc :port port)) :domain) 4 0))
+				 :domain af_inet :host ip :port port)) :domain) 4 0))
   (unix::sleep 1) (need-thread 4)
   (sys::thread-no-wait #'follower3-recv)
   )
