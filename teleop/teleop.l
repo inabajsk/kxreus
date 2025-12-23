@@ -349,10 +349,13 @@
 ;;;
 ;;; type 5
 ;;;
-(defun robot5-init (&optional (name "iarm0") &key (stretch 1))
+(defun robot5-init (&optional (name "iarm0") &key (stretch 1) free hold)
   (make-kxr-robot name :viewer t)
   (send *ri* :com-init :baud *baudrate*) (send *ri* :timer-on)
-  (send *ri* :hold) (send *ri* :send-stretch stretch))
+  (if free (send *ri* :free))
+  (if hold (send *ri* :hold))
+  (send *ri* :send-stretch stretch)
+  )
 
 (defun follower5-recv nil
   (while (setq msg (unix::recvfrom *ssock*))
