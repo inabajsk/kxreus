@@ -2,8 +2,6 @@
 ;; Data store/plot/animate 2025.11.14 M.I
 ;;
 (provide :datahandle)
-(require :teleop)
-(require :utils)
 
 (defun store-loop (&key fname show send (robot "iarm0"))
   (let ((mt (instance mtimer :init))
