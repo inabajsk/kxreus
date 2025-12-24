@@ -333,6 +333,8 @@
     ))
 
 
+(defparameter *stop-sensor-threshould* 30)
+
 (defun leader3-update nil
   (setq *angle-vector* (send *ri* :read-angle-vector))
   (unix::sendto *csock* *caddr* (format nil "~A" *angle-vector*))
@@ -341,8 +343,13 @@
   (send *ri* :viewer :draw-objects)
   (when (boundp '*real-vector*)
     (if *leader3-hold* (send *ri* :hold))
-    ;;    (send *ri* :angle-vector *real-vector* 1)
+    ;;(send *ri* :angle-vector *real-vector* 1)
     ;;(when (> (leader3-diff) 20) (send *ri* :angle-vector *real-vector* 50))
+    (when (> (elt *real-analog* (car *sensor-idxs*)) *stop-sensor-threshould*)
+      (send *ri* :send-stretch 127)
+      (send *ri* :hold)
+      ;;(send *ri* :angle-vector *real-vector* 1)
+      )
     (send *robot* :angle-vector *real-vector*)
     (send *robot* :viewer :draw-objects)
     )
