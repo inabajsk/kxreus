@@ -190,6 +190,8 @@
 			    (ipc *leader-ip*) (port *port-number*)
 			    (stretch 80))
   (robot3-init name :stretch stretch :hold t :timer-on nil)
+  (send *robot* :viewer :title "leader")
+  (send *ri* :robot :viewer :title "follower")
   (setq *ssock* (make-dgram-socket
 		 (make-socket-address :domain af_inet :host ips :port port)))
   (setq *csock* (unix::socket
@@ -214,11 +216,13 @@
 (defun follower3-update nil
   (follower3-wait)
   (send *ri* :angle-vector *angle-vector* 1)
+  (send *robot* :angle-vector *angle-vector*)
   (setq *real-vector* (send *ri* :read-angle-vector))
   (unix::sendto *csock* *caddr*
 		(format nil "(~A ~A)" *real-vector* (send *ri* :read-analog)))
-  (send *ri* :robot :angle-vector *angle-vector*)
-  (send *ri* :viewer :draw-objects)
+  (send *ri* :robot :angle-vector *real-vector*)
+  (send *robot* :viewer :draw-objects)
+  (send *ri* :robot :viewer :draw-objects)
   (x::window-main-one)
   )
 (defun follower3-wait nil
@@ -257,6 +261,8 @@
 			  (ipc *leader-ip*) (port *port-number*)
 			  (stretch 1))
   (robot3-init name :hold t :timer-on nil :stretch stretch)
+  (send *robot* :viewer :title "follower")
+  (send *ri* :robot :viewer :title "leader")
   (send *ri* :free-all)
   (setq *csock* (unix::socket
 		 (send (setq *caddr* (make-socket-address
