@@ -212,7 +212,7 @@
   )
 
 (defun follower3-update nil
-  (while (not (boundp '*angle-vector*)) (unix::usleep (* 500 1000)))
+  (follower3-wait)
   (send *ri* :angle-vector *angle-vector* 1)
   (setq *real-vector* (send *ri* :read-angle-vector))
   (unix::sendto *csock* *caddr*
@@ -221,8 +221,30 @@
   (send *ri* :viewer :draw-objects)
   (x::window-main-one)
   )
+(defun follower3-wait nil
+  (while (not (boundp '*angle-vector*))
+    (when (boundp '*ri*)
+      (send *ri* :robot :viewer :draw-objects)
+      (x::window-main-one))
+    (unix::usleep (* 100 1000))
+    ))
+(format t "(follower3-init)~%")
+(format t "(start-follower3)~%")
+(format t "(follower3)~%")
+(defun follower3 nil
+  (follower3-init)
+  (follower3-wait)
+  (start-follower3)
+  )
+(defun start-follower3 nil
+  (setq *top-selector-interval* 0.01)
+  (pushnew 'follower3-update *timer-job*)
+  )
+(defun stop-follower3 nil
+  (setq *timer-job* (remove 'follower3-update *timer-job*))
+  )
 
-
+;;;
 (defun leader3-recv nil
   (while (setq msg (unix::recvfrom *ssock*))
     (when (stringp msg) (setq sym (read-from-string msg))
@@ -232,8 +254,9 @@
     ))
 
 (defun leader3-init (&key (name "iarm0") (ips *follower-ip*)
-			  (ipc *leader-ip*) (port *port-number*))
-  (robot3-init name :hold t :timer-on nil :stretch 1)
+			  (ipc *leader-ip*) (port *port-number*)
+			  (stretch 1))
+  (robot3-init name :hold t :timer-on nil :stretch stretch)
   (send *ri* :free-all)
   (setq *csock* (unix::socket
 		 (send (setq *caddr* (make-socket-address
@@ -258,46 +281,32 @@
 (defun leader3-update nil
   (setq *angle-vector* (send *ri* :read-angle-vector))
   (unix::sendto *csock* *caddr* (format nil "~A" *angle-vector*))
-  (send *ri* :angle-vector *angle-vector* 1)
+;;  (send *ri* :angle-vector *angle-vector*)
   (send *ri* :robot :angle-vector *angle-vector*)
   (send *ri* :viewer :draw-objects)
   (when (boundp '*real-vector*)
+;;    (send *ri* :angle-vector *real-vector*)
     (send *robot* :angle-vector *real-vector*)
     (send *robot* :viewer :draw-objects)
     )
   )
 
 (format t "(leader3-init)~%")
-(format t "(leader3-loop)~%")
-(format t "(follower3-init)~%")
-(format t "(follower3-loop)~%")
-
+(format t "(start-leader3)~%")
 (format t "(leader3)~%")
 (defun leader3 nil
   (leader3-init)
   (unix::sleep 1)
+  (start-leader3)
+  )
+(defun start-leader3 nil
   (setq *top-selector-interval* 0.01)
   (pushnew 'leader3-update *timer-job*)
-  )
-(defun stop-follower3 nil
-  (setq *timer-job* (remove 'follower3-update *timer-job*))
   )
 (defun stop-leader3 nil
   (setq *timer-job* (remove 'leader3-update *timer-job*))
   )
 
-(format t "(follower3)~%")
-(defun follower3 nil
-  (follower3-init)
-  (while (not (boundp '*angle-vector*))
-    (when (boundp '*ri*)
-      (send *ri* :robot :viewer :draw-objects)
-      (x::window-main-one))
-    (unix::usleep (* 100 1000))
-    )
-  (setq *top-selector-interval* 0.01)
-  (pushnew 'follower3-update *timer-job*)
-  )
 ;;
 ;; type 4 unilateral and receive follower states
 ;;
