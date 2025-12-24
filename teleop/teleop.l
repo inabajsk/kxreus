@@ -284,6 +284,55 @@
      ))
   )
 
+(defun leader3-store (&key fname show (robot "iarm0"))
+  (let ((mt (instance mtimer :init))
+	radata rvdata av avdata tmdata tm0 tm1 xyz xyzdata)
+    (setq *av-data* nil)
+    (setq *rv-data* nil)
+    (setq *ra-data* nil)
+    (setq *time-data* nil)
+    (unless fname
+      (setq fname (format nil "~A ~A.dat"
+			  (send *ri* :robot :name)
+			  (car (unix::gettimeofday)))))
+    (setq tm0 (list (unix::localtime) (unix:gettimeofday)))
+    (send mt :start)
+    (do-until-key
+     (setq av (send *ri* :read-angle-vector))
+     (unix::sendto *csock* *caddr* (format nil "~A" av))
+     (when show
+       (send *ri* :robot :angle-vector av)
+       (send *ri* :robot :viewer :draw-objects)
+       (when (boundp '*real-vector*)
+	 (send *robot* :angle-vector *real-vector*)
+	 (send *robot* :viewer :draw-objects)
+	 )
+       )
+     (when (boundp '*real-vector*)
+       (push *real-vector* rvdata)
+       (push *real-analog* radata)
+       (push av avdata)
+       (push (send mt :stop) tmdata))
+     )
+    (setq tm1 (list (unix::localtime) (unix:gettimeofday)))
+    (setq *robot-name* (send *ri* :robot :name))
+    (setq *start-end-time* (list tm0 tm1))
+    (setq *av-data* (reverse avdata))
+    (setq *rv-data* (reverse rvdata))
+    (setq *ra-data* (reverse radata))
+    (setq *time-data* (reverse tmdata))
+    (if *rv-data*
+	(dump-loadable-structure fname *robot-name* *rv-data* *ra-data*
+				 *start-end-time* *av-data* *time-data*)
+      (dump-loadable-structure fname *robot-name*
+			       *start-end-time* *av-data* *time-data*))
+    (unless
+	(= (length *av-data*) (length *rv-data*))
+      (format t ";; not equal length *av-data* *rv-data*~%"))
+    (data-plot2)
+    ))
+
+
 (defun leader3-update nil
   (setq *angle-vector* (send *ri* :read-angle-vector))
   (unix::sendto *csock* *caddr* (format nil "~A" *angle-vector*))

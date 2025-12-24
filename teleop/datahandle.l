@@ -119,7 +119,7 @@
        :yrange yrange
        :graph-instance (setq *gp* (gnuplot))
        :title (format nil "~A Joints  ~A"
-		      *robot-name*
+		      "leader"
 		      (if fname fname
 			(subseq stimestr 0 (1- (length stimestr)))))
        ))
@@ -149,7 +149,7 @@
 		)
        :graph-instance (setq *gp* (gnuplot))
        :title (format nil "~A Joints  ~A"
-		      *robot-name*
+		      "leader and follower"
 		      (if fname fname
 			(subseq stimestr 0 (1- (length stimestr)))))
        ))
@@ -175,8 +175,8 @@
 		     (round (apply #'max *time-data*)))
        :yrange yrange
        :graph-instance (setq *gp* (gnuplot))
-       :title (format nil "~A Joints  ~A"
-		      *robot-name*
+       :title (format nil "~A Analog  ~A"
+		      "leader or follower"
 		      (if fname fname
 			(subseq stimestr 0 (1- (length stimestr)))))
        ))
@@ -202,8 +202,8 @@
 		     (round (apply #'max *time-data*)))
        :yrange yrange
        :graph-instance (setq *gp* (gnuplot))
-       :title (format nil "~A Joints  ~A"
-		      *robot-name*
+       :title (format nil "~A Analog  ~A"
+		      "follower"
 		      (if fname fname
 			(subseq stimestr 0 (1- (length stimestr)))))
        ))
@@ -235,7 +235,7 @@
 		     (apply #'max (mapcar #'(lambda (x) (apply #'max x)) data)))
        :graph-instance (setq *gp* (gnuplot))
        :title (format nil "~A end-pos  ~A"
-		      *robot-name*
+		      "leader"
 		      (if fname fname
 			(subseq stimestr 0 (1- (length stimestr)))))
        ))
@@ -274,7 +274,7 @@
 		     (apply #'max (mapcar #'(lambda (x) (apply #'max x)) data)))
        :graph-instance (setq *gp* (gnuplot))
        :title (format nil "~A end-pos  ~A"
-		      *robot-name*
+		      "leader follower"
 		      (if fname fname
 			(subseq stimestr 0 (1- (length stimestr)))))
        ))
@@ -305,7 +305,7 @@
 		     (round (apply #'max *z-data*)))
        :graph-instance (setq *gp* (gnuplot))
        :title (format nil "~A end-pos  ~A"
-		      *robot-name*
+		      "leader"
 		      (if fname fname
 			(subseq stimestr 0 (1- (length stimestr)))))
        ))
@@ -343,7 +343,7 @@
 		     (round (apply #'max (car *z-data*))))
        :graph-instance (setq *gp* (gnuplot))
        :title (format nil "~A end-pos  ~A"
-		      *robot-name*
+		      "leader follower"
 		      (if fname fname
 			(subseq stimestr 0 (1- (length stimestr)))))
        ))
@@ -378,7 +378,7 @@
 		     (round (apply #'max (car *z-data*))))
        :graph-instance (setq *gp* (gnuplot))
        :title (format nil "~A end-pos  ~A"
-		      *robot-name*
+		      "follower"
 		      (if fname fname
 			(subseq stimestr 0 (1- (length stimestr)))))
        ))
