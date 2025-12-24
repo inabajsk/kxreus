@@ -340,22 +340,35 @@
   (send *ri* :robot :angle-vector *angle-vector*)
   (send *ri* :viewer :draw-objects)
   (when (boundp '*real-vector*)
-;;    (send *ri* :angle-vector *real-vector*)
+    (if *leader3-hold* (send *ri* :hold))
+    ;;    (send *ri* :angle-vector *real-vector* 1)
+    ;;(when (> (leader3-diff) 20) (send *ri* :angle-vector *real-vector* 50))
     (send *robot* :angle-vector *real-vector*)
     (send *robot* :viewer :draw-objects)
     )
   )
 
+(defun leader3-diff nil
+  (norm (v- *angle-vector* *real-vector*)))
+
 (format t "(leader3-init)~%")
 (format t "(start-leader3)~%")
 (format t "(leader3)~%")
-(defun leader3 nil
+(defun leader3 (&key hold)
   (leader3-init)
   (unix::sleep 1)
-  (start-leader3)
+  (start-leader3 :hold hold)
   )
-(defun start-leader3 nil
-  (setq *top-selector-interval* 0.01)
+(defun leader3-hold (&optional (hold t))
+  (setq *leader3-hold* hold)
+  (if hold (send *ri* :hold) (send *ri* :free))
+  )
+(defun leader3-stretch (&optional (stretch 1))
+  (send *ri* :send-stretch stretch)
+  )
+(defun start-leader3 (&key hold)
+  (leader3-hold hold)
+  (setq *top-selector-interval* 0.05)
   (pushnew 'leader3-update *timer-job*)
   )
 (defun stop-leader3 nil
@@ -489,5 +502,213 @@
   (follower4-init)
   (while (not (boundp '*angle-vector*)) (unix::sleep 1))
   (follower4-loop)
+  )
+
+;;;
+;;; type 5
+;;;
+(defun robot5-init (&optional (name "iarm0") &key (stretch 1) free hold timer-on)
+  (make-kxr-robot name :viewer t)
+  (send *ri* :com-init :baud *baudrate*)
+  (if timer-on (send *ri* :timer-on))
+  (if free (send *ri* :free))
+  (if hold (send *ri* :hold))
+  (send *ri* :send-stretch stretch))
+
+(defun follower5-recv nil
+  (while (setq msg (unix::recvfrom *ssock*))
+    (when (stringp msg)
+      (setq sym (read-from-string msg))
+      (when (float-vector-p sym) (setq *angle-vector* sym)))
+    ;;(unix::usleep (* 1 1000))
+    ))
+
+(defun follower5-init (&key (name "iarm1") (ips *follower-ip*)
+			    (ipc *leader-ip*) (port *port-number*)
+			    (stretch 80))
+  (robot5-init name :stretch stretch :hold t :timer-on nil)
+  (send *robot* :viewer :title "leader")
+  (send *ri* :robot :viewer :title "follower")
+  (setq *ssock* (make-dgram-socket
+		 (make-socket-address :domain af_inet :host ips :port port)))
+  (setq *csock* (unix::socket
+		 (send
+		  (setq *caddr* (make-socket-address
+				 :domain af_inet :host ipc :port port)) :domain) 2 0))
+  (unix::sleep 1) (need-thread 5)
+  (sys::thread-no-wait #'follower5-recv))
+
+(defun follower5-loop nil
+  (while (not (boundp '*angle-vector*)) (unix::usleep (* 500 1000)))
+  (do-until-key
+   (send *ri* :angle-vector *angle-vector* 1)
+   (setq *real-vector* (send *ri* :read-angle-vector))
+   (unix::sendto *csock* *caddr*
+		 (format nil "(~A ~A)" *real-vector* (send *ri* :read-analog)))
+   (send *ri* :robot :angle-vector *angle-vector*)
+   (send *ri* :viewer :draw-objects)
+   (x::window-main-one))
+  )
+
+(defun follower5-update nil
+  (follower5-wait)
+  (send *ri* :angle-vector *angle-vector* 1)
+  (send *robot* :angle-vector *angle-vector*)
+  (setq *real-vector* (send *ri* :read-angle-vector))
+  (unix::sendto *csock* *caddr*
+		(format nil "(~A ~A)" *real-vector* (send *ri* :read-analog)))
+  (send *ri* :robot :angle-vector *real-vector*)
+  (send *robot* :viewer :draw-objects)
+  (send *ri* :robot :viewer :draw-objects)
+  (x::window-main-one)
+  )
+(defun follower5-wait nil
+  (while (not (boundp '*angle-vector*))
+    (when (boundp '*ri*)
+      (send *ri* :robot :viewer :draw-objects)
+      (x::window-main-one))
+    (unix::usleep (* 100 1000))
+    ))
+(format t "(follower5-init)~%")
+(format t "(start-follower5)~%")
+(format t "(follower5)~%")
+(defun follower5 nil
+  (follower5-init)
+  (follower5-wait)
+  (start-follower5)
+  )
+(defun start-follower5 nil
+  (setq *top-selector-interval* 0.01)
+  (pushnew 'follower5-update *timer-job*)
+  )
+(defun stop-follower5 nil
+  (setq *timer-job* (remove 'follower5-update *timer-job*))
+  )
+
+;;;
+(defun leader5-recv nil
+  (while (setq msg (unix::recvfrom *ssock*))
+    (when (stringp msg) (setq sym (read-from-string msg))
+	  (when (consp sym)
+	    (setq *real-vector* (car sym))
+	    (setq *real-analog* (cadr sym))))
+    ))
+
+(defun leader5-init (&key (name "iarm0") (ips *follower-ip*)
+			  (ipc *leader-ip*) (port *port-number*)
+			  (stretch 1))
+  (robot5-init name :hold t :timer-on nil :stretch stretch)
+  (send *robot* :viewer :title "follower")
+  (send *ri* :robot :viewer :title "leader")
+  (send *ri* :free-all)
+  (setq *csock* (unix::socket
+		 (send (setq *caddr* (make-socket-address
+				      :domain af_inet :host ips :port port)) :domain) 2 0))
+  (setq *ssock* (make-dgram-socket
+		 (make-socket-address :domain af_inet :host ipc :port port)))
+  (unix::sleep 1) (need-thread 5)
+  (sys::thread-no-wait #'leader5-recv))
+
+(defun leader5-loop nil
+  (do-until-key
+   (setq *angle-vector* (send *ri* :read-angle-vector))
+   (unix::sendto *csock* *caddr* (format nil "~A" *angle-vector*))
+   (send *ri* :robot :angle-vector *angle-vector*)
+   (send *ri* :viewer :draw-objects)
+   (when (boundp '*real-vector*)
+     (send *robot* :angle-vector *real-vector*)
+     (send *robot* :viewer :draw-objects)
+     ))
+  )
+
+(defun leader5-store (&key fname show (robot "iarm0"))
+  (let ((mt (instance mtimer :init))
+	radata rvdata av avdata tmdata tm0 tm1 xyz xyzdata)
+    (setq *av-data* nil)
+    (setq *rv-data* nil)
+    (setq *ra-data* nil)
+    (setq *time-data* nil)
+    (unless fname
+      (setq fname (format nil "~A ~A.dat"
+			  (send *ri* :robot :name)
+			  (car (unix::gettimeofday)))))
+    (setq tm0 (list (unix::localtime) (unix:gettimeofday)))
+    (send mt :start)
+    (do-until-key
+     (setq av (send *ri* :read-angle-vector))
+     (unix::sendto *csock* *caddr* (format nil "~A" av))
+     (when show
+       (send *ri* :robot :angle-vector av)
+       (send *ri* :robot :viewer :draw-objects)
+       (when (boundp '*real-vector*)
+	 (send *robot* :angle-vector *real-vector*)
+	 (send *robot* :viewer :draw-objects)
+	 )
+       )
+     (when (boundp '*real-vector*)
+       (push *real-vector* rvdata)
+       (push *real-analog* radata)
+       (push av avdata)
+       (push (send mt :stop) tmdata))
+     )
+    (setq tm1 (list (unix::localtime) (unix:gettimeofday)))
+    (setq *robot-name* (send *ri* :robot :name))
+    (setq *start-end-time* (list tm0 tm1))
+    (setq *av-data* (reverse avdata))
+    (setq *rv-data* (reverse rvdata))
+    (setq *ra-data* (reverse radata))
+    (setq *time-data* (reverse tmdata))
+    (if *rv-data*
+	(dump-loadable-structure fname *robot-name* *rv-data* *ra-data*
+				 *start-end-time* *av-data* *time-data*)
+      (dump-loadable-structure fname *robot-name*
+			       *start-end-time* *av-data* *time-data*))
+    (unless
+	(= (length *av-data*) (length *rv-data*))
+      (format t ";; not equal length *av-data* *rv-data*~%"))
+    (data-plot2)
+    ))
+
+
+(defun leader5-update nil
+  (setq *angle-vector* (send *ri* :read-angle-vector))
+  (unix::sendto *csock* *caddr* (format nil "~A" *angle-vector*))
+;;  (send *ri* :angle-vector *angle-vector*)
+  (send *ri* :robot :angle-vector *angle-vector*)
+  (send *ri* :viewer :draw-objects)
+  (when (boundp '*real-vector*)
+    (if *leader5-hold* (send *ri* :hold))
+    ;;    (send *ri* :angle-vector *real-vector* 1)
+    ;;(when (> (leader5-diff) 20) (send *ri* :angle-vector *real-vector* 50))
+    (send *robot* :angle-vector *real-vector*)
+    (send *robot* :viewer :draw-objects)
+    )
+  )
+
+(defun leader5-diff nil
+  (norm (v- *angle-vector* *real-vector*)))
+
+(format t "(leader5-init)~%")
+(format t "(start-leader5)~%")
+(format t "(leader5)~%")
+(defun leader5 (&key hold)
+  (leader5-init)
+  (unix::sleep 1)
+  (start-leader5 :hold hold)
+  )
+(defun leader5-hold (&optional (hold t))
+  (setq *leader5-hold* hold)
+  (if hold (send *ri* :hold) (send *ri* :free))
+  )
+(defun leader5-stretch (&optional (stretch 1))
+  (send *ri* :send-stretch stretch)
+  )
+(defun start-leader5 (&key hold)
+  (leader5-hold hold)
+  (setq *top-selector-interval* 0.05)
+  (pushnew 'leader5-update *timer-job*)
+  )
+(defun stop-leader5 nil
+  (setq *timer-job* (remove 'leader5-update *timer-job*))
   )
 
