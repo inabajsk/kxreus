@@ -171,8 +171,8 @@
        (mapcar #'(lambda (i) (format nil "ad~A" i)) idxs)
        :xrange (list (round (apply #'min *time-data*))
 		     (round (apply #'max *time-data*)))
-       :yrange (list (round (apply #'min data))
-		     (round (apply #'max data)))
+       :yrange (list (round (apply #'min (car data)))
+		     (round (apply #'max (car data))))
        :graph-instance (setq *gp* (gnuplot))
        :title (format nil "~A Analog  ~A"
 		      "leader or follower"
@@ -199,8 +199,8 @@
        (mapcar #'(lambda (i) (format nil "follower ad~A" i)) idxs)
        :xrange (list (round (apply #'min *time-data*))
 		     (round (apply #'max *time-data*)))
-       :yrange (list (round (apply #'min data))
-		     (round (apply #'max data)))
+       :yrange (list (round (apply #'min (car data)))
+		     (round (apply #'max (car data))))
        :graph-instance (setq *gp* (gnuplot))
        :title (format nil "~A Analog  ~A"
 		      "follower"
