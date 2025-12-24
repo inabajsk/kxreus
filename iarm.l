@@ -169,13 +169,15 @@
 
 (defun iarm nil (setq *iarm* (instance iarmclass :init)))
 
-(format t ";;(init)~%")
-(defun init nil (make-kxr-robot "iarm0"))
-(format t ";;(demo)~%")
-(defun demo (&key (dz 40.0) (dy 20) (da 5) (tm 100))
+(format t ";;(iarm-demo) ;; for iarm inverse kinematics~%")
+(defun iarm-demo (&key (dz 40.0) (dy 20) (da 5) (tm 100))
+  (unless (boundp '*robot*)
+    (objects (list (setq *robot* (iarm))))
+    )
   (do-until-key
    (send *robot* :reset-pose)
    (send *robot* :viewer :draw-objects)
+   (x::window-main-one)
    (dotimes (i 18)
      (send *robot* :joint0 :joint-angle (* i da))
      (dolist (dv (list
@@ -185,7 +187,7 @@
 		  (float-vector 0 (- dy) 0)
 		  ))
        (send *robot* :move-end-pos dv)
-       (send *robot* :viewer :draw-objects)
+       (send *irtviewer* :draw-objects)
        (x::window-main-one)
        (unix:usleep (* tm 1000)))
      )
