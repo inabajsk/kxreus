@@ -332,9 +332,6 @@
     (data-plot2)
     ))
 
-
-(defparameter *stop-sensor-threshould* 30)
-
 (defun leader3-update nil
   (setq *angle-vector* (send *ri* :read-angle-vector))
   (unix::sendto *csock* *caddr* (format nil "~A" *angle-vector*))
@@ -342,20 +339,22 @@
   (send *ri* :robot :angle-vector *angle-vector*)
   (send *ri* :viewer :draw-objects)
   (when (boundp '*real-vector*)
-    (if *leader3-hold* (send *ri* :hold))
+    (when *leader-hold*
+      (when (some #'identity (*ri* . free-vector))
+	(copy-leader)
+	))
     ;;(send *ri* :angle-vector *real-vector* 1)
-    ;;(when (> (leader3-diff) 20) (send *ri* :angle-vector *real-vector* 50))
+    ;;(when (> (lf-diff) 20) (send *ri* :angle-vector *real-vector* 50))
     (when (> (elt *real-analog* (car *sensor-idxs*)) *stop-sensor-threshould*)
-      (send *ri* :send-stretch 127)
-      (send *ri* :hold)
-      ;;(send *ri* :angle-vector *real-vector* 1)
+      ;;(leader-hard)
+      (copy-follower)
       )
     (send *robot* :angle-vector *real-vector*)
     (send *robot* :viewer :draw-objects)
     )
   )
 
-(defun leader3-diff nil
+(defun lf-diff nil
   (norm (v- *angle-vector* *real-vector*)))
 
 (format t "(leader3-init)~%")
@@ -366,13 +365,6 @@
   (unix::sleep 1)
   (start-leader3 :hold hold)
   )
-(defun leader3-hold (&optional (hold t))
-  (setq *leader3-hold* hold)
-  (if hold (send *ri* :hold) (send *ri* :free))
-  )
-(defun leader3-stretch (&optional (stretch 1))
-  (send *ri* :send-stretch stretch)
-  )
 (defun start-leader3 (&key hold)
   (leader3-hold hold)
   (setq *top-selector-interval* 0.05)
@@ -381,6 +373,32 @@
 (defun stop-leader3 nil
   (setq *timer-job* (remove 'leader3-update *timer-job*))
   )
+;;
+(defun leader3-hold (&optional (hold t)) (leader-hold))
+(defun leader-hold (&optional (hold t))
+  (setq *leader-hold* hold)
+  (if hold (send *ri* :hold) (send *ri* :free))
+  )
+(defun leader-free ()
+  (setq *leader-hold* nil)
+  (send *ri* :free))
+(defun leader-stretch (&optional (stretch 1))
+  (send *ri* :send-stretch stretch)
+  )
+(defun leader-hard (&optional (stretch 100))
+  (leader-stretch stretch)
+  (leader-hold))
+(defun leader-soft (&optional (stretch 1))
+  (leader-stretch stretch)
+  (leader-hold))
+(defun leader-stop (&optional (stretch 127))
+  (leader-hard stretch))
+(defun copy-follower nil
+  (leader-stop)
+  (send *ri* :angle-vector *real-vector* 1))
+(defun copy-leader (&optional (stretch 127))
+  (leader-stop stretch)
+  (send *ri* :angle-vector *angle-vector* 1))
 
 ;;
 ;; type 4 unilateral and receive follower states

@@ -12,6 +12,7 @@
 (defparameter *baudrate* 1250000)
 
 (defparameter *sensor-idxs* (list 5)) ;; force sensor index of :read-analog
+(defparameter *stop-sensor-threshould* 300)
 
 (defmethod rcb4-interface
   (:force-sense nil (elt (send self :read-analog) *sensor-idx*))
