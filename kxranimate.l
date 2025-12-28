@@ -131,8 +131,8 @@
       ;;(format t ";; (create-robot-models) generate ~A~%" name)
       (eus2collada-robot name)
       )
-    (setq rr (load-robot name))
     (unless (probe-file (format nil "~A/mjcfs/~A" *rcb4eus-dir* name))
+      (setq rr (load-robot name))
       (send rr :dump-mjcf))
     ))
 
