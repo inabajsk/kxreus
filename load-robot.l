@@ -18,10 +18,11 @@
 
 (defun robot-class-name (name-str)
   (read-from-string (string-upcase (format nil "~A-robot" name-str))))
-(defun robot-model-file-name (name-str) (format nil "models/~a.l" name-str))
+(defun robot-model-file-name (name-str)
+  (format nil "models/~a.l" (string-downcase (string name-str))))
 
 (defun load-robot (name-str)
-  (let* ((func (read-from-string name-str))
+  (let* ((func (read-from-string (string-downcase (string name-str))))
 	 (cls (robot-class-name name-str)))
     (unless (boundp cls)
       (load (robot-model-file-name name-str)))
