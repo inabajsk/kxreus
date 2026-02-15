@@ -24,6 +24,23 @@
 (timing 100    (tarai-5))    ;;   1.900 milisec
 (timing 100    (tpu-2))      ;;   2.100 milisec
 (timing 100    (tpu-6))      ;;   3.700 milisec
+;---------------------------------------------------
+;; DGXspark GB10 Superchip 10+10 cores aarch64 128GBMem
+;;---------------------------------------------------
+;; interpreter
+(timing 10000  (bita-7))     ;;   0.005 milisec
+(timing 4000   (bitb-8))     ;;   0.345 milisec
+(timing 2000   (sort-100))   ;;   0.675 milisec
+(timing 100    (tarai-5))    ;;  22.100 milisec
+(timing 100    (tpu-2))      ;;   9.500 milisec
+(timing 100    (tpu-6))      ;;  23.000 milisec
+;; compiler
+(timing 10000  (bita-7))     ;;   0.003 milisec
+(timing 4000   (bitb-8))     ;;   0.217 milisec
+(timing 2000   (sort-100))   ;;   0.150 milisec
+(timing 100    (tarai-5))    ;;   1.700 milisec
+(timing 100    (tpu-2))      ;;   2.200 milisec
+(timing 100    (tpu-6))      ;;   3.700 milisec
 ;;---------------------------------------------------
 ;; GPD Win3 gamepad PC, intel 11th core-i7-1195G7@2.90GHz
 ;;---------------------------------------------------
@@ -144,6 +161,23 @@
 (timing 100    (tarai-5))    ;;   3.700 milisec
 (timing 100    (tpu-2))      ;;   6.000 milisec
 (timing 100    (tpu-6))      ;;   8.500 milisec
+;;-------------------------------------------------
+;; MacBookPro13.3inch 2.8GHz quad Core-i7, 16GBMem, Sequoia 15.7.4
+;;-------------------------------------------------
+;; interpreter
+(timing 10000 (bita-7))	     ;;   0.020 milisec
+(timing 4000 (bitb-8))       ;;   1.327 milisec
+(timing 2000 (sort-100))     ;;   2.615 milisec
+(timing 100 (tarai-5))       ;;  93.900 milisec
+(timing 100 (tpu-2))         ;;  37.900 milisec
+(timing 100 (tpu-6))         ;;  93.400 milisec
+;; compiler
+(timing 10000 (bita-7))      ;;   0.008 milisec
+(timing 4000 (bitb-8))       ;;   0.737 milisec
+(timing 2000 (sort-100))     ;;   0.470 milisec
+(timing 100 (tarai-5))       ;;   4.900 milisec
+(timing 100 (tpu-2))         ;;   7.600 milisec
+(timing 100 (tpu-6))         ;;  13.200 milisec
 ;;-------------------------------------------------
 ;; Raspi 5 BCM2712 2.4GHz quad-core 64-bit Cortex-A76 CPU, 8GB debian 12
 ;;-------------------------------------------------
