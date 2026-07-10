@@ -7,6 +7,47 @@
 ;; (compile-file "lispcontest1979.l")
 ;; (load "lispcontest1979")
 ;; (lisp-contest) ;; compiler
+;;
+;;---------------------------------------------------
+;; Precision 7960 Tower (0A3A)
+;; Intel(R) Xeon(R) w7-3545 48core 
+;; NVIDIA RTX PRO 6000 Blac...
+;;---------------------------------------------------
+;; Load average:1.11 1.53 1.70
+:interpreter
+(timing 10000	(bita-7))	;;   0.009 milisec
+(timing 4000	(bitb-8))	;;   0.637 milisec
+(timing 2000	(sort-100))	;;   1.040 milisec
+(timing 100	(tarai-5))	;;  37.100 milisec
+(timing 100	(tpu-2))	;;  16.700 milisec
+(timing 100	(tpu-6))	;;  41.100 milisec
+:compiler
+(timing 10000	(bita-7))	;;   0.004 milisec
+(timing 4000	(bitb-8))	;;   0.382 milisec
+(timing 2000	(sort-100))	;;   0.250 milisec
+(timing 100	(tarai-5))	;;   3.000 milisec
+(timing 100	(tpu-2))	;;   4.000 milisec
+(timing 100	(tpu-6))	;;   6.500 milisec
+;;---------------------------------------------------
+;; 4CX48S-K Z890-W WIFI (MS-7E34) 
+;; Core Ultra 7 265KF  20core 64GB
+;; NVIDIA GeForce RTX 4080
+;;---------------------------------------------------
+;; Load average:0.12 0.08 0.09
+;; interpreter
+(timing 10000	(bita-7))	;;   0.005 milisec
+(timing 4000	(bitb-8))	;;   0.312 milisec
+(timing 2000	(sort-100))	;;   0.515 milisec
+(timing 100	(tarai-5))	;;  18.300 milisec
+(timing 100	(tpu-2))	;;   8.300 milisec
+(timing 100	(tpu-6))	;;  20.500 milisec
+;; compiler
+(timing 10000	(bita-7))	;;   0.003 milisec
+(timing 4000	(bitb-8))	;;   0.195 milisec
+(timing 2000	(sort-100))	;;   0.125 milisec
+(timing 100	(tarai-5))	;;   1.600 milisec
+(timing 100	(tpu-2))	;;   1.900 milisec
+(timing 100	(tpu-6))	;;   3.200 milisec
 ;;---------------------------------------------------
 ;; Core i9-14900K 24core 8 + 16 32thread 6GHz turbo 128GMem RTX4090 24GB
 ;;---------------------------------------------------
