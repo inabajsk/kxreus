@@ -3335,7 +3335,7 @@ nil
      (30 :head-neck-y 1)      (32 :head-neck-p -1)
      )
     ("kxrl2fujiia"
-     (:body :l2l5 :type :l2 :gripper t :head :ir :neck-jf :b :sole t
+     (:body :l2l5 :type :l2 :gripper t :head :e :neck-jf :b :sole t ;; :ir
 	    :board :armh7
 	    :project-file "kxrl2l5a3h2g")
      (2 :rarm-shoulder-p 1)   (3 :larm-shoulder-p -1)
@@ -3351,7 +3351,7 @@ nil
      (30 :head-neck-y 1)      (32 :head-neck-p 1)
      )
     ("kxrl2fujiir"
-     (:body :l2l5 :type :l2 :gripper t :head :ir :neck-jf :b :sole t
+     (:body :l2l5 :type :l2 :gripper t :head :e :neck-jf :b :sole t ;; :ir
 	    :board :rcb4
 	    :project-file "kxrl2l5a3h2g")
      (2 :rarm-shoulder-p 1)   (3 :larm-shoulder-p -1)
@@ -3367,7 +3367,7 @@ nil
      (30 :head-neck-y 1)      (32 :head-neck-p 1)
      )
     (("kxrl2l5a3h2gr"  "kxrl2g")
-     (:body :l2l5 :type :l2 :gripper t :head :ir :neck-jf :a :sole t
+     (:body :l2l5 :type :l2 :gripper t :head :e :neck-jf :a :sole t ;; :ir
 	    :board :rcb4 :project-file "kxrl2l5a3h2g")
      (2 :rarm-shoulder-p 1)   (3 :larm-shoulder-p -1)
      (4 :rarm-shoulder-r -1)  (5 :larm-shoulder-r 1)
@@ -4411,7 +4411,7 @@ nil
      (30 :head-neck-y 1)      (32 :head-neck-p 1)
      )
     (("kxrl2l5a4h2")
-     (:body :l2l5 :type :l2 :wrist :r :head :ir :gripper t :neck-jf :a :sole t) ;; 24
+     (:body :l2l5 :type :l2 :wrist :r :head : :gripper t :neck-jf :a :sole t) ;; 24 :ir
      (2 :rarm-shoulder-p 1)   (3 :larm-shoulder-p -1)
      (4 :rarm-shoulder-r -1)  (5 :larm-shoulder-r 1)
      (6 :rarm-elbow-p 1)     (7 :larm-elbow-p 1)
