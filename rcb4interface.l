@@ -695,8 +695,9 @@
      (send self :read-servos-three)
      (dotimes (i sv-length) 
        (setq v (elt servo-ary index))
-       (when (> v 0.0)
-	 (setf (elt servo-vector i) (- v (elt trim-vector i))) ;; 2025.12.21
+       (if (> v 0.0)
+	   (setf (elt servo-vector i) v) ;; 2026.8.22
+	 ;;(setf (elt servo-vector i) (- v (elt trim-vector i))) ;; 2025.12.21
 	 )
        (setq index (+ index 3))))
    servo-vector)
