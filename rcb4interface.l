@@ -67,6 +67,23 @@
 
 (provide :rcb4interface)
 
+(defun measure-rtt nil ;; measure round trip time
+  (let (times t0 t1 elapsed-ms (n 20))
+    (dotimes (i n)
+      (setq t0 (unix::gettimeofday))
+      (send *ri* :sysreg)
+      (setq t1 (unix::gettimeofday))
+      (setq elapsed-ms (+ (* 1000.0 (- (car t1) (car t0)))
+			  (* 0.001 (- (cadr t1) (cadr t0)))))
+      (push elapsed-ms times))
+    (setq times (reverse times))
+    (format t "times(ms)=~A~%" times)
+    (format t "min=~A avg=~A max=~A~%"
+	    (apply #'min times)
+	    (/ (apply #'+ times) (length times))
+	    (apply #'max times)))
+  )
+
 (defclass kxr-rosserial-interface :super propertied-object
   :slots (name
 	  ri
