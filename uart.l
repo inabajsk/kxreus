@@ -75,16 +75,34 @@
   ;;(udev-trigger "aki" "tty")
   )
 
-(defun init-tcset (&optional fdio)
-  (let ((tios (instantiate termios)))
+;; Linux拡張ボーレート(termbits.h)の数値bps -> Bxxx定数 対応表。
+;; 未知のbpsを渡した場合は従来通り921600(#x1007)にフォールバックする。
+(defvar *baud-const-alist*
+  '((115200 . #x1002) (230400 . #x1003) (460800 . #x1004) (500000 . #x1005)
+    (576000 . #x1006) (921600 . #x1007) (1000000 . #x1008) (1152000 . #x1009)
+    (1500000 . #x100a) (2000000 . #x100b) (2500000 . #x100c) (3000000 . #x100d)
+    (3500000 . #x100e) (4000000 . #x100f)))
+
+(defun baud-const (baud)
+  (or (cdr (assoc baud *baud-const-alist*)) #x1007))
+
+;; Linux(TCSETS)の実際のボーレートはc_ispeed/c_ospeedではなく、c_cflag内に
+;; 埋め込まれたCBAUDビット(下位4bit + bit12)で決まる。#x1cb7は元々B921600
+;; (CBAUD=#x1007)を埋め込んだ定数なので、:baudで指定した値を反映させるには
+;; CBAUD部分だけを差し替える必要がある(c_ispeed/c_ospeedも一応合わせて設定する)。
+(defvar *cbaud-mask* #x100f)
+
+(defun init-tcset (&optional fdio &key (baud 921600))
+  (let ((tios (instantiate termios))
+	(bc (baud-const baud)))
     (unix::tcgets fdio tios)
-    (send tios :set #x1cb7 'c_cflag)
+    (send tios :set (logior (logand #x1cb7 (lognot *cbaud-mask*)) bc) 'c_cflag)
     (send tios :set #x8a20 'c_lflag)
     (send tios :set #x100 'c_iflag)
     (send tios :set #x4   'c_oflag)
     ;;
-    (send tios :set #x1007 'c_ispeed) ;; B921600
-    (send tios :set #x1007 'c_ospeed) ;; B921600
+    (send tios :set bc 'c_ispeed) ;; 既定921600(B921600)。:baud未指定時は従来通り
+    (send tios :set bc 'c_ospeed)
     #|
     (progn
     (send tios :set #x66fce8bc 'c_cflag)
@@ -170,7 +188,7 @@
 
 (defmethod uart-interface
   (:init
-   (&rest args &key devname udev &allow-other-keys)
+   (&rest args &key devname udev (baud 921600) &allow-other-keys)
 		 (cond
 		   ((null devname) 
 		    ;;(print (list 'uart-interface-init-args args))
@@ -179,7 +197,7 @@
 		   ((stringp devname)
 		    (let ((name (format nil "/dev/~A" devname)))
 		      (setq strm (open name :direction :io))
-		      (init-tcset strm)
+		      (init-tcset strm :baud baud)
 		      ;;(unix::system (format nil "stty -F ~A raw cbreak -onlcr -iexten time 100 extproc" name))
 		      (unix::system (format nil "stty -F ~A raw cbreak -onlcr -iexten" name))
 		      (setq fd ((strm . instream) . fd))
