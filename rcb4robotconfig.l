@@ -186,6 +186,36 @@ nil
 (defun kxr-all-string-names (&optional (config-alist *kxr-body-config-alist*))
   (mapcar #'(lambda (rc) (if (consp (car rc)) (caar rc) (car rc))) config-alist))
 
+;; 2026.8 -- one *kxr-body-config-alist* entry looks like
+;; (name-or-(name) config-plist (raw-servo-id joint-name sign) ...); this
+;; pulls out just the name and the set of raw servo ids it defines.
+(defun kxr-config-entry-name (entry)
+  (if (consp (car entry)) (caar entry) (car entry)))
+
+(defun kxr-config-entry-servo-ids (entry)
+  (let (ids)
+    (dolist (triple (cddr entry))
+      (when (and (consp triple) (numberp (car triple)))
+	(pushnew (car triple) ids)))
+    (sort ids #'<)))
+
+;; returns a list of (servo-id-set . robot-names), one entry per DISTINCT
+;; raw servo-id set found among all "kxr"-named entries in CONFIG-ALIST;
+;; robot names sharing the exact same id set are grouped together.
+(defun servo-set-robot-names (&optional (config-alist *kxr-body-config-alist*))
+  (let (result)
+    (dolist (entry config-alist)
+      (let* ((name (kxr-config-entry-name entry))
+	     (ids (kxr-config-entry-servo-ids entry)))
+	(when (and (stringp name) (>= (length name) 3)
+		   (string= (subseq name 0 3) "kxr") ids)
+	  (let ((existing (assoc ids result :test #'equal)))
+	    (if existing
+		(unless (member name (cdr existing) :test #'string=)
+		  (setf (cdr existing) (append (cdr existing) (list name))))
+	      (push (cons ids (list name)) result))))))
+    (reverse result)))
+
 (defun test-dump-robots  (&rest args)
   (kxr-draw-views :funcs (kxr-all-string-names) :dir "all-robots"))
 
@@ -2817,7 +2847,7 @@ nil
      (14 :rleg-knee-p -1)     (15 :lleg-knee-p -1)
      (16 :rleg-ankle-p -1)    (17 :lleg-ankle-p -1)
      
-     (0 :head-neck-p -1)      (10 :head-neck-y -1)
+     (0 :head-neck-p -1)      (20 :head-neck-y -1)
      (19 :head-gripper-p -1/2)
      (19 :head-gripper2-p -1/2)
      )
@@ -2909,7 +2939,7 @@ nil
      (14 :rleg-knee-p -1)     (15 :lleg-knee-p -1)
      (16 :rleg-ankle-p -1)    (17 :lleg-ankle-p -1)
 
-     (0 :head-neck-y -1)      (1 :head-neck-p -1)
+     (21 :head-neck-y -1)     (1 :head-neck-p -1)
      (19 :head-gripper-p 1/2)
      (19 :head-gripper2-p 1/2)
      )
@@ -2925,8 +2955,8 @@ nil
      (14 :rleg-knee-p -1)     (15 :lleg-knee-p -1)
      (16 :rleg-ankle-p -1)    (17 :lleg-ankle-p -1)
 
-     (0 :head-neck-y -1)      (1 :head-neck-p -1)
-     (18 :head-head-p 1)
+     (21 :head-neck-y -1)     (1 :head-neck-p -1)
+     (23 :head-head-p  1)
      (19 :head-gripper-p 1/2)  (19 :head-gripper2-p 1/2)
      )
     (("kxrl4d3")
@@ -2941,7 +2971,7 @@ nil
      (14 :rleg-knee-p -1)     (15 :lleg-knee-p -1)
      (16 :rleg-ankle-p -1)    (17 :lleg-ankle-p -1)
 
-     (0 :head-neck-y -1)      (1 :head-neck-p -1)
+     (21 :head-neck-y -1)     (1 :head-neck-p -1)
      ;;(18 :head-head-p 1)
      ;;(19 :head-gripper-p 1/2)  (19 :head-gripper2-p 1/2)
      )
@@ -3367,7 +3397,7 @@ nil
      (30 :head-neck-y 1)      (32 :head-neck-p 1)
      )
     (("kxrl2l5a3h2gr"  "kxrl2g")
-     (:body :l2l5 :type :l2 :gripper t :head :ir :neck-jf :a :sole t
+     (:body :l2l5 :type :l2 :gripper t :head :e :neck-jf :a :sole t
 	    :board :rcb4 :project-file "kxrl2l5a3h2g")
      (2 :rarm-shoulder-p 1)   (3 :larm-shoulder-p -1)
      (4 :rarm-shoulder-r -1)  (5 :larm-shoulder-r 1)
@@ -5858,7 +5888,9 @@ nil
       :crotch-p t :crotch-low t :crotch-front t :flat-crotch t
       :leg :j2-pr :sole t 
       :gripper t :gripper-straight t :gripper-axis :y
-      :head :d405cam :3eye-front t :head-length 20
+      ;; :head :d405cam :3eye-front t :head-length 20
+      :head :m3eye :head-length 20 ;; :m5sh
+      :3eye-rev 2
       :reset-pose-alist ((:larm-shoulder-p 0) (:rarm-shoulder-p 0)
 			 (:larm-shoulder-r 0) (:rarm-shoulder-r 0)
 			 (:lleg-crotch-r 0) (:rleg-crotch-r 0)
@@ -6596,6 +6628,76 @@ nil
      (32 :head-neck-y -1)       (34 :head-neck-p -1)
      
      )
+    (("kxrmw4a7h2" "kxra7g")
+     (
+      ;; (progn (load "additional-settings.l") (kxrl2l2a6h2))
+      ;; :com-init-method (:com-init :devname "ttyAML1")
+      :body :l4mw :type :l4 :leg :j2m 
+      :wheel-battery-stand t :wheel-base-a nil :wheel-base-wide t
+      :wheel-servo-stand t :lidar t
+      :shoulder :ypry-cross :shoulder-front t :shoulder-low t
+      :elbow :angle :wrist :cross-pr :upper-arm-length 38 
+      :head :m3eye :3eye-rev 3 :head-length 20
+      ;; :shoulder-p-sensor :horn-mag-
+      ;; :elbow-p-sensor :mag-7 :wrist-sensor :mag-7
+      ;; :crotch-r-sensor :mag-7 :crotch-y-sensor :rev-a
+      :crotch-p t :crotch-low t :crotch-front t :flat-crotch t
+      :leg :j2-pr :sole t 
+      :gripper t :gripper-straight t :gripper-axis :y
+      )
+     (2 :rarm-shoulder-p 1)     (3 :larm-shoulder-p -1)
+     (4 :rarm-shoulder-r 1)     (5 :larm-shoulder-r 1)
+     (6 :rarm-elbow-p 1)        (7 :larm-elbow-p 1)
+
+     (0 :rleg-crotch-w 1)      (1 :lleg-crotch-w 1)
+     (20 :rleg-knee-w 1)       (21 :lleg-knee-w 1)
+
+     (18 :rarm-gripper-r 1/2)    (19 :larm-gripper-r 1/2)
+     (18 :rarm-gripper2-r 1/2)   (19 :larm-gripper2-r 1/2)
+
+     (22 :rarm-elbow-y 1)       (23 :larm-elbow-y 1)
+     (26 :rarm-wrist-p 1)       (27 :larm-wrist-p -1)
+     (28 :rarm-wrist-r -1)       (29 :larm-wrist-r -1)
+     
+     (30 :rarm-shoulder-y 1 90) (31 :larm-shoulder-y 1 -90)
+     (32 :head-neck-y -1)       (34 :head-neck-p -1)
+     
+     )
+    (("kxrmw4a7h2g")
+     (
+      ;; (progn (load "additional-settings.l") (kxrl2l2a6h2))
+      ;; :com-init-method (:com-init :devname "ttyAML1")
+      :body :l4mw :type :l4 :leg :j2m 
+      :wheel-battery-stand t :wheel-base-a nil :wheel-base-wide t
+      :wheel-servo-stand t :lidar t
+      :shoulder :ypry-cross :shoulder-front t :shoulder-low t
+      :elbow :angle :wrist :cross-pr :upper-arm-length 38 
+      :head :m3eye :3eye-rev 3 :head-length 20
+      ;; :shoulder-p-sensor :horn-mag-
+      ;; :elbow-p-sensor :mag-7 :wrist-sensor :mag-7
+      ;; :crotch-r-sensor :mag-7 :crotch-y-sensor :rev-a
+      :crotch-p t :crotch-low t :crotch-front t :flat-crotch t
+      :leg :j2-pr :sole t 
+      :gripper t :gripper-straight t :gripper-axis :y
+      )
+     (2 :rarm-shoulder-p 1)     (3 :larm-shoulder-p -1)
+     (4 :rarm-shoulder-r 1)     (5 :larm-shoulder-r 1)
+     (6 :rarm-elbow-p 1)        (7 :larm-elbow-p 1)
+
+     (0 :rleg-crotch-w 1)      (1 :lleg-crotch-w 1)
+     (20 :rleg-knee-w 1)       (21 :lleg-knee-w 1)
+
+     (18 :rarm-gripper-r 1/2)    (19 :larm-gripper-r 1/2)
+     (18 :rarm-gripper2-r 1/2)   (19 :larm-gripper2-r 1/2)
+
+     (22 :rarm-elbow-y 1)       (23 :larm-elbow-y 1)
+     (26 :rarm-wrist-p 1)       (27 :larm-wrist-p -1)
+     (28 :rarm-wrist-r -1)       (29 :larm-wrist-r -1)
+     
+     (30 :rarm-shoulder-y 1 90) (31 :larm-shoulder-y 1 -90)
+     (32 :head-neck-y -1)       (34 :head-neck-p -1)
+     
+     )
     (("kxrl2l2a7h2")
      (
       ;;:file "models/kxrl2l2a6h2.l" :form (kxrl2l2a6h2)
@@ -6687,10 +6789,9 @@ nil
       :gripper t :gripper-straight t :gripper-axis :y
       :gripper-sensor (:finger1 :rev-c) 
       :wheel-battery-stand t :wheel-base-a nil :wheel-base-wide t :wheel-servo-stand t
-      :head :d405cam :3eye-front t :head-length 20
+      :head :m3eye :3eye-rev 3 :head-length 20
       ;;:head :d405cam :3eye-front t :head-length 20
       ;;:head :m3deye :3eye-rev 10 :head-lidar t :3eye-cover t :head-length 20
-      :m5stickv nil
       )
      (2 :rarm-shoulder-p 1)     (3 :larm-shoulder-p -1)
      (4 :rarm-shoulder-r 1)     (5 :larm-shoulder-r 1)
@@ -6722,10 +6823,9 @@ nil
       :gripper t :gripper-straight t :gripper-axis :y
       :gripper-sensor (:finger1 :rev-c) 
       :wheel-battery-stand t :wheel-base-a nil :wheel-base-wide t :wheel-servo-stand t
-      :head :d405cam :3eye-front t :head-length 20
+      :head :m3eye :3eye-rev 3 :head-length 20
       ;;:head :d405cam :3eye-front t :head-length 20
       ;;:head :m3deye :3eye-rev 10 :head-lidar t :3eye-cover t :head-length 20
-      :m5stickv nil
       )
      (2 :rarm-shoulder-p 1)     (3 :larm-shoulder-p -1)
      (4 :rarm-shoulder-r 1)     (5 :larm-shoulder-r 1)
@@ -6739,8 +6839,8 @@ nil
      (28 :rarm-wrist-r -1)       (29 :larm-wrist-r -1)
      (32 :head-neck-y -1)       (34 :head-neck-p -1)
 
-     (8 :rleg-crotch-w 1)      (9 :lleg-crotch-w 1)
-     (10 :rleg-knee-w 1)       (11 :lleg-knee-w 1)
+     (0 :rleg-crotch-w 1)   (1 :lleg-crotch-w -1)
+     (20 :rleg-knee-w 1)    (21 :lleg-knee-w -1)
 
      (38 larm-gripper-r-KJS-03) ;; sensor-board 19
      (40 rarm-gripper-r-KJS-03) ;; sensor-board 20
@@ -7769,11 +7869,13 @@ nil
      (
       :body :l2l6m :type :l2
       :project-file "kxra6g"
-      :head :d405echos ;; :d405eyes ;;:head :d405echos
+      ;;:head :d405echos ;; :d405eyes ;;:head :d405echos
+      :head :m3eye :3eye-rev 3 ;; :d405eyes ;;:head :d405echos
       :board :rcb4-acc-reverse
       :neck-jf :b-back
       :3eye-front t :head-length 20
-      :shoulder :pry-cross :shoulder-front t :shoulder-low t :flat-shoulder nil ;;:shoulder :ly-p-rb
+      :shoulder :pry-cross :shoulder-front t :shoulder-low t :flat-shoulder nil
+      ;;:shoulder :ly-p-rb
       :elbow :angle :wrist :wcross-pr :upper-arm-length 38 
       :shoulder-p-sensor :horn-mag-
       ;; :elbow-p-sensor :mag-7
