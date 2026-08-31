@@ -99,6 +99,7 @@
 	       "khrmodels.l"
 	       "rcb4robots.l"
 	       "rcb4interface.l"
+	       "atominterface.l"
 ;;	       "armh7interface.l"
 	       "rcb4asm.l"
 	       "rcb4file.l"

@@ -113,7 +113,22 @@
   (find-if #'(lambda (x) (substringp "kondo" x)) (lsusb-readlines)))
 (defun kxr-future-usb? ()
   (find-if #'(lambda (x) (substringp "future" x)) (lsusb-readlines)))
-
+(defun kxr-com-open-auto (ri &key devname baud)
+  ;; devname指定があればそれを使い、無ければ近藤科学純正Dual USB Adapter
+  ;; (vid#x165c/pid#x0008)が繋がっていればそれを優先して直結、無ければ
+  ;; 汎用UART機器としてttyUSB0を使う。
+  (cond
+   (devname (send ri :com-open :devname devname :baud (or baud 500000)))
+   ((kxr-kondo-usb?) (send ri :com-open :baud (or baud 1250000)))
+   ((probe-file "/dev/ttyUSB0")
+    (send ri :com-open :devname "ttyUSB0" :baud (or baud 500000)))
+   ((probe-file "/dev/ttyUSB1")
+    (send ri :com-open :devname "ttyUSB1" :baud (or baud 500000)))
+   ((probe-file "/dev/ttyUSB2")
+    (send ri :com-open :devname "ttyUSB2" :baud (or baud 500000)))
+   (t 
+    (send ri :com-open :devname "ttyUSB3" :baud (or baud 500000)))
+   ))
 (defvar *rcb4-interface-class*)
 (setq *rcb4-interface-class* rcb4-interface)
 
@@ -343,9 +358,26 @@
     (when ri
       (if rcb4 (setq *rcb4-interface-class* rcb4-interface))
       (setq ri (instance *rcb4-interface-class* :init))
-      (send ri :com-init)
+      ;; :com-initだとモデル未接続の時点で:rcb4-openまで進みav-length未設定で
+      ;; 落ちるため、先にservo-aryだけ手動確保して:com-openで接続し
+      ;; :scan-robot-nameでモデルを判定してから:create-robotする
+      ;; (make-kxr-robot-from-hardwareと同じ理由)。
+      (setq (ri . servo-ary) (instantiate integer-vector (* 3 (ri . rcb4-dof))))
+      (kxr-com-open-auto ri)
+      (unix::sleep 3)
       (setq name-str (send ri :scan-robot-name))
-      (send ri :create-robot name-str :create-viewer vw :model model :head head)
+      (format t ";; make-kxr-robot auto-detected robot: ~A~%" name-str)
+      ;; scan-robot-nameが実在しないモデル名を返すと(実機確認、2026.8:
+      ;; 特定サーボの接触不良等でサーボID一覧が数個ずれると、"6"と"7"の
+      ;; 違いのような別の実在モデル名に化けることがある)、:create-robotの
+      ;; 奥でav-lengthが未設定のまま(make-sequence vector av-length ...)に
+      ;; 到達しセグメンテーションフォルトになる。ここで先にモデル定義の
+      ;; 有無を確認し、無ければ分かりやすいエラーで止める。
+      (unless (kxr-body-config name-str)
+	(error "make-kxr-robot: 検出されたロボット名~Aに対応するモデル定義が見つかりません。サーボの接続不良(特に最近交換した箇所)や通信不安定の可能性があります。:read-servo-connectedを複数回試して結果が安定するか確認してください。" name-str))
+      (send ri :create-robot name-str :create-viewer vw :model model :head head
+	    :width width :height height)
+      (send ri :rcb4-open)
       (setq *ri* ri)
       ))
   (cond
@@ -376,6 +408,38 @@
 	(send *robot* :setup-modeltorque))
     *robot*)
    ))
+
+;; 実機のRCB4に接続し(近藤科学純正Dual USB Adapter優先、無ければttyUSB0)、
+;; 接続サーボIDからロボット機種を判定して(:scan-robot-name)対応モデルを
+;; 構築する。サーボIDの判定条件は[[project-kxr-legtype-dispatch]]参照
+;; (この機種固有なので他機種では要拡張)。
+;;
+;; NOTE: モデル未接続の状態では:rcb4-openが内部で使うav-lengthが未設定
+;; なので、先に:com-openだけでスキャンし、:create-robotでモデルを設定
+;; してから:rcb4-openする。
+(defun make-kxr-robot-from-hardware (&key devname baud
+					   ((:viewer vw) (xwindow-ready?)) (model 0)
+					   (width 400) (height 400) (rcb4 t) head)
+  (if rcb4 (setq *rcb4-interface-class* rcb4-interface))
+  (setq *ri* (instance *rcb4-interface-class* :init))
+  ;; servo-aryは本来:create-robot経由の:setup-vectorsで確保されるが、
+  ;; モデル名はスキャン後にしかわからないので、サイズ(rcb4-dof)だけ
+  ;; ここで先に確保する。
+  (setq (*ri* . servo-ary) (instantiate integer-vector (* 3 (*ri* . rcb4-dof))))
+  (kxr-com-open-auto *ri* :devname devname :baud baud)
+  (unix::sleep 3)
+  (let ((name-str (send *ri* :scan-robot-name)))
+    (format t ";; make-kxr-robot-from-hardware detected robot: ~A~%" name-str)
+    ;; make-kxr-robotと同じ理由(実機確認、2026.8)でここでも先に確認する。
+    (unless (kxr-body-config name-str)
+      (error "make-kxr-robot-from-hardware: 検出されたロボット名~Aに対応するモデル定義が見つかりません。サーボの接続不良や通信不安定の可能性があります。" name-str))
+    (send *ri* :create-robot name-str :create-viewer vw :model model :head head
+	  :width width :height height)
+    (setq *robot* (*ri* . robot))
+    ;; :create-robotでav-lengthが設定されたので、ここで:rcb4-openの
+    ;; ハンドシェイク部分(:sysreg等)を実行する(com-portは開いたまま)。
+    (send *ri* :rcb4-open)
+    *robot*))
 
 #|
 (defun demo-rcb4-robot (&optional (name "kxrl2w2l5a3h2"))
