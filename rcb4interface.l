@@ -351,6 +351,33 @@
 
 (defconstant deg-to-servovector (/ 4000.0 135))
 
+;; 2026.8 -- returns the index of the first occurrence of NEEDLE in
+;; HAYSTACK, or nil. No built-in substring-search-with-position exists
+;; here (substringp in string.l only returns t/nil).
+(defun string-find-substring (needle haystack)
+  (let* ((nlen (length needle)) (hlen (length haystack))
+	 (limit (- hlen nlen)) (i 0) (found nil))
+    (if (= nlen 0)
+	0
+      (progn
+	(while (and (<= i limit) (not found))
+	  (if (string-equal needle haystack :start2 i :end2 (+ i nlen))
+	      (setq found i)
+	    (setq i (1+ i))))
+	found))))
+
+;; (string-substitute N O A) -- replace all occurrences of substring O
+;; with N in string A.
+(defun string-substitute (new old a)
+  (let ((olen (length old)) (result "") (pos 0) idx)
+    (if (= olen 0)
+	a
+      (progn
+	(while (setq idx (string-find-substring old (subseq a pos)))
+	  (setq result (format nil "~A~A~A" result (subseq a pos (+ pos idx)) new))
+	  (setq pos (+ pos idx olen)))
+	(format nil "~A~A" result (subseq a pos))))))
+
 (defmethod rcb4-interface
   (:generate-motion-files
    (&optional (dir "motions"))
@@ -657,6 +684,10 @@
 	      ;;(send self :read-rom-table))
 	      (apply #'send rcb4machine (cons :rom-table args)))
   ;;
+  ;; GitHub版のオリジナル定義(リトライ/:wait-ackゲート無し、1回読んで
+  ;; 失敗したらwarnするだけ)。セグメント単位リトライ+:wait-ackゲート+
+  ;; リンク断絶時の早期諦めを行う強化版は~/kxreus/rcb4interface-debug.lに
+  ;; あり、rcb4interface.lの後にそちらをloadすると上書きされる。
   (:read-servos-three  ;; inaba
    ()
    (let* (ram (size 126) (offset 2) (len (/ size 2)) (vi 0)
@@ -757,15 +788,122 @@
   (:read-ref-servo-vector nil (send self :read-trim-vector-aux 2))
   (:read-current-servo-vector nil (send self :read-trim-vector-aux 1))
   (:read-servo-connected2 nil (send self :read-trim-vector-aux 1 0))
-  (:read-servo-connected
-   (&aux (index 1) (initial 0) v ret)
-   (send self :read-servos-three)
+  ;; 2026.8 -- naming mirrors armh7interface.l's :scan-robot-name /
+  ;; :ics-robot-name (~/rcb4eus/armh7interface.l:2680-), which judges the
+  ;; robot model name from a grouped-by-limb servo-id vector. This RCB4
+  ;; version instead works off the flat :read-servo-connected id list and
+  ;; the specific marker ids empirically confirmed this session for one
+  ;; particular KXR robot's swappable lower-body modules (see
+  ;; kxra6g_legtype_dispatch work): raw servo id 12 (yaw axis, present
+  ;; only on the 2-axis-2-leg module) shows up doubled as internal id 24
+  ;; or 25 depending which of RCB4's two ICS buses it's wired to; raw id 9
+  ;; (wheel-drive motor, present on the wheel module but not the plain
+  ;; 5-axis-2-leg module) shows up doubled as internal id 18 or 19. See
+  ;; [[project-kxr-legtype-dispatch]] memory for the full empirical id
+  ;; sets per module and why id21 turned out NOT to be a safe marker.
+  ;; This mapping (and the model names themselves) is specific to that
+  ;; one robot/project -- extend or replace the cond arms for others.
+  (:scan-robot-name
+   nil
+   (send self :ics-robot-name (send self :read-servo-connected)))
+  (:ics-robot-name
+   (&optional (ids (send self :read-servo-connected)))
+   (let ((name
+	  (cond
+	   ((and (member 24 ids) (member 25 ids)) ;; 2-axis-2-leg (yaw axis present)
+	    (cond
+	     ((and (member 8 ids) (member 9 ids))
+	      "kxrl2l6a6h2")
+	     (t
+	      "kxrl2l2a6h2")))
+	   ((and (member 20 ids) (member 21 ids))
+	    
+	    "kxrmw4a6h2") ;; mecanum wheel (wheel-drive id, no yaw)
+	   (t "kxra6g")))) ;; default: 5-axis-2-leg
+     ;; ids 30/31 present -> extra arm axis -> a6 (6-axis arm) becomes
+     ;; a7 (7-axis arm) in the model name.
+     (when (or (member 30 ids) (member 31 ids))
+       (setq name (string-substitute "a7" "a6" name)))
+     (cond
+      ((equal ids '(2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19)) (setq name "kxrl6"))
+      ((equal ids '(1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 19)) (setq name "kxrl4d"))
+      ((equal ids '(1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 19 21)) (setq name "kxrl4d1"))
+      ((equal ids '(1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 19 21 23)) (setq name "kxrl4d2"))
+      ((equal ids '(2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 30 32)) (setq name "kxrl2g"))
+      ((equal ids '(2 3 4 5 6 7 8 9 19 22)) (setq name "kxrl4n"))
+      ((equal ids '(1 2 3 4 5 6 7 8 9)) (setq name "kxrl4t")))
+     name))
+  ;; General-purpose alternative to :ics-robot-name (which only knows the
+  ;; hand-picked markers for this one project's swappable-lower-body
+  ;; robot). Works off servo-set-robot-names (rcb4robotconfig.l), which
+  ;; enumerates the raw servo-id set for every "kxr"-named entry in
+  ;; *kxr-body-config-alist*, and returns the list of robot names whose
+  ;; known servo set is consistent with what's actually connected right
+  ;; now -- exact-set matches if any exist, else names whose full known
+  ;; id set is a subset of what's connected (tolerates extra/unknown ids
+  ;; showing up, e.g. noise or ids this config table doesn't happen to
+  ;; list). IDS is the live internal (post ICS-bus-doubling) id list from
+  ;; :read-servo-connected; this converts each back to its raw id
+  ;; (internal-id / 2) before comparing against the config table's raw ids
+  ;; -- see the dual-ICS-bus doubling note in [[project-kxr-legtype-dispatch]].
+  ;; May return multiple or zero candidates; it's a heuristic, not a
+  ;; guarantee -- unlike :ics-robot-name it does not try to always return
+  ;; exactly one name.
+  (:ics-robot-names
+   (&optional (ids (send self :read-servo-connected)))
+   (let* ((raw-ids (sort (remove-duplicates (mapcar #'(lambda (i) (ash i -1)) ids)) #'<))
+	  (sets (servo-set-robot-names))
+	  (exact (remove-if-not
+		  #'(lambda (s) (equal (car s) raw-ids)) sets))
+	  (subset (remove-if-not
+		   #'(lambda (s) (null (set-difference (car s) raw-ids))) sets)))
+     (if exact
+	 (apply #'append (mapcar #'cdr exact))
+       (apply #'append (mapcar #'cdr subset)))))
+  ;; re-scan the currently-connected hardware and rebuild the robot model
+  ;; (:create-robot -> :setup, which also reloads the matching project
+  ;; file etc.) to match -- for hot-swapping the lower-body module on an
+  ;; already-connected *ri* without restarting the euslisp session.
+  ;; Returns the (possibly new) robot model name string.
+  (:update-robot
+   (&rest args &key ((:viewer create-viewer) (xwindow-ready?)) (model t) head
+	  (width 400) (height 400))
+   (let ((name-str (send self :scan-robot-name)))
+     (format t ";; :update-robot detected robot: ~A~%" name-str)
+     (send self :create-robot name-str :create-viewer create-viewer :model model :head head
+	   :width width :height height)
+     name-str))
+  ;; :read-servos-threeがセグメント単位のリトライを尽くしてもなお失敗
+  ;; (=通信状態が悪い)した場合はnilを返す。長さが正しくても中身が化けて
+  ;; いる(ノイズでビット化けしたがサイズは偶然合っている)ケースはこの
+  ;; チェックだけでは検出できないため(実機確認、2026.8: これが原因で
+  ;; 実際とは違うロボットモデルが選ばれる事例が起きた)、:read-servo-
+  ;; connected-onceを1回のスキャンとして、:read-servo-connectedはそれを
+  ;; 呼び出し、2回連続で完全に同じサーボID一覧が得られるまで確認する
+  ;; (単純ノイズなら同じ化け方が連続する可能性は低いという前提)。
+  (:read-servo-connected-once
+   (&key (retry 3) &aux (index 1) v ret)
+   (let ((ok nil))
+     (dotimes (attempt retry)
+       (unless ok
+	 (setq ok (send self :read-servos-three))))
+     (unless ok (return-from :read-servo-connected-once nil)))
    (dotimes (i sv-length)
      (if (numberp (setq v (elt servo-ary index)))
 	 (if (> v 0)
 	     (push i ret)))
      (setq index (+ index 3)))
    (reverse ret))
+  (:read-servo-connected
+   (&key (retry 3) (confirm-retry 5) &aux prev cur)
+   (dotimes (attempt confirm-retry)
+     (unless cur
+       (setq prev (send self :read-servo-connected-once :retry retry))
+       (when (and prev (equal prev (send self :read-servo-connected-once :retry retry)))
+	 (setq cur prev))))
+   (unless cur
+     (error "rcb4-interface :read-servo-connected: ~A回試しても2回連続で同じサーボID一覧が得られませんでした。RCB4の電源/LED状態を確認してください。" confirm-retry))
+   cur)
   (:read-servo-error
    nil
    (let (i3 (sv (instantiate integer-vector rcb4-dof)))
@@ -839,6 +977,15 @@
        (push m lst)
        (setq i (1+ i)))
      (reverse lst)))
+  (:read-analog-old0
+   (&key (len 11) (ram (+ #xc (* 2 len))))
+   (let* ((size (* 2 len))
+	  i2 str (ary (instantiate integer-vector len)))
+     (setq str (send self :send-cmd `(:move (:ram ,ram ,size) (:com)) size))
+     (when (> (length str) 0)
+       (dotimes (i len) (setq i2 (* 2 i))
+		(setf (elt ary i) (get-int str i2 2))))
+     ary))
   (:read-analog-old
    (&optional (ram (rcb4-address :adref)) (len 11)) ;; #x0c
    (let* ((size (* 4 len))
@@ -873,21 +1020,43 @@
        (dotimes (i len) (setq i2 (+ (* len 2) (* 2 i)))
 		(setf (elt ary i) (get-int str i2 2))))
      ary))
+  ;; 従来は(> (length str) 0)、つまり「1バイトでも返ってくれば」パース
+  ;; していたため、通信不安定でstrがsizeより短い(だが0より長い)場合に
+  ;; get-intが範囲外アクセスでクラッシュする不具合があった(実機確認、
+  ;; 2026.8)。:read-servos-threeと同様、期待する長さちょうどかを確認し、
+  ;; 足りなければリトライする。
+  ;; :wait-ackが完全に失敗したら(リンクが丸ごと落ちている強い兆候)、
+  ;; :read-servos-threeと同様その場で諦める(実機確認、2026.8:
+  ;; :timer-on中にリンク断絶すると毎ティック長時間固まって見えていた)。
   (:read-analog
-   (&key (len 11) (ram (+ #xc (* 2 len))))
-   (let* ((size (* 2 len))
-	  i2 str (ary (instantiate integer-vector len)))
-     (setq str (send self :send-cmd `(:move (:ram ,ram ,size) (:com)) size))
-     (when (> (length str) 0)
-       (dotimes (i len) (setq i2 (* 2 i))
-		(setf (elt ary i) (get-int str i2 2))))
-     ary))
+   (&key (len 11) (ram (+ #xc (* 2 len))) (retry 5) (ack-poll-wait-sec 0.5) (ack-max-tries 6))
+   (block :read-analog-body
+     (let* ((size (* 2 len))
+	    i2 str (ary (instantiate integer-vector len)) (ok nil))
+       (dotimes (attempt retry)
+	 (unless ok
+	   (setq str (send self :send-cmd `(:move (:ram ,ram ,size) (:com)) size))
+	   (if (= (length str) size)
+	       (setq ok t)
+	     (progn
+	       (warn "in :read-analog, attempt=~A str.len=~A, size=~A~%" attempt (length str) size)
+	       (unless (send self :wait-ack 1000 ack-poll-wait-sec ack-max-tries)
+		 (warn "in :read-analog: :wait-ack completely failed, link appears down -- giving up early~%")
+		 (return-from :read-analog-body (instantiate integer-vector len)))))))
+       (when ok
+	 (dotimes (i len) (setq i2 (* 2 i))
+		  (setf (elt ary i) (get-int str i2 2))))
+       ary)))
   (:read-acc (&aux (a (send self :read-analog)))
 	     (float-vector (elt a 2) (elt a 3) (elt a 4)))
   (:read-gyro (&aux (a (send self :read-analog)))
 	      (float-vector (elt a 5) (elt a 6) (elt a 7)))
   (:init-analog
    nil
+   ;; :read-servo-connectedと同じ理由(実機確認、2026.8)で、ここも
+   ;; サーボ/アナログアクセス系コマンド(:read-analog)を送る前にACKで
+   ;; 応答できる状態を確認する。
+   (send self :wait-ack 1000 0.5 20 t)
    (setq analog-neutral (send self :read-analog))
    (case
     control-board
@@ -1884,6 +2053,10 @@
    nil
    (send robot :angle-vector (send self :read-angle-vector))
    (send robot :angle-alist))
+  (:read-angle-plist
+   nil
+   (send robot :angle-vector (send self :read-angle-vector))
+   (alist-to-plist (send robot :angle-alist)))
   (:read-ref-angle-vector
    nil
    (send self :servo-vector-to-angle-vector (send self :read-ref-servo-vector)))
@@ -2383,25 +2556,47 @@
   (:ack-old nil
 	    ;;(unless com-port (send self :com-init))
 	    (= (elt (send self :send-cmd '(:ack) 1) 0) 6))
+  ;; 以前は(if ret ret nil)、つまり「1バイトでも何か返ってくれば成功」と
+  ;; 判定していたため、通信不安定時にゼロだけのゴミ(例: (0 0 0 0 0 0 0 0 0 0 0))
+  ;; が返ってきてもACK成功と誤判定していた(実機確認、2026.8: これのせいで
+  ;; :wait-ackがリンク断絶を検知できず、:read-servos-three等の早期諦め処理が
+  ;; 効かなかった)。RCB4のACK応答バイト(6)が実際に含まれているかを確認する。
+  ;; 通信のACK確認自体の詳細ログ(read-msg/read-all結果のダンプ)は
+  ;; ~/kxreus/rcb4interface-debug.lへ分離した。通信不安定時の切り分けで
+  ;; 詳細ログが欲しい場合は、rcb4interface.lの後にrcb4interface-debug.lを
+  ;; loadすると、この:ackがログ付き版に上書きされる(EusLispは同名
+  ;; defmethodの再定義で完全に置き換わる。何もloadしなければ、こちらの
+  ;; 静かな版のまま動く)。
   (:ack
    (&optional (tm-msec 1000) &aux ret (flag t))
    (send self :write (rcb4-assemble-one '(:ack)))
-   ;; (format t ";; :ack  write :ack time-out=~A~%" tm-msec)
    (cond
      ((derivedp (com-port . strm) io-stream)
       (cond
 	((send com-port :ready? tm-msec)
-	 (format t ";; read-msg for :ack, after select-stream=~A~%" ret)
 	 (setq ret (send com-port :read-all tm-msec))
-	 (format t ";; :read-all ret=~A~%" (coerce ret cons))
-	 (return-from :ack (if ret ret nil)))
+	 (return-from :ack (if (and ret (member 6 (coerce ret cons))) ret nil)))
 	(t (return-from :ack nil))))
-     (t 
+     (t
       (= (elt (send self :send-cmd '(:ack) 1) 0) 6))))
+  ;; RCB4が実際に応答できる状態かを:ackで確認し、駄目ならすぐ同じ確認を
+  ;; 送り直すのではなくpoll-wait-sec(デフォルト0.5秒)待ってから再送する。
+  ;; 電源再投入直後の初期化中や通信不安定時に、確認無しでいきなりサーボ
+  ;; アクセス系コマンドを連投しないためのゲートとして使う(実機確認、2026.8:
+  ;; エラー直後に同じ重いコマンドを間隔無しで送り続けると、RCB4がまだ
+  ;; 初期化中/不安定な時にかえって状態を悪化させやすい)。max-triesを
+  ;; 超えても応答が無ければ諦めてnilを返す(無限ループにはしない)。
   (:wait-ack
-   (&optional (timeout-msec 1000) msg)
-   (while (null (send self :ack timeout-msec))
-     (if msg (format t ";; :wait-ack timeout-msec=~A~%" timeout-msec))))
+   (&optional (timeout-msec 1000) (poll-wait-sec 0.5) (max-tries 20) msg)
+   (let ((ok nil))
+     (dotimes (i max-tries)
+       (unless ok
+	 (if (send self :ack timeout-msec)
+	     (setq ok t)
+	   (progn
+	     (when msg (format t ";; :wait-ack try=~A/~A timeout-msec=~A~%" i max-tries timeout-msec))
+	     (unix::usleep (round (* poll-wait-sec 1000000)))))))
+     ok))
   ;;
   (:com-close nil (setq com-port nil))
   (:com-stop nil (setf (get self :com-port) com-port))
@@ -2477,7 +2672,7 @@
 	 ((> n start)
 	  (subseq str start (- n 1)))
 	 (t
-	  (format t ";; (:read-msg :start ~A) str=~S str.len=~A" start str n)
+	  (format t ";; (:read-msg :start ~A) str=~S str.len=~A~%" start str n)
 	  str)))))
   ;;
   (:asm-from-rom
@@ -2588,6 +2783,4 @@
 	      (> (elt (send self :real-orientation #f(1 0 0)) 2)
 		 (sin (deg2rad angle))))
   )
-
-
 
