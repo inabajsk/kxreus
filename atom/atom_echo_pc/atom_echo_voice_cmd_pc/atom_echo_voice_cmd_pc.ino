@@ -177,46 +177,68 @@ void initEspNow() {
 
 // ---- 音関連(チャイム用。マイクと排他利用のため都度end/beginする) ----
 
+// 【2026.9、根本原因1】ESP_I2S::write(uint8_t)は内部でwrite(&d,1)を呼ぶが、
+// 16bitモードではmin_size=2のため、1バイトずつの呼び出しは毎回
+// 「size(1) < min_size(2)」に該当し、エラーも出さず何もせず0を返して
+// 終了する(ライブラリ側の実装。ESP_I2S.cppのwrite(buffer,size)参照)。
+// 従来の1バイトずつのwrite()は実際には一度もデータを送信しておらず、これが
+// 「begin()は成功するのに音が一切鳴らない」不具合の原因の1つだった
+// (実機確認、2026.9、atom_echo_robot側で先に発覚)。1サンプル(L+R)分を
+// バッファへまとめてbulk writeする。
+//
+// 【2026.9、根本原因2】上記を直しても、120ms程度の短い音はまだ鳴らなかった。
+// write()がDMAバッファへの書き込み成功(バイト数一致)を返しても、実際に
+// スピーカーから音が出るまでには立ち上がりの物理的な遅延があり、短い音だと
+// その間に直後の.end()で打ち切られ、音として出る前に終わってしまうことが
+// 実機で確認された。各音を最低200ms程度以上にすることで解決した
+// (詳細はplayMelodyPC()等の各チャイム関数のコメント参照)。
 void playTone(int freqHz, int durationMs, int amplitude = 6000) {
   const int sampleRate = 8000;
   audioI2S.end();
   audioI2S.setPins(I2S_BCLK, I2S_LRCK, I2S_DOUT);
-  if (!audioI2S.begin(I2S_MODE_STD, sampleRate, I2S_DATA_BIT_WIDTH_16BIT, I2S_SLOT_MODE_MONO)) {
+  if (!audioI2S.begin(I2S_MODE_STD, sampleRate, I2S_DATA_BIT_WIDTH_16BIT, I2S_SLOT_MODE_STEREO)) {
+    Serial.printf("[audio] audioI2S.begin failed! freeHeap=%u\n", (unsigned)ESP.getFreeHeap());
     return;
   }
   int halfWave = sampleRate / freqHz / 2;
   if (halfWave < 1) halfWave = 1;
   int totalSamples = sampleRate * durationMs / 1000;
   int16_t sample = amplitude;
+  int16_t buf[2];
   for (int i = 0; i < totalSamples; i++) {
     if (i % halfWave == 0) sample = -sample;
-    audioI2S.write((uint8_t)(sample & 0xFF));
-    audioI2S.write((uint8_t)((sample >> 8) & 0xFF));
+    buf[0] = sample;
+    buf[1] = sample;  // モノラル音源をL/R両方に複製
+    audioI2S.write((const uint8_t *)buf, sizeof(buf));
   }
   audioI2S.end();
 }
 
 void playMelodyPC() {
-  playTone(659, 120);
-  delay(30);
-  playTone(880, 160);
+  // 【2026.9、根本原因】write()がDMAバッファへの書き込み成功を返しても、実際に
+  // スピーカーから音が出るまでには立ち上がりの物理的な遅延があり、120ms程度の
+  // 短い音だとその間に.end()で打ち切られ、音として出る前に終わってしまう
+  // ことが実機で確認された。1音あたり十分な長さ(300ms前後)を確保し、
+  // 3音の上昇アルペジオで約1秒の心地よいチャイムにする。
+  playTone(523, 300);  // C5
+  playTone(659, 300);  // E5
+  playTone(784, 350);  // G5
 }
 
 void playChimeConnected() {
-  playTone(523, 80);
-  delay(20);
-  playTone(784, 120);
+  playTone(523, 200);
+  playTone(784, 250);
 }
 
 void playChimeDisconnected() {
-  playTone(784, 80);
-  delay(20);
-  playTone(392, 160);
+  playTone(784, 200);
+  playTone(392, 250);
 }
 
 void playChimeListenStart() {
-  // 録音開始の合図(短く高い1音)
-  playTone(1200, 60);
+  // 録音開始の合図(短く高い1音)。60msでは短すぎて実機で聞こえなかったため
+  // 200msに延長(理由はplayMelodyPC()のコメント参照)。
+  playTone(1200, 200);
 }
 
 // ---- 音声コマンド録音(ボタンを押した直後の一言を録ってロボットへ送るだけ) ----
@@ -230,7 +252,21 @@ uint32_t voiceStateStartMillis = 0;
 static const uint32_t VOICE_MASK_MS = 150;     // ボタン押下直後の電気ノイズを避けるため読み捨てる時間
 static const uint32_t VOICE_CAPTURE_MS = 1000;  // 本番録音時間(1秒固定)
 
+// 【2026.9】以前はマイク(PDM_RX)のaudioI2S.begin()が失敗した場合、voiceStateを
+// VOICE_MASKINGへ進めずreturnしていたため、voiceStateがVOICE_IDLEのまま残り、
+// 次のloop()で(ボタンのチャタリング等により)即座にまたstartVoiceCapture()が
+// 呼ばれ、[audio] playTone(1200,60,...)の合図音が高速に鳴り続ける無限ループに
+// なる不具合が実機で確認された。voiceStateの状態に関わらず、直前の試行から
+// 最低VOICE_RETRIGGER_COOLDOWN_MS経過するまでは再トリガーしないようにする。
+static const uint32_t VOICE_RETRIGGER_COOLDOWN_MS = 1000;
+uint32_t lastVoiceCaptureAttemptMillis = 0;  // 起動から1秒間だけ余分にクールダウンされるが無害
+
 void startVoiceCapture() {
+  if (millis() - lastVoiceCaptureAttemptMillis < VOICE_RETRIGGER_COOLDOWN_MS) {
+    return;
+  }
+  lastVoiceCaptureAttemptMillis = millis();
+
   // 【重要】録音開始の合図音は、マイク(PDM RX)に切り替える前、スピーカー(STD)の
   // ままの状態で鳴らす。以前はマスク時間が終わった後(録音フェーズの直前)に
   // 鳴らしていたが、playTone()はSTDモードに切り替えてしまうため、その後マイクを
@@ -239,7 +275,9 @@ void startVoiceCapture() {
 
   audioI2S.end();
   audioI2S.setPinsPdmRx(I2S_PDM_CLK, I2S_PDM_DIN);
-  if (!audioI2S.begin(I2S_MODE_PDM_RX, AUDIO_SAMPLE_RATE, I2S_DATA_BIT_WIDTH_16BIT, I2S_SLOT_MODE_MONO)) {
+  bool ok = audioI2S.begin(I2S_MODE_PDM_RX, AUDIO_SAMPLE_RATE, I2S_DATA_BIT_WIDTH_16BIT, I2S_SLOT_MODE_MONO);
+  Serial.printf("[audio] mic audioI2S.begin(PDM_RX) -> %s\n", ok ? "OK" : "FAILED");
+  if (!ok) {
     return;
   }
   voiceState = VOICE_MASKING;
@@ -297,6 +335,11 @@ void setup() {
   pixel.setPixelColor(0, pixel.Color(40, 0, 0));  // 起動直後はLINK NG(赤)から始める
   pixel.show();
 
+  // 【2026.9】G39はESP32のinput-onlyパッド(GPIO34-39)の1つで内部プルアップを
+  // 持たないため、INPUT_PULLUPを指定してもESP-IDFがエラーを返すだけで効果が
+  // 無い(実機確認: "gpio: gpio_pullup_en: GPIO number error"のログが出る)。
+  // 基板側に外付けプルアップがある前提のINPUTのままにする。ボタンが押されて
+  // いないのに繰り返し反応する場合は、外付けプルアップの有無を確認すること。
   pinMode(PIN_BTN, INPUT);
 
   WiFi.mode(WIFI_STA);
@@ -305,13 +348,20 @@ void setup() {
   esp_wifi_set_ps(WIFI_PS_NONE);
 
   initEspNow();
-
-  playMelodyPC();
 }
 
 bool lastBtnState = HIGH;
+bool bootMelodyPlayed = false;
 
 void loop() {
+  // 【2026.9】setup()内で直接I2Sを呼ぶより、loop()の最初の1回で呼ぶ方が
+  // 安定して鳴ることが実機で確認された(理由の詳細は不明。Arduino-ESP32の
+  // setup()→loop()移行時の何らかの初期化状態の違いによるものと見られる)。
+  if (!bootMelodyPlayed) {
+    bootMelodyPlayed = true;
+    playMelodyPC();
+  }
+
   // ボタン押下(立下り) -> 録音シーケンス開始(録音中は再度押しても無視)
   bool btnState = digitalRead(PIN_BTN);
   if (btnState == LOW && lastBtnState == HIGH && voiceState == VOICE_IDLE) {
