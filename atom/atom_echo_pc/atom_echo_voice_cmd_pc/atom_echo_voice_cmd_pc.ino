@@ -196,8 +196,12 @@ void playTone(int freqHz, int durationMs, int amplitude = 6000) {
   const int sampleRate = 8000;
   audioI2S.end();
   audioI2S.setPins(I2S_BCLK, I2S_LRCK, I2S_DOUT);
+  // 【2026.9】このSerialはEusLisp<->RCB4の透過的バイト中継(loop()のSerial.read/
+  // write)と共用のUSBシリアルであり、ここへの1回のprintfがRCB4プロトコルの
+  // フレーミングを永久に破壊し、make-kxr-robot/:timer-onが復旧不能になる不具合の
+  // 原因だった(実機確認、2026.9)。デバッグ出力はこのSerialへは一切出さない。
   if (!audioI2S.begin(I2S_MODE_STD, sampleRate, I2S_DATA_BIT_WIDTH_16BIT, I2S_SLOT_MODE_STEREO)) {
-    Serial.printf("[audio] audioI2S.begin failed! freeHeap=%u\n", (unsigned)ESP.getFreeHeap());
+    // Serial.printf("[audio] audioI2S.begin failed! freeHeap=%u\n", (unsigned)ESP.getFreeHeap());
     return;
   }
   int halfWave = sampleRate / freqHz / 2;
@@ -275,8 +279,10 @@ void startVoiceCapture() {
 
   audioI2S.end();
   audioI2S.setPinsPdmRx(I2S_PDM_CLK, I2S_PDM_DIN);
+  // 【2026.9】playTone()のbegin失敗時と同じ理由でSerial.printfをコメントアウト
+  // (このSerialはRCB4中継と共用のため、デバッグ出力を混ぜてはいけない)。
   bool ok = audioI2S.begin(I2S_MODE_PDM_RX, AUDIO_SAMPLE_RATE, I2S_DATA_BIT_WIDTH_16BIT, I2S_SLOT_MODE_MONO);
-  Serial.printf("[audio] mic audioI2S.begin(PDM_RX) -> %s\n", ok ? "OK" : "FAILED");
+  // Serial.printf("[audio] mic audioI2S.begin(PDM_RX) -> %s\n", ok ? "OK" : "FAILED");
   if (!ok) {
     return;
   }
