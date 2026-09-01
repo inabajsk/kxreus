@@ -18,7 +18,6 @@
    送信する(euslisp/PCを介さず、AtomS3単体で完結)。
 
 ## 配線(ピン割り当て)
-
 | 用途 | ピン | 備考 |
 | --- | --- | --- |
 | RCB4 UART TX | G6 | 基板底面の拡張用GPIOパッド(はんだ付け。Groveコネクタではない) |
@@ -32,6 +31,10 @@
 | 外部I2C(M5StickV用) SCL | G1 | Grove(HY2.0-4P)コネクタ。無印AtomS3のボード定義でSCL=G1 |
 | 外部I2Cクロック | 100kHz | `Wire.setClock(100000)` |
 | LCD | G15,G16,G17,G21,G33,G34 | 内蔵、状態表示専用 |
+
+ATOMS3 (GND, G6(TX), G5(RX)) -> RCB4 UART COM  3pin (GND, RX, TX)
+ATOMS3 (GND, 5V, G2(SDA), G1(SCL)) -> I2C Hub -> M5StickV Grove(I2C address 0x24)
+ATOMS3 (GND, 5V, G2(SDA), G1(SCL)) -> I2C Hub -> M5StickV Grove(I2C address 0x25)
 
 RCB4-miniのCOMコネクタのピン順は「GND-Rx-Tx」(GND側から。HeartToHeart4
 マニュアル準拠)。

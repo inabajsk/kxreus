@@ -566,14 +566,18 @@ void processVoiceUtterance() {
   ei_impulse_result_t result = {0};
   EI_IMPULSE_ERROR res = run_classifier(&signal, &result, false /* debug */);
   if (res != EI_IMPULSE_OK) {
-    Serial.printf("[voice] run_classifier failed (%d)\n", res);
+    // 【2026.9】ATOM S3は液晶(display)で状態表示できるためSerialデバッグ出力は
+    // 本来不要であり、atom_echo_voice_cmd_pc.inoで見つかったSerial共用による
+    // 中継プロトコル破壊バグの再発防止も兼ねてコメントアウトする(このファイルの
+    // RCB4通信はRCB4Serial(UART1)でSerial(USB)とは別だが念のため統一)。
+    // Serial.printf("[voice] run_classifier failed (%d)\n", res);
     return;
   }
 
   int bestIdx = -1;
   float bestValue = -1.0f;
   for (size_t i = 0; i < EI_CLASSIFIER_LABEL_COUNT; i++) {
-    Serial.printf("[voice]   %s: %.3f\n", result.classification[i].label, result.classification[i].value);
+    // Serial.printf("[voice]   %s: %.3f\n", result.classification[i].label, result.classification[i].value);
     if (result.classification[i].value > bestValue) {
       bestValue = result.classification[i].value;
       bestIdx = (int)i;
@@ -581,8 +585,8 @@ void processVoiceUtterance() {
   }
 
   if (bestIdx < 0 || bestValue < CONFIDENCE_THRESHOLD) {
-    Serial.printf("[voice] not confident enough (best=%.3f)\n",
-                  bestIdx >= 0 ? bestValue : 0.0f);
+    // Serial.printf("[voice] not confident enough (best=%.3f)\n",
+    //               bestIdx >= 0 ? bestValue : 0.0f);
     showNotConfident(bestIdx >= 0 ? bestValue : 0.0f);
     return;
   }
@@ -590,12 +594,12 @@ void processVoiceUtterance() {
   const char *label = result.classification[bestIdx].label;
   int motion = motionForLabel(label);
   if (motion < 0) {
-    Serial.printf("[voice] recognized \"%s\" (%.3f) -> no motion assigned\n", label, bestValue);
+    // Serial.printf("[voice] recognized \"%s\" (%.3f) -> no motion assigned\n", label, bestValue);
     showRecognition(label, bestValue, -1);
     return;
   }
 
-  Serial.printf("[voice] recognized \"%s\" (%.3f) -> call-motion %d\n", label, bestValue, motion);
+  // Serial.printf("[voice] recognized \"%s\" (%.3f) -> call-motion %d\n", label, bestValue, motion);
   showRecognition(label, bestValue, motion);
   sendCallMotion((uint8_t)motion);
 }
@@ -615,7 +619,7 @@ void setup() {
   showIdle();
 
   if (!M5.Imu.isEnabled()) {
-    Serial.println("[imu] not detected (IMU予約OPCODEは常に0を返す)");
+    // Serial.println("[imu] not detected (IMU予約OPCODEは常に0を返す)");
   }
 
   beginRcb4Serial();
@@ -630,8 +634,8 @@ void setup() {
 
   initEspNow();
 
-  Serial.println("[voice] ready (Edge Impulse model: kxr-voice-commands). I2C variant (G1/G2 free, IMU on G38/G39).");
-  Serial.println("[voice] words: aisatsu(gree) mae(fwd) ushiro(back) hidari(left) migi(right)");
+  // Serial.println("[voice] ready (Edge Impulse model: kxr-voice-commands). I2C variant (G1/G2 free, IMU on G38/G39).");
+  // Serial.println("[voice] words: aisatsu(gree) mae(fwd) ushiro(back) hidari(left) migi(right)");
 }
 
 void loop() {
@@ -672,13 +676,13 @@ void loop() {
   // 変化があった時とそれ以外も定期的に(300ms毎)更新する。
   bool up = isLinkUp();
   if (up != lastLinkUp) {
-    Serial.printf("[link] %s\n", up ? "UP" : "DOWN");
+    // Serial.printf("[link] %s\n", up ? "UP" : "DOWN");
     lastLinkUp = up;
   }
   Rcb4Status st = rcb4Status();
   if (st != lastRcb4Status) {
     const char *names[] = {"IDLE", "OK", "NG"};
-    Serial.printf("[rcb4] %s\n", names[st]);
+    // Serial.printf("[rcb4] %s\n", names[st]);
     lastRcb4Status = st;
   }
   if (millis() - lastStatusDrawMillis > 300) {

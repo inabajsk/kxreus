@@ -271,7 +271,11 @@ void playTone(int freqHz, int durationMs, int amplitude = 6000) {
   if (!ok) {
     // 以前はここで無言でreturnしており、I2S初期化失敗なのか別原因かログから
     // 区別できなかった。空きヒープも併せて出力しておく。
-    Serial.printf("[audio] audioI2S.begin failed! freeHeap=%u\n", (unsigned)ESP.getFreeHeap());
+    // 【2026.9】ATOM Echoには液晶が無くUSBはPC側との中継専用のため、デバッグ
+    // 出力はコメントアウトする(atom_echo_voice_cmd_pc.inoで実際にSerial共用
+    // による中継プロトコル破壊バグが見つかったため、念のため全ファームウェアで
+    // 統一。このファイルのRCB4通信自体はRCB4Serial(UART1)でSerialとは別)。
+    // Serial.printf("[audio] audioI2S.begin failed! freeHeap=%u\n", (unsigned)ESP.getFreeHeap());
     return;
   }
   int halfWave = sampleRate / freqHz / 2;
@@ -333,7 +337,7 @@ void playPcmClip(const int16_t *clip, size_t len, uint32_t sampleRate) {
   audioI2S.end();
   audioI2S.setPins(I2S_BCLK, I2S_LRCK, I2S_DOUT);
   if (!audioI2S.begin(I2S_MODE_STD, sampleRate, I2S_DATA_BIT_WIDTH_16BIT, I2S_SLOT_MODE_STEREO)) {
-    Serial.printf("[audio] audioI2S.begin(clip) failed! freeHeap=%u\n", (unsigned)ESP.getFreeHeap());
+    // Serial.printf("[audio] audioI2S.begin(clip) failed! freeHeap=%u\n", (unsigned)ESP.getFreeHeap());
     return;
   }
   int16_t buf[2];
@@ -444,7 +448,7 @@ void classifyTask(void *pvParameters) {
     ei_impulse_result_t result = {0};
     EI_IMPULSE_ERROR res = run_classifier(&signal, &result, false /* debug */);
     if (res != EI_IMPULSE_OK) {
-      Serial.printf("[voice] run_classifier failed (%d)\n", res);
+      // Serial.printf("[voice] run_classifier failed (%d)\n", res);
       classifyBestIdx = -1;
       classifyResultReady = true;
       continue;
@@ -453,7 +457,7 @@ void classifyTask(void *pvParameters) {
     int bestIdx = -1;
     float bestValue = -1.0f;
     for (size_t i = 0; i < EI_CLASSIFIER_LABEL_COUNT; i++) {
-      Serial.printf("[voice]   %s: %.3f\n", result.classification[i].label, result.classification[i].value);
+      // Serial.printf("[voice]   %s: %.3f\n", result.classification[i].label, result.classification[i].value);
       if (result.classification[i].value > bestValue) {
         bestValue = result.classification[i].value;
         bestIdx = (int)i;
@@ -477,17 +481,17 @@ void serviceClassifyResult() {
   float bestValue = classifyBestValue;
 
   if (bestIdx < 0 || bestValue < CONFIDENCE_THRESHOLD) {
-    Serial.printf("[voice] not confident enough (best=%.3f)\n",
-                  bestIdx >= 0 ? bestValue : 0.0f);
+    // Serial.printf("[voice] not confident enough (best=%.3f)\n",
+    //               bestIdx >= 0 ? bestValue : 0.0f);
     playChimeNotRecognized();
   } else {
     const char *label = classifyLabel;
     int motion = motionForLabel(label);
     if (motion < 0) {
-      Serial.printf("[voice] recognized \"%s\" (%.3f) -> no motion assigned\n", label, bestValue);
+      // Serial.printf("[voice] recognized \"%s\" (%.3f) -> no motion assigned\n", label, bestValue);
       playChimeNotRecognized();
     } else {
-      Serial.printf("[voice] recognized \"%s\" (%.3f) -> call-motion %d\n", label, bestValue, motion);
+      // Serial.printf("[voice] recognized \"%s\" (%.3f) -> call-motion %d\n", label, bestValue, motion);
       playResponseClip(label);
       sendCallMotion((uint8_t)motion);
     }
@@ -530,7 +534,7 @@ void setup() {
 
   playMelodyRobot();
 
-  Serial.println("[voice] ready (Edge Impulse model loaded, no training needed).");
+  // Serial.println("[voice] ready (Edge Impulse model loaded, no training needed).");
 }
 
 bool lastBtnState = HIGH;

@@ -5,14 +5,14 @@
 # でも共通で使えるため、第2引数でどちらの機体用か選ぶ。
 #
 # 使い方: ./get_my_mac.sh [ポート] [s3|echo]
-#   (ポート省略時 /dev/ttyUSB2。機体種別省略時 s3(AtomS3、既定))
-#   例: ./get_my_mac.sh /dev/ttyUSB2 s3    # -> ../atom_s3_robot/atoms3_i2c_robot/pc_mac.h
-#       ./get_my_mac.sh /dev/ttyUSB2 echo  # -> ../atom_echo_robot/atom_echo_voice_cmd_robot/pc_mac.h
+#   (ポート省略時 /dev/ttyUSB0。機体種別省略時 s3(AtomS3、既定))
+#   例: ./get_my_mac.sh /dev/ttyUSB0 s3    # -> ../atom_s3_robot/atoms3_i2c_robot/pc_mac.h
+#       ./get_my_mac.sh /dev/ttyUSB0 echo  # -> ../atom_echo_robot/atom_echo_voice_cmd_robot/pc_mac.h
 #
 # ESPTOOL環境変数でesptool実行ファイルを指定できる(省略時はPATH上のesptool、
 # 無ければarduino-cli付属のものを自動で探す)。
 set -e
-PORT="${1:-/dev/ttyUSB2}"
+PORT="${1:-/dev/ttyUSB0}"
 ROBOT_TYPE="${2:-s3}"
 DIR="$(cd "$(dirname "$0")" && pwd)"
 case "$ROBOT_TYPE" in

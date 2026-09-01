@@ -186,7 +186,12 @@ int activeLabel = -1;  // -1 = 未設定(記録しない)
 
 void dumpUtterance() {
   if (activeLabel < 0) {
-    Serial.println("[collect] utterance captured but no label armed (send '0'-'5' first)");
+    // 【2026.9】このSerialは(a)人間向けのデバッグ文字列と(b)0xAA 0x55マジック
+    // バイトで始まる収集データの生バイナリの両方を流しており、他ファームで
+    // 見つかったSerial共用による中継/プロトコル破壊バグと同じ構造を持つ。
+    // ホスト側パーサがマジックバイト再同期に対応していない場合、この文字列が
+    // 挟まると以降のフレームがずれる恐れがあるためコメントアウトする。
+    // Serial.println("[collect] utterance captured but no label armed (send '0'-'5' first)");
     return;
   }
   uint16_t n = (uint16_t)voiceBufLen;
@@ -205,8 +210,8 @@ void serviceLabelCommands() {
     char c = Serial.read();
     if (c >= '0' && c <= '0' + NUM_LABELS - 1) {
       activeLabel = c - '0';
-      Serial.printf("[collect] active label -> %d (%s). Press PC button and speak to record.\n",
-                    activeLabel, labelNames[activeLabel]);
+      // Serial.printf("[collect] active label -> %d (%s). Press PC button and speak to record.\n",
+      //               activeLabel, labelNames[activeLabel]);
     }
   }
 }
@@ -233,8 +238,8 @@ void setup() {
 
   playMelodyRobot();
 
-  Serial.println("[collect] ready. send '0'-'5' via Serial to set the active label, then press PC button and speak.");
-  Serial.println("[collect] labels: 0=aisatsu 1=mae 2=ushiro 3=hidari 4=migi 5=noise");
+  // Serial.println("[collect] ready. send '0'-'5' via Serial to set the active label, then press PC button and speak.");
+  // Serial.println("[collect] labels: 0=aisatsu 1=mae 2=ushiro 3=hidari 4=migi 5=noise");
 }
 
 bool lastBtnState = HIGH;

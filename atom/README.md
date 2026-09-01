@@ -32,6 +32,40 @@ PC ── USB ──  ATOM Echo(PC側)  ==ESP-NOW(無線)==  AtomS3(ロボット
 各フォルダに `README.md`(役割・配線・使い方)と `flash.sh`(書き込みスクリプト)
 がある。
 
+## もう1つの構成: ロボット側もATOM Echo(腕・M5StickV無しの機体向け)
+
+```
+PC ── USB ──  ATOM Echo(PC側)  ==ESP-NOW(無線)==  ATOM Echo(ロボット側)
+              atom_echo_pc/(共通)                     atom_echo_robot/
+                                                          |  UART(1.25Mbps)
+                                                          |  → RCB4(ロボットの制御基板)
+```
+
+- **atom_echo_pc/** ⇔ **atom_echo_robot/**: 上記のAtomS3構成とは別の、
+  ロボット側にもう1台の**プレーンなATOM Echo**(AtomS3ではない)を使う構成。
+  PC側ファームウェアはAtomS3構成と共通の`atom_echo_pc/`をそのまま使う
+  (2026.8統一。詳細は`atom_echo_pc/README.md`参照)。`setup_echo_echo.sh`で
+  セットアップする(下記「2つの構成の使い分け」参照)。
+
+### 2つの構成の使い分け
+
+| | `setup_s3_echo.sh`(AtomS3+ATOM Echo) | `setup_echo_echo.sh`(ATOM Echo+ATOM Echo) |
+| --- | --- | --- |
+| ロボット側 | AtomS3 | ATOM Echo(プレーン) |
+| IMU | あり(内蔵) | **無し** |
+| M5StickV(I2C)・カメラ | 対応 | 非対応 |
+| 音声認識 | Edge Impulse(共通モデル。2026.8統一、`edge_impulse/`参照) | 同左(素のESP32では ESP-NN高速化カーネルが使えず汎用カーネルにフォールバックするが実機コンパイル確認済み) |
+| 向いている機体 | 腕・カメラ(M5StickV)を搭載する機体(本プロジェクトのメイン機体) | 4脚・6脚など腕もM5StickVも無く、**とにかく無線でRCB4を操作したいだけ**のロボット |
+| コスト・サイズ | 大きめ | 小さい・安い |
+| RCB4中継プロトコル | ACK付き再送(共通) | ACK付き再送(共通、2026.8統一) |
+
+**腕やM5StickVを載せない機体であっても**、姿勢による転倒検知・傾き補正など
+IMUを使いたい場合はAtomS3+ATOM Echo構成(`setup_s3_echo.sh`)の方が適している
+(ATOM EchoにはIMUが無いため)。音声認識は以前は`setup_echo_echo.sh`側だけ
+自作の軽量テンプレートマッチング方式(学習が必要で使い勝手が悪かった)
+だったが、AtomS3構成と同じEdge Impulseモデルに統一し、書き込み直後から
+学習不要で動作するようにした(詳細は`atom_echo_robot/README.md`)。
+
 ## クイックスタート(clone後、実機4台を書き込む手順)
 
 ### 1. 1回だけ行うホスト側セットアップ
@@ -80,10 +114,23 @@ AtomS3・ATOM Echoの両方をPCへ接続した状態で、`setup_s3_echo.sh`が
 
 ### 3. M5StickVを左目・右目それぞれ書き込み
 
+SDカードを挿した状態で実行すること(初回は発話用WAVクリップも`/sd/`へ
+書き込むため数分かかる。2回目以降は`--skip-clips`でboot.pyのみ高速に
+書き込める。詳細は`m5stickv/README.md`参照)。
+
 ```bash
 cd m5stickv
 ./flash.sh /dev/ttyUSBn 0x24   # 左目
 ./flash.sh /dev/ttyUSBm 0x25   # 右目
+```
+
+### (代替) ロボット側がAtomS3ではなくATOM Echoの機体の場合
+
+上記の1〜3の代わりに、腕・M5StickVを載せない機体(4脚・6脚等、
+「もう1つの構成」参照)では以下を使う:
+
+```bash
+./setup_echo_echo.sh <PC側ATOM Echoのポート> <ロボット側ATOM Echoのポート>
 ```
 
 ### 4. euslisp側から接続確認
