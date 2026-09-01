@@ -48,6 +48,24 @@ K210公式サンプル(M5StickV-Maixpy.md「Mic Record and Speaker Play」)準�
 - `board_info.SPK_SD`(アンプ有効化ピン)をHighに駆動
 - `player.play_process(wav_dev)` を **`wav_dev.channel_config(...)`より先に**呼ぶ
 
+## SDカード上の発話クリップ(重要)
+
+発話音声そのものは`boot.py`(=`object_detection_I2C_slave.py`)には含まれず、
+M5StickVに挿したSDカード上の`/sd/*.wav`(16bit/44100Hz/モノラル)を
+`audio.Audio(path=...)`で再生する方式(ソース内`SPEAK_CLIPS`/`DIGIT_CLIPS`/
+`JUU_CLIP`/`HYAKU_CLIP`/`APRILTAG_FOUND_CLIP`/`BAN_DESU_CLIP`/
+`EYE_PREFIX_CLIP`参照)。このリポジトリでは`sd_clips/`にWAV本体を同梱して
+いるので、`./flash.sh <ポート> [0x24|0x25]`を実行すると**boot.pyの書き込みに
+加えて`sd_clips/`の全WAVも`/sd/`へ自動で書き込まれる**(SDカードが挿さって
+いる前提)。
+
+WAVクリップは17個(左目/右目の前置き2個・キューブ発見/挨拶2個・数字読み上げ用
+`d1`〜`d9`・`juu`(十)・`hyaku`(百)・AprilTag発見・「番です」)あり、
+`maixpy_upload.py`はポートを開くたびに実機を再起動して割り込む都合上、
+全部書き込むと1回のflashに数分かかる。SDカードに一度書き込めば以後は
+`./flash.sh <ポート> [0x24|0x25] --skip-clips`でboot.pyだけを素早く
+書き込める(クリップを追加・差し替えた時だけ`--skip-clips`無しで実行し直す)。
+
 ## I2Cレジスタマップ
 
 ### 基本(旧来からの物体検出用)
