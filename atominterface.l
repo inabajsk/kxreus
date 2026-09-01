@@ -28,6 +28,86 @@
 ;;;   (require :atominterface)
 (require :rcb4interface)
 ;;;
+;;; 【2026.9】以前ここで、無線経由の1バイト欠落によるハング対策として
+;;; rcb4interface-debug.l(:read-dataへのタイムアウト+リシンク)の読み込みと
+;;; :read-strへの独自リトライを追加していたが、実際の恒久的な無応答の原因は
+;;; 別にあった(下記:viewer-update等のresponse-on復元忘れ)。リトライ/
+;;; タイムアウト層を足すとリトライ中である旨のメッセージが常時出て挙動が
+;;; 分かりにくくなるため撤去し、GitHub版rcb4interface.l/uart.lそのまま
+;;; (静かでリトライ無し)の挙動に戻す。ROMテーブル全読み出し中に稀な1バイト
+;;; 欠落で:read1が無限待ちする可能性自体は残るが、頻発していた恒久停止は
+;;; 下記のresponse-on修正が原因だったため、まずはそちらの効果を確認する。
+;;;
+;;; 【2026.9、根本原因】GitHub版の:viewer-update/ri-update/ri-balance-update
+;;; (いずれも:timer-on/:balance-onが毎tick呼ぶ)は、更新の最初に
+;;; (:set-sysreg-bits '((:rom-on . 0) (:response-on . 0)))でRCB4からの応答を
+;;; 止めるが、更新の最後は(:set-sysreg-bits '((:rom-on . 1)))とrom-onしか
+;;; 戻しておらず、response-onを1へ戻し忘れている。:set-sysreg-bitsの
+;;; :gen-sysreg-wordは「現在のsysreg値を読んでから指定ビットだけ変更する」
+;;; 実装のため、response-onが一度0になった後は、まさにその「現在値を読む」
+;;; こと自体が応答をもらえず失敗し、response-onは0のまま二度と戻らない。
+;;; 結果、:read-analogは元よりRCB4への単純な:ackすら以後永久に無応答になる
+;;; (実機確認、2026.9: make-kxr-robot直後は正常なのに:timer-onを実行した
+;;; 瞬間から全RCB4通信が完全に無応答になる不具合として顕在化。ESP-NOW無線
+;;; リンク自体は生きたまま(LEDは変化しない)なので、無線の切断/再送の問題
+;;; ではなくRCB4側のsysreg状態の問題だった)。GitHub版(rcb4interface.l)
+;;; 自体は変更しない方針のため、response-onも正しく1へ戻す版に差し替える。
+(defmethod rcb4-interface
+  (:viewer-update
+   nil
+   (when com-port
+     (send self :set-sysreg-bits '((:rom-on . 0) (:response-on . 0)))
+     (send self :real-orientation)
+     (send self :read-sensors)
+     (send robot :angle-vector (send self :read-angle-vector))
+     (send self :set-sysreg-bits '((:rom-on . 1) (:response-on . 1))))
+   (when (send self :viewer)
+     (send self :viewer :viewer :draw-objects :flush nil)
+     (send self :draw-torque :flush nil :size 1.0)
+     (send self :draw-sensors :flush nil)
+     (send self :draw-end-coords :flush nil)
+     (send self :draw-zmp-coords :flush nil)
+     (send self :viewer :viewer :flush))))
+;; ri-update/ri-balance-update(:timer-on/:balance-onにfuncとして明示的に
+;; 渡した場合のみ使われるプレーン関数版)も同じ理由で上書きする。
+(setf (symbol-function 'ri-update)
+      #'(lambda (ri)
+	  (let (robot vwer)
+	    (setq robot (send ri :robot))
+	    (send ri :set-sysreg-bits '((:rom-on . 0) (:response-on . 0)))
+	    (send ri :robot :angle-vector (send ri :read-angle-vector))
+	    (send ri :real-orientation)
+	    (when (send ri :viewer)
+	      (setq vwer (send ri :viewer :viewer))
+	      (send vwer :draw-objects :flush nil)
+	      (send robot :draw-torque vwer
+		    :torque-vector (send ri :read-torque-vector)
+		    :flush nil :size 1.0)
+	      (send ri :set-sysreg-bits '((:rom-on . 1) (:response-on . 1)))
+	      (send ri :viewer :flush)))))
+(setf (symbol-function 'ri-balance-update)
+      #'(lambda ()
+	  (let* ((ri (send *robot* :ri))
+		 (vwer ((send ri :viewer) . x::viewer))
+		 (robot (send ri :robot))
+		 r p-r)
+	    (send *irtviewer* :draw-objects :flush t)
+	    (send ri :set-sysreg-bits '((:rom-on . 0) (:response-on . 0)))
+	    (send robot :angle-vector (send ri :read-angle-vector))
+	    (send ri :real-orientation)
+	    (setq r (robot . rot))
+	    (setq p-r (car (rpy-angle r)))
+	    (send robot :legs :ankle-p :joint-angle (rad2deg (elt p-r 0)))
+	    (send robot :legs :ankle-r :joint-angle (rad2deg (elt p-r 1)))
+	    (send robot :legs :ankle-w :joint-angle 0)
+	    (send robot :send-to-ri 20)
+	    (send ri :set-sysreg-bits '((:rom-on . 1) (:response-on . 1)))
+	    (send ri :viewer :draw-objects :flush t)
+	    (send robot :draw-torque (send ri :viewer :viewer)
+		  :torque-vector (send ri :read-torque-vector)
+		  :flush nil :size 1.0)
+	    (send ri :viewer :flush))))
+;;;
 ;;; kondo-gravity-methodはATOM固有の値だが、rcb4-interfaceクラスの
 ;;; defclass自体はGitHub HEADのまま変更しない方針のため、クラススロットでは
 ;;; なくpropertied-objectのプロパティ((send self :get/:put :kondo-gravity-method))
