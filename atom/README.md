@@ -135,7 +135,7 @@ cd echo_echo && ./setup_echo_echo.sh <ロボット側ATOM Echoのポート> <PC�
 だけでよい:
 
 ```bash
-cd s3_wifi_captiv/atoms3_wifi_captiv && ./flash.sh [ポート]   # 省略時 /dev/ttyACM0
+cd s3_wifi_captiv && ./flash.sh [ポート]   # 省略時 /dev/ttyACM0
 ```
 
 ### 3. M5StickVを左目・右目それぞれ書き込み(`s3_echo_with_I2C`構成のみ)

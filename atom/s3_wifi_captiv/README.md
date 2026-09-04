@@ -26,20 +26,31 @@ ESP-NOW/ATOM Echoを使わず、AtomS3単体がPCとWiFi(TCP)で直接繋がり�
 
 ## PC側からの繋ぎ方(socatで仮想ttyを作る)
 
+`connect_bridge.sh`が`socat`のラッパー。root権限が必要(`/dev/`直下への
+シンボリックリンク作成のため)。
+
 ```bash
-socat TCP:<AtomS3のIP>:4000 PTY,link=/dev/ttyKXR0,raw,echo=0
+sudo ./connect_bridge.sh <AtomS3のIPアドレス> [ポート、既定4000]
 ```
 
-`/dev/ttyKXR0`が実RCB4に繋いだ時と同じように振る舞う仮想シリアルポートに
-なるので、euslisp側(`rcb4interface.l`/`uart.l`)は変更不要でこのポート名を
-指定するだけでよい。`socat`はバックグラウンドで動かし続ける必要がある
-(接続を維持するプロセスのため)。
+液晶の「接続成功」画面に出ているIPアドレス・ポートを指定する。実行すると
+`/dev/ttyKXR0`が、実RCB4に繋いだ時と同じように振る舞う仮想シリアルポートに
+なるので、euslisp側(`rcb4interface.l`/`uart.l`)は変更不要で以下のように
+開ける:
+
+```lisp
+(send *ri* :rcb4-open :exec t :devname "ttyKXR0" :baud 1250000)
+```
+
+`connect_bridge.sh`はフォアグラウンドで動き続ける(接続を維持するための
+プロセスのため、Ctrl+Cで終了すると`/dev/ttyKXR0`も消える)。バックグラウンド
+で動かし続けたい場合は末尾に`&`を付けて実行すること。
 
 ## ピン配置
 
 | 用途 | ピン | 備考 |
 | --- | --- | --- |
-| RCB4 UART TX | G2 | Grove(HY2.0-4P)コネクタ。`../../s3_echo_bridge/atoms3_simple_robot/`と同一配線 |
+| RCB4 UART TX | G2 | Grove(HY2.0-4P)コネクタ。`../s3_echo_bridge/atoms3_simple_robot/`と同一配線 |
 | RCB4 UART RX | G1 | 同上 |
 | RCB4 UART ボーレート | 1,250,000bps | `SERIAL_8E1`、TX/RX論理反転(他構成と同じ理由・実装) |
 | 内蔵IMU(MPU6886) I2C | G38(SDA)/G39(SCL) | 内蔵配線 |
@@ -72,5 +83,5 @@ QRバージョンが上がると読み取りづらい)で、SoftAPのSSID/パス
 ## 音声コマンド認識・ESP-NOWは無し
 
 この構成はWiFi中継専任(2026.9決定)。PC側ATOM Echoによる音声コマンド→
-Edge Impulse認識→call-motionの機能が必要な場合は`../../s3_echo_with_I2C/`
-または`../../s3_echo_bridge/`(ESP-NOW経由)を使うこと。
+Edge Impulse認識→call-motionの機能が必要な場合は`../s3_echo_with_I2C/`
+または`../s3_echo_bridge/`(ESP-NOW経由)を使うこと。

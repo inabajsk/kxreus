@@ -100,12 +100,20 @@ FrameState frameState = FRAME_WAIT_LEN;
 uint8_t frameBuf[256];
 uint8_t frameLen = 0;
 uint8_t frameIdx = 0;
+uint32_t frameStartMillis = 0;
+// 長さバイトだけを頼りに区切っているため、何らかの理由(クライアント側の
+// 実装不備によるフレーム境界のズレ等)で一度ズレると、自力では二度と正しい
+// 境界に戻れず、以降ずっと無応答になる不具合が実機で確認された(2026.9)。
+// フレーム途中で一定時間バイトが来なければ強制的にFRAME_WAIT_LENへ戻し、
+// 次に届くバイトを新しいフレームの長さとして再解釈することで自己復帰する。
+static const uint32_t FRAME_TIMEOUT_MS = 200;
 
 void feedClientByte(uint8_t b) {
   if (frameState == FRAME_WAIT_LEN) {
     frameLen = b;
     frameBuf[0] = b;
     frameIdx = 1;
+    frameStartMillis = millis();
     if (frameLen <= 1) {
       // 長さ1以下は本来あり得ないフレームだが、判断せずそのままRCB4へ流す
       // (実RCB4側で弾かれるのに任せ、ブリッジ側では余計な検証をしない)。
@@ -120,6 +128,11 @@ void feedClientByte(uint8_t b) {
     if (frameIdx >= frameLen) {
       if (frameLen == 3 && memcmp(frameBuf, IMU_REQUEST, 3) == 0) {
         imuRequestPending = true;
+      } else if (frameLen >= 2 && frameBuf[1] == IMU_OPCODE) {
+        // フレーム境界がズレた場合等、長さ・内容が完全一致しなくても
+        // オペコードバイトがIMU予約OPCODE(0x90)なら実RCB4には絶対に
+        // 転送しない(実RCB4はこのオペコードを理解できず、誤動作の原因に
+        // なりうるため)。想定外の形なので単に捨てる。
       } else {
         RCB4Serial.write(frameBuf, frameLen);
         lastRcb4TxMillis = millis();
@@ -131,11 +144,23 @@ void feedClientByte(uint8_t b) {
 
 void handleBridge() {
   if (bridgeServer.hasClient()) {
-    // 新しい接続が来たら、古いクライアントは切って1接続だけを保持する
-    // (socat等、単一クライアント運用が前提のため)。
-    if (bridgeClient) bridgeClient.stop();
-    bridgeClient = bridgeServer.available();
-    frameState = FRAME_WAIT_LEN;  // 接続が変わったらフレーム状態もリセット
+    // 既存の接続が生きている間は新規接続を拒否する。以前は無条件で古い
+    // 接続を切って新しい方を受け入れていたが、それだと(誤って別プロセスが
+    // 一時的に繋いだだけでも)正規のクライアントの接続が問答無用で奪われ、
+    // socat側もそれを検知して終了し、euslisp側のブロッキングreadが
+    // 応答不能になる、という事故が実機で起きた(2026.9)。既存接続が
+    // 本当に切れている場合だけ、新しい接続を受け入れて引き継ぐ。
+    WiFiClient incoming = bridgeServer.available();
+    if (bridgeClient && bridgeClient.connected()) {
+      incoming.stop();
+    } else {
+      bridgeClient = incoming;
+      frameState = FRAME_WAIT_LEN;  // 接続が変わったらフレーム状態もリセット
+    }
+  }
+
+  if (frameState == FRAME_WAIT_BODY && millis() - frameStartMillis > FRAME_TIMEOUT_MS) {
+    frameState = FRAME_WAIT_LEN;  // フレーム境界がズレた場合の自己復帰
   }
 
   if (bridgeClient && bridgeClient.connected()) {
@@ -215,6 +240,12 @@ uint32_t connectingSince = 0;
 uint32_t failedScreenSince = 0;
 static const uint32_t CONNECTING_TIMEOUT_MS = 20000;
 static const uint32_t FAILED_SCREEN_HOLD_MS = 6000;
+// 接続済み(STATE_CONNECTED)からボタン長押しでQR画面(再設定モード)へ入った
+// ことを示すフラグ。このモード中はSTA接続を切らずに維持したままにしておき、
+// QR画面表示中に短押しされたら何もせず元の接続状態(STATE_CONNECTED)へ
+// キャンセル復帰できるようにする(実際にポータルでSSID/PWが送信された
+// 時だけWiFi.begin()で本当に繋ぎ変える。handleSave()参照)。
+bool reconfiguring = false;
 
 void qrDisplayCallback(esp_qrcode_handle_t qrcode) {
   int size = esp_qrcode_get_size(qrcode);
@@ -376,6 +407,7 @@ void handleSave() {
   WiFi.begin(ssid.c_str(), password.c_str());
   setupState = STATE_CONNECTING;
   connectingSince = millis();
+  reconfiguring = false;  // 新しい接続先へ実際に切り替えるため、もう「キャンセルで元に戻す」対象ではない
 
   server.send(200, "text/html; charset=utf-8",
     "<!DOCTYPE html><html><head><meta charset=\"utf-8\">"
@@ -386,9 +418,14 @@ void handleSave() {
 }
 
 void startSetupApAndPortal() {
+  // ESP.getEfuseMac()はLSB側(mac&0xFF, (mac>>8)&0xFF, ...)がMAC表記の先頭
+  // バイトから順に入っている。先頭3バイトはEspressifの共通OUI(実機確認:
+  // 複数のAtomS3で"dc:54:75"が共通)のため、そこを使うと同じロットの機体
+  // 同士でSoftAPのSSIDが衝突する(実機確認、2026.9)。個体ごとに異なる
+  // 末尾2バイト((mac>>32)/(mac>>40)、表記上5,6バイト目)を使う。
   uint64_t mac = ESP.getEfuseMac();
   char suffix[5];
-  snprintf(suffix, sizeof(suffix), "%02X%02X", (uint8_t)(mac >> 8), (uint8_t)mac);
+  snprintf(suffix, sizeof(suffix), "%02X%02X", (uint8_t)(mac >> 32), (uint8_t)(mac >> 40));
   apSsid = String("KXR-") + suffix;
   apPassword = randomToken(8);
 
@@ -422,10 +459,25 @@ void setup() {
   if (display.width() < display.height()) {
     display.setRotation(display.getRotation() ^ 1);
   }
+  // ロボットへの取り付けが上下逆さのため、表示も180度回転させる。
+  display.setRotation((display.getRotation() + 2) % 4);
 
   beginRcb4Serial();
   startSetupApAndPortal();
   bridgeServer.begin();
+
+  // 起動時、前回接続したWiFiの情報がNVSに残っていれば自動再接続を試みる
+  // (WiFi.begin()を引数無しで呼ぶと、ESP32 Arduinoコアが保存済みのSSID/
+  // パスワードを使う)。毎回QRを撮り直す必要が無いようにするため。
+  // 【注意】WiFi.SSID()は「現在接続中のSSID」を返すため、この時点(まだ
+  // 接続を試みる前、かつ直前のbuildPortalHtml()内scanNetworks()で一時的に
+  // 未接続状態になっている)では保存済み設定があっても空文字列になり、
+  // 事前チェックとして使えない(実機確認、2026.9)。そのため無条件で
+  // WiFi.begin()を試みる。保存済み設定が無い場合はCONNECTING_TIMEOUT_MS後に
+  // 失敗扱いとなり、通常通りQR画面へ自動的に戻る。
+  WiFi.begin();
+  setupState = STATE_CONNECTING;
+  connectingSince = millis();
 }
 
 void loop() {
@@ -443,10 +495,19 @@ void loop() {
 
   updateScreen();
 
-  // 接続成功後にボタン長押しで再設定モードへ戻す(WiFi環境が変わった場合の再セットアップ用)。
+  // 接続成功後にボタン長押しで再設定モードへ(WiFi環境が変わった場合の再
+  // セットアップ用)。STA接続はまだ切らない(キャンセル時にそのまま復帰
+  // できるようにするため。実際に切り替わるのはhandleSave()でWiFi.begin()
+  // が呼ばれた時)。
   if (M5.BtnA.wasHold() && setupState == STATE_CONNECTED) {
-    WiFi.disconnect();
+    reconfiguring = true;
     setupState = STATE_SHOW_QR;
+    lastDrawnState = (SetupState)-1;
+  }
+  // 再設定モード中(QR画面表示中)の短押しでキャンセルし、元の接続状態へ戻す。
+  if (M5.BtnA.wasClicked() && setupState == STATE_SHOW_QR && reconfiguring) {
+    reconfiguring = false;
+    setupState = STATE_CONNECTED;
     lastDrawnState = (SetupState)-1;
   }
 }
