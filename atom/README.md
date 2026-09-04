@@ -5,17 +5,19 @@
 まとめている。**このkxreusリポジトリをclone するだけで、すべて最初から
 書き込める状態になる**ことを目標にしている(他ディレクトリへの参照は無し)。
 
-## 構成(用途別に3フォルダ)
+## 構成(用途別に4フォルダ)
 
-機体の構成(腕・M5StickVカメラの有無)ごとに、PC側・ロボット側ファームウェアと
-セットアップスクリプトを1つのフォルダにまとめている。**フォルダをまたぐ
-相対パス参照は無い**(各フォルダ単体でclone・セットアップが完結する)。
+機体の構成(腕・M5StickVカメラの有無、ESP-NOW中継かWiFi直結か)ごとに、
+PC側・ロボット側ファームウェアとセットアップスクリプトを1つのフォルダに
+まとめている。**フォルダをまたぐ相対パス参照は無い**(各フォルダ単体で
+clone・セットアップが完結する)。
 
 | フォルダ | ロボット側 | 位置づけ |
 | --- | --- | --- |
-| `echo_echo/` | ATOM Echo(プレーン) | 腕・M5StickVカメラを持たない機体(4脚・6脚等)向け。IMU無し |
-| `s3_echo_with_I2C/` | AtomS3(I2C拡張版) | 腕・M5StickVカメラを搭載する機体(本プロジェクトのメイン機体)向け。IMU内蔵・M5StickV用I2Cブリッジあり |
-| `s3_echo_bridge/` | AtomS3(簡易版) | 腕・M5StickVカメラは無いがIMUによる姿勢表示(euslisp`:timer-on`)は欲しい機体向け。I2Cブリッジ無し、RCB4 UARTはGroveコネクタ(G1/G2)1本で配線 |
+| `echo_echo/` | ATOM Echo(プレーン) | 腕・M5StickVカメラを持たない機体(4脚・6脚等)向け。IMU無し。ESP-NOW中継 |
+| `s3_echo_with_I2C/` | AtomS3(I2C拡張版) | 腕・M5StickVカメラを搭載する機体(本プロジェクトのメイン機体)向け。IMU内蔵・M5StickV用I2Cブリッジあり。ESP-NOW中継 |
+| `s3_echo_bridge/` | AtomS3(簡易版) | 腕・M5StickVカメラは無いがIMUによる姿勢表示(euslisp`:timer-on`)は欲しい機体向け。I2Cブリッジ無し、RCB4 UARTはGroveコネクタ(G1/G2)1本で配線。ESP-NOW中継 |
+| `s3_wifi_captiv/` | AtomS3(WiFi captive portal版) | ESP-NOW/ATOM Echoを使わず、AtomS3自身がWiFiへ接続してRCB4をTCPで直接公開する構成。PCは`socat`等で仮想ttyを作って接続する。音声認識機能は無し |
 
 各フォルダの構成は共通で、`atom_echo_pc/`(PC側、共通ファームウェアの
 コピー)・ロボット側フォルダ・`setup_*.sh`(MAC取得+コンパイル+書き込み一括)
@@ -42,6 +44,12 @@ PC ── USB ──  ATOM Echo(PC側, atom_echo_pc/)  ==ESP-NOW(無線)==  ロ�
   `setup_s3_echo_bridge.sh`でセットアップ。`s3_echo_with_I2C`からM5StickV用
   I2Cブリッジを外し、RCB4 UARTをG5/G6(基板底面はんだ付け)からG1/G2
   (Groveコネクタ)へ戻した版。IMU・Edge Impulse音声認識はそのまま使える。
+- **`s3_wifi_captiv/`**: AtomS3(`atoms3_wifi_captiv/`)単体で完結、PC側
+  ATOM Echoやペアリングは無い。起動時にSoftAP+captive portal+QRを出し、
+  スマホでWiFi設定するとAtomS3自身がそのWiFiへSTA接続、液晶にIP表示。
+  PCはWiFi(TCP、既定ポート4000)でRCB4向けUARTへ直接繋がる(`socat`等で
+  仮想tty化すればeuslisp側は無変更で使える)。IMU予約オペコード(0x90)は
+  他構成と共通で使えるが、音声認識・ESP-NOWは無い。
 - **`m5stickv/`**: ロボットの両目に載せるM5StickV(K210)。AprilTag検出・
   ルービックキューブの色ブロブ発見・音声合成を行い、`s3_echo_with_I2C`の
   AtomS3とI2Cで通信する。
@@ -52,22 +60,23 @@ PC ── USB ──  ATOM Echo(PC側, atom_echo_pc/)  ==ESP-NOW(無線)==  ロ�
 各ロボット側・PC側フォルダに `README.md`(役割・配線・使い方)と
 `flash.sh`(書き込みスクリプト)がある。
 
-### 3構成の使い分け
+### 4構成の使い分け
 
-| | `s3_echo_with_I2C` | `s3_echo_bridge` | `echo_echo` |
-| --- | --- | --- | --- |
-| ロボット側 | AtomS3 | AtomS3(簡易版) | ATOM Echo(プレーン) |
-| IMU | あり(内蔵) | あり(内蔵) | **無し** |
-| M5StickV(I2C)・カメラ | 対応 | **非対応** | 非対応 |
-| RCB4 UART配線 | G5/G6(基板底面、はんだ付け) | G1/G2(Groveコネクタ) | (ATOM Echo側の配線) |
-| 音声認識 | Edge Impulse(共通モデル) | 同左 | 同左(素のESP32ではESP-NN高速化カーネルが使えず汎用カーネルにフォールバックするが実機コンパイル確認済み) |
-| 向いている機体 | 腕・カメラ(M5StickV)を搭載する機体(本プロジェクトのメイン機体) | 腕・M5StickVは無いがIMUで姿勢表示したい機体 | 4脚・6脚など腕もM5StickVも無く、**とにかく無線でRCB4を操作したいだけ**のロボット |
-| コスト・サイズ | 大きめ | 中間(AtomS3だが配線が単純) | 小さい・安い |
-| RCB4中継プロトコル | ACK付き再送(共通) | ACK付き再送(共通) | ACK付き再送(共通) |
+| | `s3_echo_with_I2C` | `s3_echo_bridge` | `echo_echo` | `s3_wifi_captiv` |
+| --- | --- | --- | --- | --- |
+| ロボット側 | AtomS3 | AtomS3(簡易版) | ATOM Echo(プレーン) | AtomS3(WiFi版) |
+| PC側 | ATOM Echo(ESP-NOW) | ATOM Echo(ESP-NOW) | ATOM Echo(ESP-NOW) | **無し(WiFi/TCP直結)** |
+| IMU | あり(内蔵) | あり(内蔵) | **無し** | あり(内蔵) |
+| M5StickV(I2C)・カメラ | 対応 | **非対応** | 非対応 | 非対応 |
+| RCB4 UART配線 | G5/G6(基板底面、はんだ付け) | G1/G2(Groveコネクタ) | (ATOM Echo側の配線) | G1/G2(Groveコネクタ) |
+| 音声認識 | Edge Impulse(共通モデル) | 同左 | 同左(素のESP32ではESP-NN高速化カーネルが使えず汎用カーネルにフォールバックするが実機コンパイル確認済み) | **無し** |
+| 向いている機体 | 腕・カメラ(M5StickV)を搭載する機体(本プロジェクトのメイン機体) | 腕・M5StickVは無いがIMUで姿勢表示したい機体 | 4脚・6脚など腕もM5StickVも無く、**とにかく無線でRCB4を操作したいだけ**のロボット | ESP-NOW/ATOM Echoを使わずWiFi環境だけでRCB4を無線化したい場合 |
+| コスト・サイズ | 大きめ | 中間(AtomS3だが配線が単純) | 小さい・安い | AtomS3 1台のみ(PC側ハード不要) |
+| RCB4中継プロトコル | ACK付き再送(共通) | ACK付き再送(共通) | ACK付き再送(共通) | TCP(信頼性はTCP自体に依存、ACK層無し) |
 
 腕やM5StickVを載せない機体であっても、姿勢による転倒検知・傾き補正など
-IMUを使いたい場合は`s3_echo_with_I2C`または`s3_echo_bridge`が適している
-(ATOM EchoにはIMUが無いため)。
+IMUを使いたい場合は`s3_echo_with_I2C`・`s3_echo_bridge`・`s3_wifi_captiv`の
+いずれかが適している(ATOM EchoにはIMUが無いため)。
 
 ## クイックスタート(clone後、実機を書き込む手順)
 
@@ -121,6 +130,13 @@ cd echo_echo && ./setup_echo_echo.sh <ロボット側ATOM Echoのポート> <PC�
 フォルダ内の`<ロボット側>/get_my_mac.sh`・`<ロボット側>/flash.sh`・
 `atom_echo_pc/get_my_mac.sh`・`atom_echo_pc/flash.sh`をそれぞれ参照
 (各READMEに詳細あり)。
+
+`s3_wifi_captiv`構成はESP-NOWペアリングが無いため、AtomS3単体を書き込む
+だけでよい:
+
+```bash
+cd s3_wifi_captiv/atoms3_wifi_captiv && ./flash.sh [ポート]   # 省略時 /dev/ttyACM0
+```
 
 ### 3. M5StickVを左目・右目それぞれ書き込み(`s3_echo_with_I2C`構成のみ)
 
