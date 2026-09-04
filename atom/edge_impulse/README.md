@@ -1,9 +1,11 @@
 # edge_impulse — 音声コマンド認識モデルと学習データ
 
-`../atom_s3_robot/atoms3_i2c_robot.ino`と`../atom_echo_robot/
-atom_echo_voice_cmd_robot.ino`(2026.8統一。素のESP32ではESP-NN高速化
-カーネルが使えず汎用カーネルにフォールバックするが実機コンパイル確認済み)
-が使う、Edge Impulseで学習したキーワード認識(音声コマンド判定)モデル一式。
+`../s3_echo_with_I2C/atom_s3_robot/atoms3_i2c_robot.ino`・
+`../s3_echo_bridge/atoms3_simple_robot/atoms3_simple_robot.ino`・
+`../echo_echo/atom_echo_robot/atom_echo_voice_cmd_robot.ino`(2026.8統一。
+素のESP32ではESP-NN高速化カーネルが使えず汎用カーネルにフォールバックするが
+実機コンパイル確認済み)が使う、Edge Impulseで学習したキーワード認識
+(音声コマンド判定)モデル一式。
 
 ## ここにあるもの
 
@@ -31,7 +33,7 @@ Edge Impulseは「音声(や他のセンサ波形)から特定のキーワード
 Build**すると、学習済み・量子化済みのモデルと`run_classifier()`という
 共通APIを持つC++ライブラリがzipでダウンロードされる。それを解凍して
 `~/Arduino/libraries/`に置いたものが、このフォルダの中身(本リポジトリでは
-`atom_s3_robot/flash.sh`・`atom_echo_robot/flash.sh`がそれぞれ初回コンパイル
+`../s3_echo_with_I2C/atom_s3_robot/flash.sh`・`../echo_echo/atom_echo_robot/flash.sh`がそれぞれ初回コンパイル
 時に自動で`~/Arduino/libraries/`へコピーする。`arduino-cli compile --library
 <path>`で直接指定する方法もあるが、
 `~/Arduino/libraries/`に同名ライブラリが既にあると「Multiple libraries were
@@ -64,13 +66,13 @@ found」となりESP-NNのビルドキャッシュが壊れてリンクエラー
 5. **再エクスポート**: Deployタブから再度「Arduino library」でビルドし、
    このフォルダの`kxr-voice-commands_inferencing/`を新しいものに丸ごと
    置き換える。
-6. **ファームウェア側の対応**: `../atom_s3_robot/atoms3_i2c_robot.ino`と
-   `../atom_echo_robot/atom_echo_voice_cmd_robot.ino`の**両方**の
+6. **ファームウェア側の対応**: `../s3_echo_with_I2C/atom_s3_robot/atoms3_i2c_robot.ino`と
+   `../echo_echo/atom_echo_robot/atom_echo_voice_cmd_robot.ino`の**両方**の
    `WORD_MOTIONS[]`テーブルに新しいラベル→`call-motion`番号の対応を追加し
    (同じモデルを使っているので両方の対応が必要)、
    `EI_CLASSIFIER_RAW_SAMPLE_COUNT`(サンプル数、学習設定を変えていなければ
    8000のまま)の`static_assert`が通ることを確認してから再コンパイル・
-   再書き込みする(`../atom_s3_robot/flash.sh`・`../atom_echo_robot/flash.sh`)。
+   再書き込みする(`../s3_echo_with_I2C/atom_s3_robot/flash.sh`・`../echo_echo/atom_echo_robot/flash.sh`)。
 
 ## 認識率を上げるには
 

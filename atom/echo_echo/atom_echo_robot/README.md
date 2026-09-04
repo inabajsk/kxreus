@@ -8,23 +8,23 @@ MAC取得: `./get_my_mac.sh <ポート>`
 
 ## 位置づけ(AtomS3版との違い)
 
-`../atom_s3_robot/`(AtomS3)がIMU内蔵・M5StickV用I2Cを持つのに対し、
-こちらはロボット側にAtomS3ではなく**もう1台のATOM Echo**を使う、より
-安価・小型な構成。IMUもM5StickV用I2Cも無い代わりに、4脚・6脚など
+`../../s3_echo_with_I2C/atom_s3_robot/`(AtomS3)がIMU内蔵・M5StickV用I2Cを
+持つのに対し、こちらはロボット側にAtomS3ではなく**もう1台のATOM Echo**を
+使う、より安価・小型な構成。IMUもM5StickV用I2Cも無い代わりに、4脚・6脚など
 **腕もM5StickVも載せず、とにかく無線でRCB4を操作したいだけのロボット**に
 向いている。
 
 **腕やM5StickVを載せない機体であっても**、姿勢による転倒検知・傾き補正など
-**IMUが必要な用途では、ATOM EchoにはIMUが無いためAtomS3+ATOM Echo構成
-(`../setup_s3_echo.sh`)の方が適している**。こちらは「無線化だけできればよい」
-場合の軽量な選択肢という位置づけ。
+**IMUが必要な用途では、ATOM EchoにはIMUが無いためAtomS3構成
+(`../../s3_echo_with_I2C/`または`../../s3_echo_bridge/`)の方が適している**。
+こちらは「無線化だけできればよい」場合の軽量な選択肢という位置づけ。
 
 ## 音声コマンド機能: AtomS3版と同じEdge Impulseモデルを使用(2026.8)
 
 PC側ATOM Echo(`../atom_echo_pc/`)のボタンを押すと録音した約1秒の
-音声がESP-NOW経由で送られてくると、`../atom_s3_robot/atoms3_i2c_robot.ino`
-と全く同じEdge Impulseモデル(`../edge_impulse/`)で単語認識し、一致すれば
-RCB4-miniへcall-motionコマンドを直接送って実際に動かす。
+音声がESP-NOW経由で送られてくると、AtomS3版と全く同じEdge Impulseモデル
+(`../../edge_impulse/`)で単語認識し、一致すればRCB4-miniへcall-motion
+コマンドを直接送って実際に動かす。
 
 以前は自作の簡易テンプレートマッチング方式で、書き込み直後は毎回シリアル
 経由で単語を学習させる必要があった(電源を切ると学習結果が消えるため
@@ -37,7 +37,7 @@ ESP32-S3向けのESP-NN高速化カーネルは素のESP32(ATOM Echo)では使�
 汎用カーネルにフォールバックする(Edge Impulse SDK側で自動的に切り替わる。
 実機コンパイルで確認済み、フラッシュ1041237byte(33%)/RAM 65464byte(19%)、
 問題なく収まる)。単語登録・学習方法・単語一覧・モデルの再学習方法は
-`../edge_impulse/README.md`参照。
+`../../edge_impulse/README.md`参照。
 
 ### 【重要】run_classifier()は別FreeRTOSタスク(別コア)で実行している
 
@@ -84,7 +84,7 @@ ESP32-S3向けのESP-NN高速化カーネルは素のESP32(ATOM Echo)では使�
 
 ## RCB4中継プロトコル(ACK付き、AtomS3構成と共通・2026.8統一)
 
-`../atom_s3_robot/atoms3_i2c_robot.ino`と同じ、シーケンス番号+ACK+タイムアウト
+AtomS3版と同じ、シーケンス番号+ACK+タイムアウト
 再送プロトコル([PKT_DATA, seq, data...] + `PKT_DATA_ACK`応答)。ESP-NOWの
 無線層再送だけでは大量連続送信時に取りこぼしが起きることが実機で判明した
 ための対策で、以前はこのファイルだけプレーン版(seq/ACK無し)だったが、
@@ -104,8 +104,7 @@ static uint8_t PEER_MAC[6] = PC_MAC_BYTES;
 ```
 
 `pc_mac.h`は手書きせず、PC側ATOM Echoを実機接続した状態で
-`../atom_echo_pc/get_my_mac.sh <ポート> echo`を実行すると自動生成される
-(`echo`を付けないとAtomS3向けの`pc_mac.h`が生成されてしまうので注意)。
+`../atom_echo_pc/get_my_mac.sh <ポート>`を実行すると自動生成される。
 生成後、このロボット側ATOM Echoを`./flash.sh`で再書き込みすること。
 
 両方を接続した状態なら、`../setup_echo_echo.sh`で双方のMAC取得・コンパイル・

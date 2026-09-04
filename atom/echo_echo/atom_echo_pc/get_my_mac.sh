@@ -1,28 +1,17 @@
 #!/bin/bash
-# このATOM Echo実機のMACアドレスをesptoolで読み取り、ロボット側のPEER_MACとして
-# 使うヘッダファイルを生成する。このPC側ファームウェア(atom_echo_voice_cmd_pc.ino)は
-# ロボット側がAtomS3(../atom_s3_robot/)でもプレーンなATOM Echo(../atom_echo_robot/)
-# でも共通で使えるため、第2引数でどちらの機体用か選ぶ。
+# このATOM Echo実機のMACアドレスをesptoolで読み取り、ロボット側ATOM Echo
+# (../atom_echo_robot/atom_echo_voice_cmd_robot.ino)のPEER_MACとして使う
+# ヘッダファイル(../atom_echo_robot/atom_echo_voice_cmd_robot/pc_mac.h)を
+# 生成する。
 #
-# 使い方: ./get_my_mac.sh [ポート] [s3|echo]
-#   (ポート省略時 /dev/ttyUSB0。機体種別省略時 s3(AtomS3、既定))
-#   例: ./get_my_mac.sh /dev/ttyUSB0 s3    # -> ../atom_s3_robot/atoms3_i2c_robot/pc_mac.h
-#       ./get_my_mac.sh /dev/ttyUSB0 echo  # -> ../atom_echo_robot/atom_echo_voice_cmd_robot/pc_mac.h
+# 使い方: ./get_my_mac.sh [ポート]   (省略時 /dev/ttyUSB0)
 #
 # ESPTOOL環境変数でesptool実行ファイルを指定できる(省略時はPATH上のesptool、
 # 無ければarduino-cli付属のものを自動で探す)。
 set -e
 PORT="${1:-/dev/ttyUSB0}"
-ROBOT_TYPE="${2:-s3}"
 DIR="$(cd "$(dirname "$0")" && pwd)"
-case "$ROBOT_TYPE" in
-  s3) OUT="$DIR/../atom_s3_robot/atoms3_i2c_robot/pc_mac.h" ;;
-  echo) OUT="$DIR/../atom_echo_robot/atom_echo_voice_cmd_robot/pc_mac.h" ;;
-  *)
-    echo "error: 機体種別は s3 か echo のみ(指定値: $ROBOT_TYPE)" >&2
-    exit 1
-    ;;
-esac
+OUT="$DIR/../atom_echo_robot/atom_echo_voice_cmd_robot/pc_mac.h"
 
 if [ -n "$ESPTOOL" ]; then
   :
@@ -54,8 +43,4 @@ cat > "$OUT" <<EOF
 EOF
 
 echo "[get_my_mac] ATOM Echo MAC=$MAC -> $OUT"
-if [ "$ROBOT_TYPE" = "s3" ]; then
-  echo "[get_my_mac] ロボット側AtomS3の再コンパイルが必要です(../atom_s3_robot/flash.sh)。"
-else
-  echo "[get_my_mac] ロボット側ATOM Echoの再コンパイルが必要です(../atom_echo_robot/flash.sh)。"
-fi
+echo "[get_my_mac] ロボット側ATOM Echoの再コンパイルが必要です(../atom_echo_robot/flash.sh)。"

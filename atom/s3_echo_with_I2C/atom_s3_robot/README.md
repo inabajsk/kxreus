@@ -11,7 +11,7 @@
    実RCB4へUART中継、RCB4からの応答もESP-NOW経由でPCへ返す(最優先処理)。
 2. 内蔵IMU(MPU6886)の値を、RCB4の未使用オペコード(0x90)を横取りする形で
    読み出せるようにする。
-3. 外部Grove I2Cに繋がる2台のM5StickV(`../m5stickv/`)とのI2Cブリッジ
+3. 外部Grove I2Cに繋がる2台のM5StickV(`../../m5stickv/`)とのI2Cブリッジ
    (RCB4未使用オペコード0x91)。
 4. PC側ATOM Echoから送られてくる音声データを受け取り、Edge Impulseの
    キーワード認識モデルで単語を判定し、対応する`call-motion`をRCB4へ直接
@@ -49,7 +49,7 @@ GND同士)。電圧レベルは双方3.3V系で直結可(実機確認)。
 
 外部Grove I2C(G1=SCL/G2=SDA)にI2Cハブ経由で2台のM5StickVを並列に繋ぐ
 (両方とも同じ2線に繋がり、I2Cスレーブアドレス0x24/0x25で区別される)。
-M5StickV側の配線・レジスタ仕様は `../m5stickv/README.md` 参照。
+M5StickV側の配線・レジスタ仕様は `../../m5stickv/README.md` 参照。
 
 ## RCB4予約オペコード(実RCB4には存在しない、このファームウェア独自の拡張)
 
@@ -77,7 +77,7 @@ RCB4の実オペコードは`0x00`-`0x12`,`0xFD`,`0xFE`で使用済み。以下�
 
 ## Edge Impulse音声コマンド認識
 
-`#include <kxr-voice-commands_inferencing.h>`(`../edge_impulse/`のライブラリを
+`#include <kxr-voice-commands_inferencing.h>`(`../../edge_impulse/`のライブラリを
 `flash.sh`が初回のみ`~/Arduino/libraries/`へコピーしてから通常のライブラリ
 解決に任せる。`--library`で直接指定すると`~/Arduino/libraries/`に既に同名の
 ライブラリがある場合に競合しESP-NNのビルドキャッシュが壊れてリンクエラーに
@@ -96,7 +96,7 @@ RCB4の実オペコードは`0x00`-`0x12`,`0xFD`,`0xFE`で使用済み。以下�
 | migi(右) | 3 |
 | noise | (動作なし) |
 
-単語を増やす・認識率を上げる方法は `../edge_impulse/README.md` を参照。
+単語を増やす・認識率を上げる方法は `../../edge_impulse/README.md` を参照。
 
 ## ESP-NOWペアリング
 

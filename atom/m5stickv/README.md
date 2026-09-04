@@ -20,7 +20,7 @@
 
 ## 接続方法
 
-AtomS3(`../atom_s3_robot/`)の外部Grove I2C(G1=SCL/G2=SDA、100kHz)に、
+AtomS3(`../s3_echo_with_I2C/atom_s3_robot/`)の外部Grove I2C(G1=SCL/G2=SDA、100kHz)に、
 I2Cハブ経由で左目・右目2台を**並列に**接続する。M5StickV側はMaixPy内部で
 `I2C.I2C0`をSCL=34/SDA=35のスレーブモードで初期化しており(ソース内`I2C()`
 呼び出し参照)、この2線がGroveケーブル経由でAtomS3側と直結される。両目とも

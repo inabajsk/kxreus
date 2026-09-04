@@ -2,7 +2,7 @@
 # ロボット側ATOM Echo(atom_echo_voice_cmd_robot.ino)をコンパイルして書き込む。
 # AtomS3ではなく、腕やM5StickVを持たない機体(4脚・6脚等)を無線化するための
 # プレーンなATOM Echo版(詳細は README.md 参照)。Edge Impulseの音声認識
-# モデル(../edge_impulse/)を使うため、atom_s3_robot/flash.shと同様、
+# モデル(../../edge_impulse/)を使うため、atom_s3_robot/flash.shと同様、
 # ~/Arduino/libraries/に無ければ初回のみ自動コピーしてから使う
 # (--libraryで直接指定するとビルドキャッシュが壊れることがあるため)。
 #
@@ -17,7 +17,7 @@ fi
 FQBN=m5stack:esp32:m5stack_atom
 BASE="$(cd "$(dirname "$0")" && pwd)"
 DIR="$BASE/atom_echo_voice_cmd_robot"
-EI_LIB_SRC="$BASE/../edge_impulse/kxr-voice-commands_inferencing"
+EI_LIB_SRC="$BASE/../../edge_impulse/kxr-voice-commands_inferencing"
 EI_LIB_DST="$HOME/Arduino/libraries/kxr-voice-commands_inferencing"
 
 if [ ! -e "$EI_LIB_DST" ]; then
