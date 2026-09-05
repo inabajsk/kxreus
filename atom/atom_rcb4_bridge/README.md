@@ -66,6 +66,42 @@ arduino-cli upload -p /dev/ttyACM0 --fqbn m5stack:esp32:m5stack_atoms3 ~/AtomS3/
 Arduino IDE(GUI)を使う場合は、`ファイル > 環境設定` の追加のボードマネージャURLに上記M5StackのURLを追加して
 ボードマネージャから `M5Stack` を導入し、Board: `M5AtomS3`、USB CDC On Boot: `Enabled` を選んで書き込む。
 
+## IMU予約OPCODE(0x90)
+
+RCB4-miniにはIMUが無い。AtomS3にはあるので、他のkxreus ATOMファーム
+(`s3_echo_bridge`, `s3_echo_with_I2C`, `s3_wifi_captiv`)と同じく、RCB4が使って
+いないオペコード`0x90`をIMU読み出し用に予約し、AtomS3が横取りして自分のIMUを
+返す。PC側からロボットの姿勢を得る唯一の経路になる。
+
+```
+リクエスト: [0x03, 0x90, 0x93]           checksum=(0x03+0x90)&0xFF
+応答:      [0x0F, 0x90,
+            ax,ay,az (各int16 LE, milli-g),
+            gx,gy,gz (各int16 LE, 0.1deg/s), checksum]
+```
+
+中継のレイテンシを増やさないため、フレーム先頭の**2バイト(長さ+オペコード)
+だけ**を保留して判定し、`0x90`でなければ即座に吐き出して残りは素通しする。
+1フレームにつき2バイトしか保留しない。
+
+IMUが初期化できていない場合は全ゼロで応答する(他ファームと同じ)。加速度が
+零ベクトルになるので、重力方向を求める側で必ず失敗する。`rcb4`側の
+`RCB4Interface.read_imu_data()`は全ゼロを検出して例外にする。
+
+Python側:
+
+```python
+from rcb4.rcb4interface import RCB4Interface
+interface = RCB4Interface()
+interface.auto_open()
+q, acc, gyro = interface.read_imu_data()   # q は None(生値のみでフィルタ無し)
+                                           # acc [m/s^2], gyro [rad/s]
+```
+
+クォータニオンは返らない(ブリッジは生値を送るだけでフィルタを持たない)ので、
+重力方向は加速度から求める。デプロイスクリプトなら
+`imu_gravity_source: accel`。
+
 ## PC側動作確認スクリプト
 
 `rcb4_bridge_test.py`(pyserial使用)。RCB4のバージョン問い合わせコマンド(`03 FD 00`)を送り、
