@@ -25,6 +25,19 @@ public:
 
     /// Called as fast as the main loop can manage.
     virtual void loop() = 0;
+
+    // The button belongs to whichever mode is current, except for the long
+    // press, which always cycles modes. Changing what the firmware IS should
+    // take a deliberate gesture; the quick ones are free for whatever the
+    // current mode does -- in POLICY, turning the servos on and off.
+    //
+    // A mode that wants neither simply does not override them.
+
+    /// A short press while this mode is current.
+    virtual void onClick() {}
+
+    /// Two short presses.
+    virtual void onDoubleClick() {}
 };
 
 #endif  // MODE_H

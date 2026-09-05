@@ -16,6 +16,11 @@
 //           reduced to sending three numbers of velocity command. See
 //           lib/policy_mode.
 //
+// A LONG press cycles them. A short press, and a double press, go to whatever
+// the current mode makes of them -- in POLICY, servos on and off, and the
+// policy running or not, so the hand can be brought to its stance with
+// nothing attached but power.
+//
 // Two of them driving the same wire would corrupt both, which is why STATUS
 // stops the relay rather than drawing over it, and why POLICY frees the
 // servos on the way out.
@@ -60,7 +65,13 @@ void enterMode(size_t index) {
     kModes[current_mode]->enter();
 }
 
-void onClick() { enterMode(current_mode + 1); }
+// A long press changes what the firmware is; a short one asks the current
+// mode to do something. The slow gesture guards the change that matters:
+// leaving POLICY frees the servos and hands the UART to the relay, which is
+// not something to do by brushing the screen.
+void onLongPress() { enterMode(current_mode + 1); }
+void onClick() { kModes[current_mode]->onClick(); }
+void onDoubleClick() { kModes[current_mode]->onDoubleClick(); }
 
 }  // namespace
 
@@ -79,6 +90,8 @@ void setup() {
     policy::begin();
 
     button.attachClick(onClick);
+    button.attachDoubleClick(onDoubleClick);
+    button.attachLongPressStart(onLongPress);
     kModes[current_mode]->enter();
 }
 

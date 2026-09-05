@@ -99,6 +99,32 @@ void PolicyMode::freeServos() {
                            POLICY_SERVO_FRAME_COUNT);
 }
 
+bool PolicyMode::homingArrived() {
+    // Measure rather than assume. One interpolation often falls short, so
+    // this decides between sending the hand at home again and accepting where
+    // it got to -- and either way it latches the number the operator needs to
+    // tell "the hand reached its stance" from "the hand never moved".
+    const float err = measureHomeError();
+    if (err >= 0.0f && err > HOME_TOLERANCE_RAD &&
+        homing_attempt_ < HOMING_ATTEMPTS) {
+        if (sendHome()) return false;
+    }
+    home_error_milli_ = static_cast<int16_t>(
+            err < 0.0f ? -1 : clampf(err * 1000.0f, 0.0f, 32767.0f));
+    return true;
+}
+
+void PolicyMode::beginAfterHoming() {
+    if (after_homing_ == State::HOLDING) {
+        // Hold where homing has just put it, so the ramp has nothing left to
+        // travel and the hand simply stays in its stance.
+        memcpy(hold_from_, kPolicyHomeRad, sizeof(hold_from_));
+        hold_steps_ = 1;
+        hold_step_ = 0;
+    }
+    setState(after_homing_);
+}
+
 float PolicyMode::measureHomeError() {
     uint16_t pulses[POLICY_ACT_DIM];
     if (!link_.readServoPulsesFor(g_sorted_ids, pulses, POLICY_ACT_DIM)) {
@@ -113,7 +139,27 @@ float PolicyMode::measureHomeError() {
     return worst;
 }
 
-bool PolicyMode::beginHoming() {
+bool PolicyMode::sendHome() {
+    uint16_t out[POLICY_ACT_DIM];
+    for (size_t i = 0; i < POLICY_ACT_DIM; i++) {
+        const size_t joint = g_sorted_to_joint[i];
+        const float pulse = kPolicyHomeRad[joint] * kRadToDeg *
+                                    Rcb4Link::DEG_TO_PULSE +
+                            Rcb4Link::PULSE_NEUTRAL;
+        out[i] = static_cast<uint16_t>(clampf(pulse, 3500.0f, 11500.0f));
+    }
+    // Slowly: the hand may be starting from anywhere, and nothing here is
+    // time-critical.
+    if (!link_.writeServoPulses(g_sorted_ids, out, POLICY_ACT_DIM,
+                                POLICY_HOME_FRAME_COUNT)) {
+        return false;
+    }
+    homing_attempt_++;
+    homing_until_ms_ = millis() + HOMING_MS;
+    return true;
+}
+
+bool PolicyMode::beginHoming(State then) {
     // Stiffness first, because it changes how the servos behave on the very
     // move this is about to command. The board comes set to 127, which buzzed
     // on this hand; calibration.yaml settled on 90.
@@ -132,22 +178,10 @@ bool PolicyMode::beginHoming() {
         return false;
     }
 
-    uint16_t out[POLICY_ACT_DIM];
-    for (size_t i = 0; i < POLICY_ACT_DIM; i++) {
-        const size_t joint = g_sorted_to_joint[i];
-        const float pulse = kPolicyHomeRad[joint] * kRadToDeg *
-                                    Rcb4Link::DEG_TO_PULSE +
-                            Rcb4Link::PULSE_NEUTRAL;
-        out[i] = static_cast<uint16_t>(clampf(pulse, 3500.0f, 11500.0f));
-    }
-    // Slowly: the hand may be starting from anywhere, and nothing here is
-    // time-critical.
-    if (!link_.writeServoPulses(g_sorted_ids, out, POLICY_ACT_DIM,
-                                POLICY_HOME_FRAME_COUNT)) {
-        return false;
-    }
-    homing_until_ms_ = millis() + HOMING_MS;
+    homing_attempt_ = 0;
     home_error_milli_ = -1;
+    after_homing_ = then;
+    if (!sendHome()) return false;
     // The gait clock and the velocity history both start from the stance,
     // not from whatever the hand was doing while it was free.
     step_ = 0;
@@ -187,6 +221,11 @@ void PolicyMode::draw() {
     M5.Display.setTextSize(1);
     M5.Display.setCursor(0, 52);
     M5.Display.printf("vx %+.2f\nwz %+.2f\n", command_[0], command_[2]);
+    // What the button does from here, because there is no other label on it.
+    M5.Display.printf("%s / run\n",
+                      state_ == State::IDLE || state_ == State::FAULT
+                              ? "1=on"
+                              : "1=off");
     M5.Display.printf("loop %lu us\n", static_cast<unsigned long>(loop_us_));
     M5.Display.printf("over %lu  err %lu",
                       static_cast<unsigned long>(overruns_),
@@ -386,11 +425,39 @@ bool PolicyMode::step() {
     return true;
 }
 
+void PolicyMode::onClick() {
+    // Pressing the button means a person is standing at the robot, so local
+    // control takes over: the host-silence failsafe stops applying until a
+    // host speaks again. Otherwise one earlier host session would leave the
+    // button dead for good, three seconds at a time.
+    host_spoke_ = false;
+    // Servos on and off. On means the stance, held -- not walking; see the
+    // header for why this gesture in particular must not start motion.
+    request_ = (state_ == State::IDLE || state_ == State::FAULT)
+                       ? Request::HOLD
+                       : Request::FREE;
+    if (state_ == State::FAULT) {
+        // A fault does not clear itself, but a person pressing the button IS
+        // the operator looking at it, which is the condition the latch was
+        // waiting for.
+        consecutive_errors_ = 0;
+        setState(State::IDLE);
+    }
+}
+
+void PolicyMode::onDoubleClick() {
+    host_spoke_ = false;
+    request_ = (state_ == State::RUNNING) ? Request::HOLD : Request::RUN;
+}
+
 void PolicyMode::loop() {
     readHostFrame();
 
     const uint32_t now_ms = millis();
-    const uint32_t quiet = host_spoke_ ? now_ms - last_host_ms_ : UINT32_MAX;
+    // A host that never spoke cannot have gone quiet. Without this the
+    // failsafe would undo every button press on the very next pass, and the
+    // button is the whole point of being able to run with nothing attached.
+    const uint32_t quiet = host_spoke_ ? now_ms - last_host_ms_ : 0;
     Request request = request_;
     if (quiet > HOST_FREE_MS) {
         request = Request::FREE;
@@ -410,21 +477,16 @@ void PolicyMode::loop() {
                 break;
             case Request::RUN:
                 if (state_ == State::IDLE) {
-                    if (!beginHoming()) {
+                    if (!beginHoming(State::RUNNING)) {
                         total_errors_++;
                         consecutive_errors_++;
                     }
                 } else if (state_ == State::HOMING) {
-                    if (static_cast<int32_t>(now_ms - homing_until_ms_) >= 0) {
-                        // Latched before the policy gets a chance to move the
-                        // hand off the stance, which is the only moment this
-                        // measures what it claims to.
-                        const float err = measureHomeError();
-                        home_error_milli_ = static_cast<int16_t>(
-                                err < 0.0f ? -1 : clampf(err * 1000.0f, 0.0f,
-                                                         32767.0f));
+                    after_homing_ = State::RUNNING;
+                    if (static_cast<int32_t>(now_ms - homing_until_ms_) >= 0 &&
+                        homingArrived()) {
                         next_step_us_ = micros();
-                        setState(State::RUNNING);
+                        beginAfterHoming();
                     }
                 } else {
                     setState(State::RUNNING);
@@ -434,12 +496,18 @@ void PolicyMode::loop() {
                 if (state_ == State::IDLE) {
                     // Nothing has been driven yet, so there is no pose to
                     // hold; get to the stance first.
-                    if (!beginHoming()) {
+                    if (!beginHoming(State::HOLDING)) {
                         total_errors_++;
                         consecutive_errors_++;
                     }
                 } else if (state_ == State::HOMING) {
                     // Already on the way to home, which is where HOLD goes.
+                    after_homing_ = State::HOLDING;
+                    if (static_cast<int32_t>(now_ms - homing_until_ms_) >= 0 &&
+                        homingArrived()) {
+                        next_step_us_ = micros();
+                        beginAfterHoming();
+                    }
                     break;
                 } else if (state_ != State::HOLDING) {
                     memcpy(hold_from_, last_target_, sizeof(hold_from_));

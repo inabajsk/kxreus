@@ -42,6 +42,17 @@ public:
     void exit() override;
     void loop() override;
 
+    /// Servos on and off: to the home stance and held, or released.
+    ///
+    /// "On" deliberately means HOLDING and not RUNNING. Someone standing at
+    /// the robot pressing a button wants the hand in its stance, not walking
+    /// -- and this is the one control that works with nothing attached but
+    /// power, so it is the one that must not start it moving.
+    void onClick() override;
+
+    /// Start and stop the policy driving.
+    void onDoubleClick() override;
+
     /// What the loop is doing, which is also what the LCD shows.
     enum class State : uint8_t {
         /// Servos free, policy not running. Entered on arrival, on a host
@@ -79,19 +90,51 @@ private:
     /// not leave the hand walking. Silence past the first threshold zeroes the
     /// command, which stops the gait clock exactly as a zero command from a
     /// present host would; silence past the second frees the servos.
+    ///
+    /// Only once a host has spoken at least once, though. A host that was
+    /// never there cannot have gone away, and treating its absence as a
+    /// failure would make the button useless -- every press undone on the
+    /// next pass.
     static constexpr uint32_t HOST_STAND_MS = 500;
     static constexpr uint32_t HOST_FREE_MS = 3000;
 
     /// Rate the home ramp may move a joint at, in rad/s, when holding.
     static constexpr float HOLD_MAX_RATE = 1.0f;
 
-    /// How long to let the hand reach home before starting the policy.
-    /// POLICY_HOME_FRAME_COUNT frames of 10 ms each, plus a margin for a
-    /// joint that has to travel the furthest.
+    /// How long one attempt at reaching home is given.
+    /// POLICY_HOME_FRAME_COUNT frames of 10 ms each, plus a margin.
     static constexpr uint32_t HOMING_MS = POLICY_HOME_FRAME_COUNT * 10 + 500;
 
+    /// Close enough to the home stance to start the policy from, in radians.
+    /// About 6 degrees; the servo reports to 0.3 and the host tool calls a
+    /// home within 3.2 degrees good, so this is loose but not meaningless.
+    static constexpr float HOME_TOLERANCE_RAD = 0.10f;
+
+    /// How many times to re-send the home command before giving up on it.
+    ///
+    /// One interpolation is not always enough: the servo has its own speed
+    /// limit and cannot honour a 500 ms request across a large angle, so a
+    /// hand starting from collapsed arrives short. Measured: one attempt left
+    /// 725 mrad of error where the policy's own hold ramp reached 31. Giving
+    /// up is still the right end -- a thumb pressed against the floor never
+    /// arrives, and calibration.yaml records that as contact, not a fault.
+    static constexpr uint8_t HOMING_ATTEMPTS = 4;
+
+    /// Send the home command once and (re)start the wait.
+    bool sendHome();
+
     /// Send the servos to the home stance and start the HOMING wait.
-    bool beginHoming();
+    ///
+    /// @param then  what to become when the hand has got there.
+    bool beginHoming(State then);
+
+    /// Decide whether homing is done: measure, retry if short and attempts
+    /// remain, and latch the error either way.
+    bool homingArrived();
+
+    /// Leave HOMING for whatever it was on the way to, starting the gait
+    /// clock from the stance rather than from wherever the hand had been.
+    void beginAfterHoming();
 
     /// Read the servos and return the worst distance from the home pose, in
     /// radians, or a negative number if the board did not answer.
@@ -160,6 +203,10 @@ private:
     /// a quiet operator from a broken link.
     uint32_t host_frames_ = 0;
     uint32_t homing_until_ms_ = 0;
+    /// What to become once homing finishes. RUNNING when the policy was
+    /// asked for, HOLDING when someone just wanted the hand in its stance.
+    State after_homing_ = State::RUNNING;
+    uint8_t homing_attempt_ = 0;
     /// Worst joint error against the home pose, in milliradians, latched at
     /// the moment homing finished. The one number that says whether the hand
     /// physically reached the stance the policy assumes it starts from -- and
