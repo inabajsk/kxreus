@@ -30,6 +30,7 @@
 #include <OneButton.h>
 #include <bridge_mode.h>
 #include <mode.h>
+#include <net.h>
 #include <policy_mode.h>
 #include <policy.h>
 #include <rcb4_link.h>
@@ -88,6 +89,9 @@ void setup() {
     // time POLICY mode is entered: 235 KiB of memcpy in the middle of a mode
     // switch would look like a hang.
     policy::begin();
+    // Joins the lab AP if credentials were stored; returns at once either
+    // way, because connecting takes seconds the setup cannot spend.
+    net::begin();
 
     button.attachClick(onClick);
     button.attachDoubleClick(onDoubleClick);
@@ -97,5 +101,6 @@ void setup() {
 
 void loop() {
     button.tick();
+    net::poll();
     kModes[current_mode]->loop();
 }

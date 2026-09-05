@@ -141,8 +141,22 @@ private:
     float measureHomeError();
 
     void setState(State state);
+    /// Paint the screen. Runs on core 0, from a task of its own.
+    ///
+    /// Repainting this panel was measured at 16.5 ms against a 33 ms control
+    /// period, and it was happening four times a second on the control
+    /// loop's own core, immediately after a step that already took up to 27.
+    /// The loop's overrun counter did not catch it -- it only counts a step
+    /// that is a whole period late -- so the cost showed up as movement
+    /// rather than as a number. Everything it needs is in the telemetry
+    /// snapshot the control loop already publishes, so nothing else had to
+    /// change to move it.
+    static void drawTask(void* arg);
     void draw();
     bool readHostFrame();
+    /// Validate one 9 byte command frame and adopt it. Shared by both
+    /// transports so they cannot drift apart.
+    bool acceptHostFrame(const uint8_t* frame);
     void sendTelemetry();
     /// Assemble the observation the actor was trained on.
     void buildObs(float* obs) const;
@@ -157,6 +171,11 @@ private:
     float command_[3] = {0.0f, 0.0f, 0.0f};
     uint32_t last_host_ms_ = 0;
     bool host_spoke_ = false;
+    /// Which way the last command arrived, and so which way the answer goes.
+    /// A browser is answered in the same pass it was read, so HTTP means
+    /// "already answered" rather than "answer this way".
+    enum class ReplyTo : uint8_t { USB, UDP, HTTP };
+    ReplyTo reply_to_ = ReplyTo::USB;
 
     // The gait clock is driven by the STEP COUNT, not by wall time, exactly as
     // in training (episode_length_buf * step_dt). A late step then does not
@@ -199,6 +218,11 @@ private:
     /// is still worth knowing about.
     uint32_t total_errors_ = 0;
     uint32_t last_draw_ms_ = 0;
+    TaskHandle_t draw_task_ = nullptr;
+    /// How long the last LCD repaint took. It happens on the control loop's
+    /// core, so it is time the servos pay for -- and the only way to know
+    /// whether that matters is to measure it rather than assume.
+    uint32_t draw_us_ = 0;
     /// Host frames accepted, checksum and all. The one number that separates
     /// a quiet operator from a broken link.
     uint32_t host_frames_ = 0;

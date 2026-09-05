@@ -34,8 +34,13 @@ namespace policy {
 ///         failed -- in which case `run()` still works, from flash.
 bool begin();
 
-/// Whether `run()` is currently reading weights out of RAM.
+/// Whether `run()` is currently reading any weights out of RAM.
 bool weightsInRam();
+
+/// How many of the POLICY_LAYERS layers made it into RAM. Fewer than all of
+/// them means the budget ran out, which is expected once the Wi-Fi stack is
+/// linked in -- the rest are read from flash and are simply slower.
+size_t layersInRam();
 
 /// Observation width the actor was trained on.
 size_t obsDim();

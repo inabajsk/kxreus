@@ -27,9 +27,16 @@ const float* g_biases[POLICY_LAYERS] = {
 bool g_in_ram = false;
 
 #ifdef POLICY_WEIGHTS_IN_RAM
-// Sized by the exporter rather than by a number typed in here, so it cannot
-// go stale when the policy is retrained.
-float g_ram[POLICY_WEIGHT_FLOATS];
+// How much SRAM the weights may take. All 235 KiB of them will not fit
+// alongside the Wi-Fi stack -- the link fails by 2 KiB -- so this is a budget
+// rather than the whole set, and begin() spends it on the largest layers
+// first, where the reads are.
+#ifndef POLICY_RAM_WEIGHT_BYTES
+#define POLICY_RAM_WEIGHT_BYTES (POLICY_WEIGHT_FLOATS * 4)
+#endif
+constexpr size_t kRamFloats = POLICY_RAM_WEIGHT_BYTES / sizeof(float);
+float g_ram[kRamFloats];
+size_t g_layers_in_ram = 0;
 #endif
 
 /// ELU with alpha = 1, which is what the ONNX Elu node defaults to.
@@ -41,26 +48,53 @@ namespace policy {
 
 bool begin() {
 #ifdef POLICY_WEIGHTS_IN_RAM
+    // Largest layer first. The cost being avoided is cache line fills, which
+    // is proportional to bytes read, so a partial budget buys the most by
+    // taking the biggest matrices -- and a layer left in flash still works,
+    // just slower.
+    size_t order[POLICY_LAYERS];
+    for (size_t i = 0; i < POLICY_LAYERS; i++) order[i] = i;
+    for (size_t i = 1; i < POLICY_LAYERS; i++) {
+        const size_t key = order[i];
+        const size_t key_size = static_cast<size_t>(kPolicyLayerIn[key]) *
+                                kPolicyLayerOut[key];
+        size_t j = i;
+        while (j > 0 && static_cast<size_t>(kPolicyLayerIn[order[j - 1]]) *
+                                        kPolicyLayerOut[order[j - 1]] <
+                                key_size) {
+            order[j] = order[j - 1];
+            j--;
+        }
+        order[j] = key;
+    }
+
     size_t at = 0;
-    for (size_t layer = 0; layer < POLICY_LAYERS; layer++) {
-        // Belt and braces: if a regenerated header ever outgrew the buffer,
-        // the copy below would run off the end of it silently.
-        const size_t need = static_cast<size_t>(kPolicyLayerIn[layer]) *
-                                    kPolicyLayerOut[layer] +
-                            kPolicyLayerOut[layer];
-        if (at + need > POLICY_WEIGHT_FLOATS) return false;
+    g_layers_in_ram = 0;
+    for (size_t i = 0; i < POLICY_LAYERS; i++) {
+        const size_t layer = order[i];
         const size_t n_in = kPolicyLayerIn[layer];
         const size_t n_out = kPolicyLayerOut[layer];
+        const size_t need = n_in * n_out + n_out;
+        if (at + need > kRamFloats) continue;  // stays in flash
         memcpy(g_ram + at, kFlashWeights[layer], n_in * n_out * sizeof(float));
         g_weights[layer] = g_ram + at;
         at += n_in * n_out;
         memcpy(g_ram + at, kFlashBiases[layer], n_out * sizeof(float));
         g_biases[layer] = g_ram + at;
         at += n_out;
+        g_layers_in_ram++;
     }
-    g_in_ram = true;
+    g_in_ram = g_layers_in_ram > 0;
 #endif
     return g_in_ram;
+}
+
+size_t layersInRam() {
+#ifdef POLICY_WEIGHTS_IN_RAM
+    return g_layers_in_ram;
+#else
+    return 0;
+#endif
 }
 
 bool weightsInRam() { return g_in_ram; }

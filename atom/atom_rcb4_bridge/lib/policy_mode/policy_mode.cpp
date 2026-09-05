@@ -2,6 +2,7 @@
 
 #include <M5Unified.h>
 #include <math.h>
+#include <net.h>
 #include <string.h>
 
 namespace {
@@ -83,9 +84,21 @@ void PolicyMode::enter() {
     freeServos();
     setState(State::IDLE);
     next_step_us_ = micros();
+    if (draw_task_ == nullptr) {
+        // Core 0, beside the Wi-Fi stack and the web server; the control loop
+        // has core 1 to itself.
+        xTaskCreatePinnedToCore(drawTask, "kxr-lcd", 4096, this, 1,
+                                &draw_task_, 0);
+    }
 }
 
 void PolicyMode::exit() {
+    // Stop painting before the next mode starts: two tasks drawing to one
+    // panel would interleave.
+    if (draw_task_ != nullptr) {
+        vTaskDelete(draw_task_);
+        draw_task_ = nullptr;
+    }
     // Leaving with servos driven would hand a live hand to the bridge, which
     // does not know it is holding anything.
     freeServos();
@@ -194,15 +207,25 @@ bool PolicyMode::beginHoming(State then) {
 }
 
 void PolicyMode::setState(State state) {
-    if (state == state_) return;
+    // No repaint here: the display task notices within its own interval. A
+    // state change is exactly the moment the control loop can least afford
+    // 16 ms of SPI.
     state_ = state;
-    draw();
+}
+
+void PolicyMode::drawTask(void* arg) {
+    PolicyMode* self = static_cast<PolicyMode*>(arg);
+    for (;;) {
+        self->draw();
+        vTaskDelay(pdMS_TO_TICKS(DRAW_INTERVAL_MS));
+    }
 }
 
 void PolicyMode::draw() {
+    const net::Telemetry t = net::telemetry();
     const char* label = "IDLE";
     uint16_t colour = TFT_DARKGREY;
-    switch (state_) {
+    switch (static_cast<State>(t.state)) {
         case State::RUNNING: label = "RUN"; colour = TFT_GREEN; break;
         case State::HOMING: label = "HOME"; colour = TFT_CYAN; break;
         case State::HOLDING: label = "HOLD"; colour = TFT_YELLOW; break;
@@ -220,25 +243,51 @@ void PolicyMode::draw() {
     M5.Display.println(label);
     M5.Display.setTextSize(1);
     M5.Display.setCursor(0, 52);
-    M5.Display.printf("vx %+.2f\nwz %+.2f\n", command_[0], command_[2]);
+    M5.Display.printf("vx %+.2f\nwz %+.2f\n", t.vx, t.wz);
     // What the button does from here, because there is no other label on it.
     M5.Display.printf("%s / run\n",
-                      state_ == State::IDLE || state_ == State::FAULT
+                      t.state == static_cast<uint8_t>(State::IDLE) ||
+                                      t.state == static_cast<uint8_t>(State::FAULT)
                               ? "1=on"
                               : "1=off");
-    M5.Display.printf("loop %lu us\n", static_cast<unsigned long>(loop_us_));
+    M5.Display.printf("loop %lu us\n", static_cast<unsigned long>(t.loop_us));
     M5.Display.printf("over %lu  err %lu",
-                      static_cast<unsigned long>(overruns_),
-                      static_cast<unsigned long>(total_errors_));
+                      static_cast<unsigned long>(t.overruns),
+                      static_cast<unsigned long>(t.errors));
+}
+
+bool PolicyMode::acceptHostFrame(const uint8_t* buf) {
+    uint16_t sum = 0;
+    for (size_t i = 0; i + 1 < HOST_FRAME_SIZE; i++) sum += buf[i];
+    if (static_cast<uint8_t>(sum & 0xFF) != buf[HOST_FRAME_SIZE - 1]) {
+        return false;
+    }
+    request_ = static_cast<Request>(buf[1]);
+    for (size_t axis = 0; axis < 3; axis++) {
+        const int16_t raw = static_cast<int16_t>(
+                static_cast<uint16_t>(buf[2 + axis * 2]) |
+                (static_cast<uint16_t>(buf[3 + axis * 2]) << 8));
+        command_[axis] = raw * VELOCITY_SCALE;
+    }
+    last_host_ms_ = millis();
+    host_spoke_ = true;
+    host_frames_++;
+    return true;
 }
 
 bool PolicyMode::readHostFrame() {
-    // Only whole frames are acted on, and the newest one wins: if the host
-    // sent faster than the loop ran, the older commands are stale by
-    // definition and replaying them would lag the operator's stick.
+    // Two transports carrying the same frame: the USB cable and UDP over the
+    // lab network. Whichever spoke last is the operator, and telemetry
+    // follows it back -- so unplugging the cable and picking up a phone needs
+    // no mode, no setting and no restart.
+    //
+    // Only whole frames are acted on, and the newest one wins: if a host sent
+    // faster than the loop ran, the older commands are stale by definition
+    // and replaying them would lag the operator's stick.
     static uint8_t buf[HOST_FRAME_SIZE];
     static size_t len = 0;
     bool got = false;
+
 
     while (Serial.available()) {
         const uint8_t byte = Serial.read();
@@ -246,23 +295,23 @@ bool PolicyMode::readHostFrame() {
         buf[len++] = byte;
         if (len < HOST_FRAME_SIZE) continue;
         len = 0;
+        if (acceptHostFrame(buf)) {
+            reply_to_ = ReplyTo::USB;
+            got = true;
+        }
+    }
 
-        uint16_t sum = 0;
-        for (size_t i = 0; i + 1 < HOST_FRAME_SIZE; i++) sum += buf[i];
-        if (static_cast<uint8_t>(sum & 0xFF) != buf[HOST_FRAME_SIZE - 1]) {
-            continue;  // corrupt; wait for the next one
+    // One path for both radios' worth of client: a UDP datagram and a
+    // request from the page arrive the same way, because net:: has already
+    // reduced them to the same nine bytes. The page's request was answered on
+    // the other core before this ever saw it.
+    uint8_t frame[HOST_FRAME_SIZE];
+    while (net::receiveCommand(frame, sizeof(frame))) {
+        if (frame[0] != HOST_MAGIC) continue;
+        if (acceptHostFrame(frame)) {
+            reply_to_ = net::lastCommandWasUdp() ? ReplyTo::UDP : ReplyTo::HTTP;
+            got = true;
         }
-        request_ = static_cast<Request>(buf[1]);
-        for (size_t axis = 0; axis < 3; axis++) {
-            const int16_t raw = static_cast<int16_t>(
-                    static_cast<uint16_t>(buf[2 + axis * 2]) |
-                    (static_cast<uint16_t>(buf[3 + axis * 2]) << 8));
-            command_[axis] = raw * VELOCITY_SCALE;
-        }
-        last_host_ms_ = millis();
-        host_spoke_ = true;
-        host_frames_++;
-        got = true;
     }
     return got;
 }
@@ -298,7 +347,27 @@ void PolicyMode::sendTelemetry() {
     memcpy(frame + 28, &wz_milli, 2);
     memcpy(frame + 30, &home_error_milli_, 2);
     memcpy(frame + 32, &pose_error_milli_, 2);
-    Serial.write(frame, sizeof(frame));
+    // Back the way the last command came. A USB host that is not there gets
+    // nothing written at it, and a UDP peer that has gone quiet is forgotten
+    // by net:: rather than being sent telemetry forever.
+    // The page reads this out of a snapshot rather than being sent to, and
+    // it is what tells the page that a control loop is running at all.
+    net::Debug debug;
+    debug.request = static_cast<uint8_t>(request_);
+    debug.quiet_ms = host_spoke_ ? millis() - last_host_ms_ : 0;
+    debug.host_frames = host_frames_;
+    debug.step = step_;
+    debug.homing_attempt = homing_attempt_;
+    debug.home_err = home_error_milli_;
+    net::setTelemetry(static_cast<uint8_t>(state_), command_[0], command_[2],
+                      loop_us_, total_errors_, overruns_, draw_us_, debug);
+
+    switch (reply_to_) {
+        case ReplyTo::USB: Serial.write(frame, sizeof(frame)); break;
+        case ReplyTo::UDP: net::send(frame, sizeof(frame)); break;
+        // A browser was already answered inline, in readHostFrame().
+        case ReplyTo::HTTP: break;
+    }
 }
 
 void PolicyMode::buildObs(float* obs) const {
@@ -525,23 +594,13 @@ void PolicyMode::loop() {
         }
     }
 
-    if (state_ == State::HOMING) {
-        // The servos are moving under the board's own interpolation; there is
-        // nothing to do but wait and say so.
+    if (state_ == State::HOMING || state_ == State::IDLE ||
+        state_ == State::FAULT) {
+        // Nothing is being driven, or the board is moving under its own
+        // interpolation. Either way there is only the telemetry to keep up.
         if (now_ms - last_draw_ms_ > DRAW_INTERVAL_MS) {
             last_draw_ms_ = now_ms;
             sendTelemetry();
-            draw();
-        }
-        return;
-    }
-
-    if (state_ == State::IDLE || state_ == State::FAULT) {
-        // Nothing is being driven, so the only thing to do is keep saying so.
-        if (now_ms - last_draw_ms_ > DRAW_INTERVAL_MS) {
-            last_draw_ms_ = now_ms;
-            sendTelemetry();
-            draw();
         }
         return;
     }
@@ -576,8 +635,4 @@ void PolicyMode::loop() {
     }
 
     sendTelemetry();
-    if (now_ms - last_draw_ms_ > DRAW_INTERVAL_MS) {
-        last_draw_ms_ = now_ms;
-        draw();
-    }
 }

@@ -11,7 +11,9 @@ on it -- which is the point, because the PC's USB round trip was 2.7 ms of a
 Put the AtomS3 in POLICY mode with the button first: BRIDGE -> STATUS ->
 POLICY. The screen says which.
 
-    policy_teleop.py [/dev/ttyACM0]
+    policy_teleop.py                    # find it on the network by mDNS
+    policy_teleop.py 192.168.1.23       # or by address, from the LCD
+    policy_teleop.py /dev/ttyACM0       # or over the USB cable
 
     r       start. The hand goes to the home stance first (about a
             second, shown as HOME), then the policy takes over standing
@@ -29,6 +31,7 @@ device parses it inside its control loop.
 import argparse
 import os
 import select
+import socket
 import struct
 import sys
 import termios
@@ -84,19 +87,14 @@ def host_frame(mode, vx, vy, wz):
     return body + bytes([sum(body) & 0xFF])
 
 
-def read_telemetry(ser):
+def read_telemetry(link):
     """Return the most recent telemetry frame, or None.
 
     Only the newest frame is kept: the device sends one per control step and
     this is a display, so an older one has nothing to add.
     """
     latest = None
-    while ser.in_waiting >= DEVICE_FRAME_SIZE:
-        if ser.read(1)[0] != DEVICE_MAGIC:
-            continue
-        rest = ser.read(DEVICE_FRAME_SIZE - 1)
-        if len(rest) != DEVICE_FRAME_SIZE - 1:
-            break
+    for rest in link.frames():
         (state, request, _pad, step, loop_us, overruns, errors,
          host_frames, peak, vx, wz, home_err, pose_err) = struct.unpack(
             "<BBBIIIIIhhhhh", rest[:DEVICE_FRAME_SIZE - 1]
@@ -161,16 +159,110 @@ def clamp(value, low, high):
     return max(low, min(high, value))
 
 
+# The device advertises this over mDNS once it has joined an AP.
+MDNS_HOSTNAME = "kxr-hand.local"
+UDP_PORT = 9000
+
+
+class SerialTransport:
+    """The USB cable."""
+
+    def __init__(self, port):
+        self.ser = serial.Serial(port, 115200, timeout=0.05)
+        time.sleep(0.2)
+        self.ser.reset_input_buffer()
+        self.name = port
+
+    def send(self, frame):
+        self.ser.write(frame)
+
+    def frames(self):
+        out = []
+        while self.ser.in_waiting >= DEVICE_FRAME_SIZE:
+            if self.ser.read(1)[0] != DEVICE_MAGIC:
+                continue
+            rest = self.ser.read(DEVICE_FRAME_SIZE - 1)
+            if len(rest) == DEVICE_FRAME_SIZE - 1:
+                out.append(rest)
+        return out
+
+    def close(self):
+        self.ser.close()
+
+
+class UdpTransport:
+    """The lab network.
+
+    Deliberately connectionless in both directions: the device answers to
+    whatever address last sent it a command, so nothing has to be told where
+    this program is, and moving to another machine needs no restart on the
+    robot.
+    """
+
+    def __init__(self, host):
+        self.addr = (host, UDP_PORT)
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.sock.setblocking(False)
+        self.name = "{}:{}".format(host, UDP_PORT)
+
+    def send(self, frame):
+        try:
+            self.sock.sendto(frame, self.addr)
+        except OSError:
+            pass  # a lost command is repeated 100 ms later by design
+
+    def frames(self):
+        out = []
+        while True:
+            try:
+                data, _ = self.sock.recvfrom(256)
+            except (BlockingIOError, OSError):
+                break
+            if len(data) == DEVICE_FRAME_SIZE and data[0] == DEVICE_MAGIC:
+                out.append(data[1:])
+        return out
+
+    def close(self):
+        self.sock.close()
+
+
+def open_transport(target):
+    """Pick a transport from what the target looks like.
+
+    A path is the USB cable; anything else is a host on the network; nothing
+    at all means ask mDNS, which is what the device advertises itself over.
+    """
+    if target is None:
+        try:
+            host = socket.gethostbyname(MDNS_HOSTNAME)
+        except OSError:
+            raise SystemExit(
+                "could not resolve {}. The AtomS3 advertises that name only"
+                " once it has joined an AP -- check the LCD (hold the button"
+                " for STATUS), or pass its address or /dev/ttyACM0"
+                " explicitly.".format(MDNS_HOSTNAME)
+            )
+        print("found {} at {}".format(MDNS_HOSTNAME, host))
+        return UdpTransport(host)
+    if target.startswith("/") or target.startswith("COM"):
+        return SerialTransport(target)
+    return UdpTransport(target)
+
+
 def main():
     parser = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
-    parser.add_argument("port", nargs="?", default="/dev/ttyACM0")
+    parser.add_argument(
+        "target",
+        nargs="?",
+        default=None,
+        help="a serial port (/dev/ttyACM0), an address (192.168.1.23), or"
+             " nothing to look the robot up by mDNS",
+    )
     args = parser.parse_args()
 
-    ser = serial.Serial(args.port, 115200, timeout=0.05)
-    time.sleep(0.2)
-    ser.reset_input_buffer()
+    link = open_transport(args.target)
 
     vx = wz = 0.0
     mode = FREE
@@ -178,6 +270,7 @@ def main():
     telemetry = None
 
     print(__doc__.split("Put the AtomS3")[0].strip())
+    print("\n  connected via {}".format(link.name))
     print("\n  r start (home, then stand)   w/s speed   a/d turn"
           "   space hold   f free   q quit")
     print("\n  Servos stay free until you press r or a movement key.")
@@ -222,9 +315,9 @@ def main():
                 now = time.time()
                 if now - last_send >= SEND_INTERVAL_S:
                     last_send = now
-                    ser.write(host_frame(mode, vx, 0.0, wz))
+                    link.send(host_frame(mode, vx, 0.0, wz))
 
-                fresh = read_telemetry(ser)
+                fresh = read_telemetry(link)
                 if fresh is not None:
                     telemetry = fresh
                 if telemetry is not None:
@@ -258,9 +351,9 @@ def main():
             # Leaving a hand held by a program that has stopped watching it is
             # the one outcome worth writing a finally block for.
             for _ in range(3):
-                ser.write(host_frame(FREE, 0.0, 0.0, 0.0))
+                link.send(host_frame(FREE, 0.0, 0.0, 0.0))
                 time.sleep(0.02)
-            ser.close()
+            link.close()
             print("\nfreed.")
     return 0
 

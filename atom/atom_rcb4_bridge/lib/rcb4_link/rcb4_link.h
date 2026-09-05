@@ -59,6 +59,13 @@ public:
     /// @return true if the byte completed an intercepted IMU request.
     bool feedFromHost(uint8_t byte);
 
+    /// Whether a frame from the host is part-way through being relayed.
+    ///
+    /// Anything sharing this byte stream has to know: a byte in the middle of
+    /// an RCB-4 frame means whatever the frame says it means, and can look
+    /// like anything at all.
+    bool midFrame() const { return body_remaining_ > 0 || pending_len_ > 0; }
+
     /// Move whatever the board has said back to the host.
     /// @return the number of bytes forwarded.
     size_t pumpToHost();
