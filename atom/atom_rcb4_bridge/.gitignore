@@ -1,0 +1,3 @@
+# PlatformIO's build tree and downloaded libraries. Hundreds of megabytes,
+# and `pio run` recreates all of it.
+.pio/

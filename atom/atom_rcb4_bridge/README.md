@@ -171,9 +171,159 @@ sudo udevadm control --reload-rules && sudo udevadm trigger
    `~/rcb4eus/pdfs/HTH4_Ver6-20160712.pdf` のようなハードウェア接続図で正式なピン順(GND-Rx-Tx)を確認したことで
    原因(TX/RXピンの割り当てミス)が判明した。
 
+## POLICY モード: 学習済みポリシーをAtomS3の中で走らせる
+
+PCを指令だけの役に減らし、観測の組み立て・推論・サーボ読み書きを全部AtomS3で
+行うモード。ボタンで `BRIDGE -> STATUS -> POLICY` と切り替わる。
+
+PCが送るのは `vx, vy, wz` の3つだけ。残り65次元はAtomS3が自分で作る:
+歩行位相はステップカウンタ、`joint_pos`/`joint_vel` はRCB-4から読む、
+`actions` は自分の前回出力。`--imu fixed` 相当なので `projected_gravity` は
+定数 `[0,0,-1]`、`base_ang_vel` は0 -- **姿勢を見ないので、これは歩容の再現で
+あってバランス制御ではない**。AtomS3自身のIMUを使うには、この個体の取り付け
+回転(`imu_R_imu_to_root`)を測る必要があり、まだ測っていない。
+
+### 重みの書き出し
+
+```bash
+R=~/src/github.com/iory/rl-benchmark/walking_hand_mjlab/real_robot
+uv run --no-project --with onnx --with onnxruntime --with pyyaml --with numpy \
+  python tools/export_policy.py \
+    --onnx $R/policies/walk.onnx --spec $R/deploy_spec.json \
+    --calib $R/calibration.yaml --control-hz 30 --outdir lib/policy
+```
+
+ONNXランタイムはAtomS3に載らないが、actorは正規化器付きの4層ELU MLPでしか
+ないので、重みを `.rodata` に焼いて順伝播を手で書く
+(`feetech-cli/arduino/arduino_quad` と同じ手口)。書き出しの前に
+onnxruntimeと突き合わせ、合わなければヘッダを書かない。
+
+出力は2つ。`policy_spec.h` (3 KiB、次元と制御定数と手先姿勢とサーボID) と
+`policy_weights.h` (918 KiB、重み本体)。分けてあるのは、ポリシーに触れる
+たびに235 KiBのfloatリテラルを再コンパイルしないため。
+
+### 実測 (AtomS3, RCB-4 mini, 19サーボ)
+
+`pio run -e bench -t upload` で再現できる。
+
+| 項目 | 時間 |
+|------|------|
+| 推論 (重みをSRAMに置く) | 3.02 ms |
+| 19関節の読み出し | 20.23 ms |
+| サーボ指令 | 1.59 ms |
+| **合計** | **24.8 ms** |
+
+実測して分かった事実が2つ、どちらも設計を変えた:
+
+**1. 重みはSRAMに置く。** フラッシュはメモリマップされているので `const float[]`
+のまま読めるが、1推論あたり235 KiBを流すとキャッシュラインフィルが数千回起きる。
+実測 **9.84 ms (flash) 対 3.02 ms (SRAM)**。`-DPOLICY_WEIGHTS_IN_RAM` で
+起動時にコピーする。RAM使用率は81%になる。`-O2` は効果ゼロだった(3.019 ms
+のまま)ので入れていない。
+
+**2. 読み出しはバイト数がすべて。** 基板の応答は固定 約0.75 ms + **54 µs/byte**。
+1.25 Mbpsなら1バイト8.8 µsのはずで、**基板は自分の配線の6分の1でしか喋れない**。
+したがって19関節×2バイトを個別に読む(38バイト、19往復)ほうが、
+テーブル全体を5回で読む(630バイト、5往復)より速い: **20.2 ms 対 37.4 ms**。
+隣接IDをまとめても1サーボあたり1.09 msでほぼ変わらないので、まとめる意味はない。
+
+読み出しサイズ対コスト(USBを一切介さない実測):
+
+```
+   2 B: 0.751 ms      64 B: 3.826 ms
+   8 B: 1.077 ms      96 B: 5.059 ms
+  16 B: 1.539 ms     126 B: 7.456 ms
+  32 B: 3.043 ms
+```
+
+### 制御レートは30 Hz (PCは40 Hz)
+
+合計24.8 msは40 Hzの予算25 msに対して余裕がない -- 読み出し単体の最悪値が
+24.8 msある。30 Hz(33.3 ms)にして8.5 msの余裕を取った。`calibration.yaml` は
+sim で20 Hzまで歩容が保たれる(50 Hz比60-95%の前進速度)ことを記録しているので、
+30 Hzは安全側。`--control-hz` で書き出し時に決まる。
+
+歩行位相は `step/control_hz`、`joint_vel` の窓は秒で持っているので、PC側と
+レートが違っても観測の意味は変わらない。
+
+### 起動シーケンス: home を経由しないと動かない
+
+`r` を押すと、ポリシーを回す前に3つやる。どれも省くと動かない -- ここは
+`hand_deploy.py` の `mode_teleop` が黙ってやっていたことの写しである。
+
+1. **`0x7FFF` を全サーボに送る(hold)。** モードに入るとき `0x8000` でfreeして
+   いるので、**free状態のサーボは位置指令だけでは入り直さない**。ホスト側
+   ライブラリが `interface.hold(...)` を独立した手順として呼んでいるのは
+   このため。実測: これが無いと関節角度が210ステップまったく変化しなかった
+   (`pose_err` が固定値のまま)。
+2. **stretch を書く**(`servo_stretch: 90`)。基板の既定値127は
+   `calibration.yaml` に「buzzed」と記録されている。
+3. **500 ms かけて home 姿勢へ移動**し、1秒待つ。**ポリシーの出力は home からの
+   オフセット**で、観測の `joint_pos` も home からの相対値なので、寝ている手から
+   始めると学習で見たことのない姿勢について聞くことになる。
+
+この間の状態は `HOME`(水色)。終わった瞬間に home との最大誤差を測って
+`home_err` としてラッチする -- **これが無いと「手が動かなかった」と
+「動いたが読めていない」を画面から区別できない**。床置きだと親指が突っ張って
+30度台になるが、これは接触であって異常ではない(`calibration.yaml` に34度と記録)。
+
+### テレメトリ
+
+`device -> host` は34バイト固定。見るべきものが3つある。
+
+| 欄 | 意味 |
+|----|------|
+| `rx` | AtomS3が受け取ったホストフレーム数。**増えていなければPC->AtomS3が通っていない**(たいていボタンがPOLICYになっていない) |
+| `home_err` | homing直後のhomeとの最大誤差。手が本当にstanceに着いたか |
+| `pose_err` | 毎ステップのhomeとの最大誤差。**変化しないならサーボが駆動されていない** |
+
+`vx`/`wz` もAtomS3が解釈した値を返すので、打った値と食い違えばその場で分かる。
+
+### ボタンを押さずにPOLICYへ入る(テスト用)
+
+```bash
+pio run -e policy-boot -t upload      # 起動モードをPOLICYにしたビルド
+```
+
+起動時はサーボfreeでホストが `RUN` と言うまで動かないので安全ではあるが、
+テスト用であって robot に残すビルドではない。既定(`-e m5stack-atoms3`)は
+BRIDGE起動。
+
+### 使い方
+
+```bash
+# ボタンを2回押してPOLICYモードへ(画面に "POLICY" と出る)
+python3 tools/policy_teleop.py /dev/ttyACM0
+```
+
+```
+r       開始 <- 最初に押すのはこれ。home へ移動してからポリシーが立たせる
+w / s   前進速度 上げ/下げ      space  ホールド(home姿勢へ戻す。推論は回り続ける)
+a / d   旋回 左/右              f      全サーボfree
+                                q      終了(抜けるときfreeする)
+```
+
+画面のランプ: 灰=IDLE、**水色=HOME**、緑=RUN、黄=HOLD、赤=FAULT。
+
+**安全側の作り:**
+
+- モードに入った時点ではサーボはfree。ホストが `RUN` と言うまで動かない。
+- ホストが **0.5秒** 黙ったら指令をゼロにする(= 立ち止まる。歩行位相も止まる)。
+- **3秒** 黙ったら全サーボfree。ケーブルが抜けた手が歩き続けないため。
+- 読み書きが **2回連続** で失敗したらfreeしてFAULT。自動復帰しない
+  (各失敗はすでにサーボあたり4回リトライした後のもの)。
+- モードを出るときもfree。駆動したままBRIDGEに渡さない。
+
+BRIDGEとPOLICYは同じUARTを取り合うので、両立しない。だからオプションではなく
+モードにしてある。
+
 ## 関連ファイル
 
-- `atom_rcb4_bridge.ino` : 本番用ブリッジファームウェア(このドキュメントの設定で確認済み)
+- `platformio.ini`, `src/`, `lib/` : PlatformIO版の本番ファームウェア(3モード)
+- `tools/export_policy.py` : ONNX actor -> Cヘッダ。onnxruntimeと突き合わせてから書く
+- `tools/policy_teleop.py` : POLICYモード用のPC側クライアント
+- `src/bench.cpp` (`pio run -e bench`) : 上の実測値を取り直すための計測用ビルド
+- `atom_rcb4_bridge.ino` : arduino-cli時代のブリッジ(PlatformIO版に置き換え済み)
 - `rcb4_bridge_test.py` : PC側動作確認スクリプト
 - `~/AtomS3/atom_rcb4_bridge_diag/atom_rcb4_bridge_diag.ino` + `rcb4_bridge_sweep.py` : 配線トラブル時に
   反転/TX-RX入れ替え/ボーレートの組み合わせを再書き込みなしで一括確認するための診断ツール
