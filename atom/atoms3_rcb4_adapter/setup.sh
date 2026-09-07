@@ -19,6 +19,12 @@ M5STACK_URL=https://static-cdn.m5stack.com/resource/arduino/package_m5stack_inde
 # m5stack:esp32コアが未導入ならそれも入れる(初めてこのフォルダをcloneした
 # マシンでも、このスクリプト単体でそのまま書き込みまで進められるように)。
 ensure_arduino_cli() {
+  # install.sh自体は~/.local/binを恒久的なPATHに追加してくれない。
+  # ここでPATHへ入れておかないと、前回インストール済みでも次回このスクリプトを
+  # 実行した時に(このスクリプト自身のPATHには入っていないので)「見つからない」
+  # と判定され、毎回ダウンロードし直すことになってしまう。
+  export PATH="$HOME/.local/bin:$PATH"
+
   # command -vだけだと「ファイルはあるが中身が壊れている(0バイト等)」
   # 状態を見抜けない(空ファイルは実行しても即成功・無出力で終わるため、
   # 以降のすべてのarduino-cli呼び出しが無反応で成功したように見えてしまう
@@ -30,7 +36,6 @@ ensure_arduino_cli() {
     mkdir -p "$HOME/.local/bin"
     curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh \
       | BINDIR="$HOME/.local/bin" sh
-    export PATH="$HOME/.local/bin:$PATH"
   fi
   if [ -z "$(arduino-cli version 2>/dev/null)" ]; then
     echo "[setup] arduino-cli install failed (still broken/empty). install it manually and re-run." >&2
