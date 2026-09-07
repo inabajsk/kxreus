@@ -31,12 +31,18 @@ ensure_arduino_cli() {
     exit 1
   fi
 
-  if ! arduino-cli config get board_manager.additional_urls 2>/dev/null | grep -q m5stack; then
+  # --no-color: 対話端末で色付きになった行が先頭アンカー(^)のgrepに
+  # 引っかからなくなる(ANSIエスケープシーケンスが行頭に付く)のを防ぐ。
+  if ! arduino-cli --no-color config get board_manager.additional_urls 2>/dev/null | grep -q m5stack; then
     echo "[setup] adding M5Stack board manager URL ..."
-    arduino-cli config init --overwrite >/dev/null 2>&1 || true
+    # 以前はここで`arduino-cli config init --overwrite`を呼んでいたが、
+    # 設定ファイル全体をデフォルトへ書き戻してしまい、他の設定(既に
+    # 導入済みのURL等)を消して以後の実行のたびに再インストールが走る
+    # 原因になっていたため廃止。config addは設定ファイルが無くても
+    # 動作する。
     arduino-cli config add board_manager.additional_urls "$M5STACK_URL"
   fi
-  if ! arduino-cli core list 2>/dev/null | grep -q '^m5stack:esp32'; then
+  if ! arduino-cli --no-color core list 2>/dev/null | grep -q '^m5stack:esp32'; then
     echo "[setup] installing m5stack:esp32 board package (this can take a while) ..."
     arduino-cli core update-index
     arduino-cli core install m5stack:esp32
@@ -47,7 +53,7 @@ ensure_arduino_cli() {
   # 索引が無い/古い状態でいきなりlib installすると、環境によっては
   # (無関係なライブラリも大量に列挙されるなど)出力が非常に冗長になることが
   # あるため、先にupdate-indexだけ済ませておく。
-  if ! arduino-cli lib list 2>/dev/null | grep -q '^M5Unified'; then
+  if ! arduino-cli --no-color lib list 2>/dev/null | grep -q '^M5Unified'; then
     echo "[setup] updating library index ..."
     arduino-cli lib update-index
     echo "[setup] installing M5Unified library ..."
@@ -61,6 +67,9 @@ echo "[setup] compiling for $FQBN ..."
 arduino-cli compile --fqbn "$FQBN" "$DIR/atoms3_rcb4_adapter.ino"
 
 echo "[setup] uploading to $PORT ..."
-arduino-cli upload -p "$PORT" --fqbn "$FQBN" "$DIR/atoms3_rcb4_adapter.ino"
+# -v: esptoolの接続・書き込みログを必ず表示する(見た目上何も起きずに
+# 終わったように見える不具合の切り分けのため)。
+arduino-cli upload -v -p "$PORT" --fqbn "$FQBN" "$DIR/atoms3_rcb4_adapter.ino"
+echo "[setup] upload exit code: $?"
 
 echo "[setup] done."
