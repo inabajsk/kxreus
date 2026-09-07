@@ -55,7 +55,7 @@ static auto &display = M5.Display;
 // この1箇所を書き換えるだけで、液晶の天地(setup()参照)とIMUのZ軸符号
 // (sendImuReply()参照)の両方が連動して切り替わるようにしてある
 // (どちらか一方だけ直して食い違う、という事故を防ぐため)。
-static const bool MOUNTED_UPSIDE_DOWN = true;
+static const bool MOUNTED_UPSIDE_DOWN = false;
 
 // ---- 画面レイアウト(単語の途中で改行しないよう、あらかじめ短い行に分けてある) ----
 // 静止部分(setup()で一度だけ描画): タイトル+配線早見表。
