@@ -44,6 +44,26 @@ L=3  C=253     <- 直近のRCB4コマンドのLEN/CMD(緑/オレンジ=正常、
   RCB4へ転送される(PC側で意図的に不正なデータを送った場合の動作確認や、
   配線・ノイズ由来の化けをその場で見つけるための表示専用機能)。
 
+## IMU予約OPCODE(0x90)
+
+`../s3_echo_bridge/atoms3_simple_robot/`と同じプロトコルで、AtomS3内蔵IMU
+(MPU6886)の値をRCB4の予約OPCODE経由で返す機能を持つ。RCB4の実オペコードは
+0x0-0x12,0xFD,0xFEで使用済みのため、0x90はIMU読み出し用に予約している。
+
+```
+リクエスト: [0x03, 0x90, 0x93]  (checksum=(3+0x90)&0xFF=0x93)
+応答:       [0x0F, 0x90,
+             ax_lo,ax_hi, ay_lo,ay_hi, az_lo,az_hi,   (加速度 int16 LE, milli-g)
+             gx_lo,gx_hi, gy_lo,gy_hi, gz_lo,gz_hi,   (角速度 int16 LE, 0.1deg/s)
+             checksum]
+```
+
+このリクエストだけは実RCB4へ転送せず、AtomS3が横取りしてIMU値を返す。
+euslisp側`(send *ri* :timer-on)`はこの値でロボットモデルの姿勢を表示する
+(`atominterface.l`参照)。他の中継処理と同様、PCから来た1回のUSB読み出し
+チャンクが正確にこの3バイトと一致した場合だけ横取りする(それ以外は
+通常通りそのままRCB4へ転送する)。
+
 ## ファイル
 
 | ファイル | 内容 |

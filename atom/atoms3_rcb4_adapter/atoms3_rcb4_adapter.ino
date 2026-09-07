@@ -11,6 +11,18 @@
 // (checksum検証は液晶表示のみに使う、副作用のない覗き見)。
 // プロトコルの中身の処理はPC側(kxreus等)に任せる設計。
 //
+// 唯一の例外がIMU予約OPCODE(0x90、../s3_echo_bridge/atoms3_simple_robot/
+// と同じプロトコル)。RCB4の実オペコードは0x0-0x12,0xFD,0xFEで使用済みで
+// 0x90は未使用のため、AtomS3内蔵IMU(MPU6886)の読み出し用に予約している。
+//   リクエスト: [0x03, 0x90, 0x93]  (checksum=(3+0x90)&0xFF=0x93)
+//   応答: [0x0F, 0x90,
+//          ax_lo,ax_hi, ay_lo,ay_hi, az_lo,az_hi,   (加速度 int16 LE, milli-g)
+//          gx_lo,gx_hi, gy_lo,gy_hi, gz_lo,gz_hi,   (角速度 int16 LE, 0.1deg/s)
+//          checksum]
+// このリクエストだけは実RCB4へ転送せず、AtomS3が横取りしてIMU値を返す
+// (euslisp側`(send *ri* :timer-on)`がこの値でロボットモデルの姿勢を表示する。
+// `atominterface.l`参照)。
+//
 // 対象ボード: M5Stack AtomS3 / AtomS3 Lite / AtomS3R など、ESP32-S3 系で
 //            USBネイティブCDCと液晶を持つATOMシリーズ限定
 //            (液晶の無いプレーンなATOMには書き込めない。その場合は
@@ -77,6 +89,11 @@ static uint8_t lastLen = 0;
 static uint8_t lastCmd = 0;
 static bool lastChecksumOk = true;  // false = RCB4コマンドフォーマット違反(checksum不一致 or LEN不正)
 static bool lenCmdDirty = true;
+
+// ---- IMU予約OPCODE(0x90)。../s3_echo_bridge/atoms3_simple_robot/ と同一プロトコル ----
+static const uint8_t IMU_OPCODE = 0x90;
+static const uint8_t IMU_REQUEST[3] = {0x03, IMU_OPCODE, 0x93};
+volatile bool imuRequestPending = false;
 
 static uint32_t lastActivityMs = 0;
 // bool(false初期値)だと、setup()のM5.begin()に数百ms掛かることが多いため、
@@ -161,6 +178,37 @@ void updateStatusDisplay() {
   }
 }
 
+// IMU予約OPCODEの応答フレームを組み立ててPCへ返す(../s3_echo_bridge/
+// atoms3_simple_robot/ の sendImuReply と同一の計算式・フレーム形式)。
+void sendImuReply() {
+  m5::imu_data_t data = {};
+  if (M5.Imu.isEnabled()) {
+    M5.Imu.update();
+    data = M5.Imu.getImuData();
+  }
+  int16_t ax = (int16_t)lroundf(data.accel.x * 1000.0f);  // milli-g
+  int16_t ay = (int16_t)lroundf(data.accel.y * 1000.0f);
+  int16_t az = (int16_t)lroundf(data.accel.z * 1000.0f);
+  int16_t gx = (int16_t)lroundf(data.gyro.x * 10.0f);  // 0.1 deg/s
+  int16_t gy = (int16_t)lroundf(data.gyro.y * 10.0f);
+  int16_t gz = (int16_t)lroundf(data.gyro.z * 10.0f);
+
+  uint8_t frame[15];
+  frame[0] = 0x0F;
+  frame[1] = IMU_OPCODE;
+  int16_t vals[6] = {ax, ay, az, gx, gy, gz};
+  for (int i = 0; i < 6; i++) {
+    frame[2 + i * 2] = (uint8_t)(vals[i] & 0xFF);
+    frame[3 + i * 2] = (uint8_t)((vals[i] >> 8) & 0xFF);
+  }
+  uint16_t sum = 0;
+  for (int i = 0; i < 14; i++) sum += frame[i];
+  frame[14] = sum & 0xFF;
+
+  Serial.write(frame, sizeof(frame));
+  lastActivityMs = millis();
+}
+
 void setup() {
   auto cfg = M5.config();
   M5.begin(cfg);
@@ -174,15 +222,19 @@ void loop() {
   uint8_t buf[256];
   int n;
 
-  // PC -> RCB4
+  // PC -> RCB4 (IMU予約OPCODEは横取りし、実RCB4へは転送しない)
   n = 0;
   while (Serial.available() && n < (int)sizeof(buf)) {
     buf[n++] = Serial.read();
   }
   if (n > 0) {
     feedFrameParser(buf, n);
-    RCB4Serial.write(buf, n);
     lastActivityMs = millis();
+    if (n == 3 && memcmp(buf, IMU_REQUEST, 3) == 0) {
+      imuRequestPending = true;
+    } else {
+      RCB4Serial.write(buf, n);
+    }
   }
 
   // RCB4 -> PC
@@ -193,6 +245,11 @@ void loop() {
   if (n > 0) {
     Serial.write(buf, n);
     lastActivityMs = millis();
+  }
+
+  if (imuRequestPending) {
+    imuRequestPending = false;
+    sendImuReply();
   }
 
   updateStatusDisplay();
