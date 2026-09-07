@@ -79,7 +79,12 @@ static bool lastChecksumOk = true;  // false = RCB4コマンドフォーマッ�
 static bool lenCmdDirty = true;
 
 static uint32_t lastActivityMs = 0;
-static bool lastActiveShown = false;
+// bool(false初期値)だと、setup()のM5.begin()に数百ms掛かることが多いため、
+// loop()の初回呼び出し時点で既にactiveがfalseになっていて「初回から変化
+// なし」と判定され、RCB4:ラベル・インジケータが一度も描画されないまま
+// 通信が起きるまで見えなくなるバグがあった(実機確認)。-1は
+// true/falseどちらとも一致しないため、初回は必ず描画される。
+static int lastActiveShown = -1;
 
 void feedFrameParser(const uint8_t *buf, int n) {
   for (int i = 0; i < n; i++) {
@@ -126,13 +131,13 @@ void updateStatusDisplay() {
 
   // 通信中インジケータ: 通信があれば緑、無ければ暗いグレーの■。
   // 状態が変わった時だけ描き直す(毎ループ描くとチラつく・SPIが遅くなる)。
-  if (active != lastActiveShown) {
+  if ((int)active != lastActiveShown) {
     display.setTextSize(2);
     display.setCursor(2, STATUS_Y);
     display.setTextColor(TFT_WHITE, TFT_BLACK);
     display.print("RCB4:");
     display.fillRect(66, STATUS_Y + 2, 14, 14, active ? TFT_GREEN : TFT_DARKGREY);
-    lastActiveShown = active;
+    lastActiveShown = (int)active;
   }
 
   if (lenCmdDirty) {

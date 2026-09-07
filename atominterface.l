@@ -53,14 +53,26 @@
 ;;; ではなくRCB4側のsysreg状態の問題だった)。GitHub版(rcb4interface.l)
 ;;; 自体は変更しない方針のため、response-onも正しく1へ戻す版に差し替える。
 (defmethod rcb4-interface
+  ;; 【2026.9】:set-sysreg-bitsは内部で:gen-sysreg-word経由「現在のsysreg値を
+  ;; 一旦読んでから指定ビットだけ変更する」実装になっている。ところが
+  ;; response-onを0にした直後にもう一度:set-sysreg-bitsで1へ戻そうとすると、
+  ;; その「現在値を読む」こと自体がresponse-on=0のせいで応答をもらえず
+  ;; 失敗する、というcatch-22になっていた(実機確認、2026.9。この
+  ;; :viewer-updateの重複定義を消しても解決しなかった根本原因)。
+  ;; 対策として、まだresponse-on=1で応答がもらえるうちに現在のsysreg値を
+  ;; 1回だけ読み、OFF/ON両方の合成値をLisp側で計算してから、現在値を
+  ;; 読み直さない直接書き込み(:set-sysreg)で送る。
   (:viewer-update
    nil
    (when com-port
-     (send self :set-sysreg-bits '((:rom-on . 0) (:response-on . 0)))
-     (send self :real-orientation)
-     (send self :read-sensors)
-     (send robot :angle-vector (send self :read-angle-vector))
-     (send self :set-sysreg-bits '((:rom-on . 1) (:response-on . 1))))
+     (let* ((cur (send self :get-options ":viewer-update"))
+	    (off (send self :gen-sysreg-word '((:rom-on . 0) (:response-on . 0)) cur))
+	    (on (send self :gen-sysreg-word '((:rom-on . 1) (:response-on . 1)) cur)))
+       (send self :set-sysreg (car off) (cadr off))
+       (send self :real-orientation)
+       (send self :read-sensors)
+       (send robot :angle-vector (send self :read-angle-vector))
+       (send self :set-sysreg (car on) (cadr on))))
    (when (send self :viewer)
      (send self :viewer :viewer :draw-objects :flush nil)
      (send self :draw-torque :flush nil :size 1.0)
@@ -164,6 +176,39 @@
 	     ((and (null fallback) (not (equal product exclude-product)))
 	      (setq fallback dev)))))))
     (or found fallback)))
+
+;; ---- Radxa: I2C_EE_M1経由でAtomS3(i2c_atoms3_G6G5_rcb4_adapter.ino)へ
+;; 繋がるRCB4-mini中継ブリッジを、Radxa上で起動する ----
+;; ~/kxreus/radxa/i2c_atoms3_G6G5_rcb4_adapter/i2c_rcb4_bridge.py を
+;; バックグラウンドで起動し、そのデーモンが作るPTYを:rcb4-open :devnameで
+;; そのまま開けるようにする。euslispをRadxa本体上で動かす前提
+;; (このデーモンはRadxa上の/dev/i2c-N(:bus)を直接叩くため)。
+;;
+;; :busはRadxa Zeroの「I2C_EE_M1」ポートに対応する/dev/i2c-Nの番号。
+;; ドキュメント上のポート名と実際のLinux上のバス番号の対応は機体・
+;; OSイメージ次第で変わりうるため未検証。実機で`i2cdetect -l`を実行して
+;; 確認し、必ず明示的に指定すること。
+;;
+;; 使用例:
+;;   (send *ri* :rcb4-open :devname (start-i2c-rcb4-bridge :bus 3))
+;;   (send *ri* :timer-on)
+(defun start-i2c-rcb4-bridge
+    (&key bus (addr #x08) (link "/dev/ttyRCB4-i2c")
+	  (script "~/kxreus/radxa/i2c_atoms3_G6G5_rcb4_adapter/i2c_rcb4_bridge.py"))
+  (unless bus
+    (error "start-i2c-rcb4-bridge: :busを指定してください(Radxa上で`i2cdetect -l`を実行し、I2C_EE_M1に対応する/dev/i2c-Nの番号を確認すること)"))
+  (unless (eql (elt link 0) #\/)
+    (error "start-i2c-rcb4-bridge: :linkは/dev/配下の絶対パスにすること(:rcb4-open :devnameが/dev/を前置して開くため)。指定値: ~A" link))
+  (let* ((cmd (format nil "python3 ~A --bus ~A --addr 0x~X --link ~A"
+		      script bus addr link))
+	 (strm (piped-fork cmd))
+	 (line (read-line strm nil nil)))
+    (unless line
+      (error "start-i2c-rcb4-bridge: i2c_rcb4_bridge.pyの起動に失敗しました(コマンド: ~A)" cmd))
+    (format t ";; start-i2c-rcb4-bridge: ~A~%" line)
+    (unless (probe-file link)
+      (format t ";; start-i2c-rcb4-bridge: 警告: ~A がまだ見えません(起動直後で少し待てば出ることがあります)~%" link))
+    (subseq link 5)))  ;; "/dev/ttyRCB4-i2c" -> "ttyRCB4-i2c" (:devnameは/dev/を自分で前置するため)
 
 ;; ルービックキューブの色パレット(基準Lab値)。kxr_cube_solverのconfig.py同様、
 ;; 実機のキューブ・照明ごとに手動キャリブレーションが必要な値。以下は0x24
@@ -1070,27 +1115,13 @@
 	       (round (cadr (memq :roll a))) (round (cadr (memq :pitch a))) (round (cadr (memq :yaw a))))
        (finish-output t))
      (send self :viewer-update)))
-  (:viewer-update
-   nil
-   ;;(send *irtviewer* :draw-objects :flush t)
-   (when
-       com-port
-     (send self :set-sysreg-bits '((:rom-on . 0) (:response-on . 0)))
-     (send self :real-orientation)
-     (send self :read-sensors)
-     (send robot :angle-vector (send self :read-angle-vector))
-     (send self :set-sysreg-bits '((:rom-on . 1)))
-     (send self :m5stickv-auto-update)
-     )
-   (when (send self :viewer)
-     (send self :viewer :viewer :draw-objects :flush nil)
-     (send self :draw-torque :flush nil :size 1.0)
-     (send self :draw-sensors :flush nil)
-     (send self :draw-end-coords :flush nil)
-     (send self :draw-zmp-coords :flush nil)
-     (send self :viewer :viewer :flush)
-     )
-   )
+  ;; 【2026.9】ここに:viewer-updateの重複定義があった(response-onを1へ
+  ;; 戻し忘れている旧版)。ファイル先頭の(defmethod rcb4-interface ...)
+  ;; (55行目付近、response-onも正しく戻す修正版)より後にロードされるため
+  ;; そちらを上書きしてしまい、:timer-on中に:response-onが0のまま戻らず
+  ;; RCB4以後永久に無応答になる、まさにヘッダコメントで説明されている
+  ;; 不具合そのものを再発させていた(実機確認、2026.9)。修正版と重複する
+  ;; ため削除した。
   )
 
 ;; ~/rcb4eus/rubikcube.l のrubik-cube クラス(kociembaのpython実装を
