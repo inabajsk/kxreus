@@ -6,6 +6,12 @@ USBシリアル変換アダプタとして接続し、純正「USB Dual Adapter 
 
 実機(ATOM 2台、RCB4-mini 搭載ロボット)で動作確認済み。
 
+**液晶付きAtomS3を使っていて、配線早見表・通信中インジケータ・RCB4コマンドの
+LEN/CMD/checksum検証結果を液晶に表示したい場合は、`../atoms3_rcb4_adapter/`
+(この`atom_rcb4_bridge`をベースにした液晶表示付き版、AtomS3専用)を使うこと。**
+このフォルダの`atom_rcb4_bridge.ino`は液晶の無いプレーンなATOMでも動く
+バイト中継専用の素の版のまま維持している。
+
 ## 対象ハードウェア
 
 - ATOM: M5Stack AtomS3 / AtomS3 Lite 系(ESP32-S3、USB-C、ネイティブUSB-CDC)
