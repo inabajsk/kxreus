@@ -49,6 +49,14 @@ HardwareSerial RCB4Serial(1);  // UART1 を RCB4-mini 用に使う
 
 static auto &display = M5.Display;
 
+// ---- 取り付け向き ----
+// USB-Cケーブル接続の都合上、../s3_echo_bridge/atoms3_simple_robot/
+// (ESP-NOW版)とはAtomS3をZ軸まわりで反転した向きに取り付ける。
+// この1箇所を書き換えるだけで、液晶の天地(setup()参照)とIMUのZ軸符号
+// (sendImuReply()参照)の両方が連動して切り替わるようにしてある
+// (どちらか一方だけ直して食い違う、という事故を防ぐため)。
+static const bool MOUNTED_UPSIDE_DOWN = true;
+
 // ---- 画面レイアウト(単語の途中で改行しないよう、あらかじめ短い行に分けてある) ----
 // 静止部分(setup()で一度だけ描画): タイトル+配線早見表。
 // 可変部分(loop()で更新): 通信中インジケータ(■)とRCB4コマンドのLEN/CMD。
@@ -179,19 +187,22 @@ void updateStatusDisplay() {
 }
 
 // IMU予約OPCODEの応答フレームを組み立ててPCへ返す(../s3_echo_bridge/
-// atoms3_simple_robot/ の sendImuReply と同一の計算式・フレーム形式)。
+// atoms3_simple_robot/ の sendImuReply と基本は同一の計算式・フレーム形式)。
+// ただしMOUNTED_UPSIDE_DOWN(取り付け向き、液晶回転と連動)がtrueの間は
+// Z軸(加速度az・角速度gz)の符号を反転して補正する。
 void sendImuReply() {
   m5::imu_data_t data = {};
   if (M5.Imu.isEnabled()) {
     M5.Imu.update();
     data = M5.Imu.getImuData();
   }
+  float zSign = MOUNTED_UPSIDE_DOWN ? -1.0f : 1.0f;
   int16_t ax = (int16_t)lroundf(data.accel.x * 1000.0f);  // milli-g
   int16_t ay = (int16_t)lroundf(data.accel.y * 1000.0f);
-  int16_t az = (int16_t)lroundf(data.accel.z * 1000.0f);
+  int16_t az = (int16_t)lroundf(zSign * data.accel.z * 1000.0f);
   int16_t gx = (int16_t)lroundf(data.gyro.x * 10.0f);  // 0.1 deg/s
   int16_t gy = (int16_t)lroundf(data.gyro.y * 10.0f);
-  int16_t gz = (int16_t)lroundf(data.gyro.z * 10.0f);
+  int16_t gz = (int16_t)lroundf(zSign * data.gyro.z * 10.0f);
 
   uint8_t frame[15];
   frame[0] = 0x0F;
@@ -212,6 +223,9 @@ void sendImuReply() {
 void setup() {
   auto cfg = M5.config();
   M5.begin(cfg);
+  if (MOUNTED_UPSIDE_DOWN) {
+    display.setRotation((display.getRotation() + 2) % 4);
+  }
   drawStaticHeader();
 
   Serial.begin(115200);  // USB-CDC側。ここで指定する速度は仮想シリアルなので実際の転送速度には影響しない
