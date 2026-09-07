@@ -43,7 +43,13 @@ ensure_arduino_cli() {
   fi
 
   # このスケッチは液晶表示にM5Unifiedを使う(依存のM5GFXも自動で入る)。
+  # ライブラリ索引(library_index.json)を明示的に更新してからinstallする。
+  # 索引が無い/古い状態でいきなりlib installすると、環境によっては
+  # (無関係なライブラリも大量に列挙されるなど)出力が非常に冗長になることが
+  # あるため、先にupdate-indexだけ済ませておく。
   if ! arduino-cli lib list 2>/dev/null | grep -q '^M5Unified'; then
+    echo "[setup] updating library index ..."
+    arduino-cli lib update-index
     echo "[setup] installing M5Unified library ..."
     arduino-cli lib install M5Unified
   fi
