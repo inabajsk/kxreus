@@ -50,14 +50,24 @@ HardwareSerial RCB4Serial(1);  // UART1 を RCB4-mini 用に使う
 static auto &display = M5.Display;
 
 // ---- 取り付け向き ----
-// 液晶の天地(setup()でdisplay.setRotationに使う)。
+// 液晶の天地(setup()でdisplay.setRotationに使う)。IMUの向きとは無関係
+// (実機確認の結果、連動していなかった)。
 static const bool MOUNTED_UPSIDE_DOWN = false;
-// IMUのZ軸符号(sendImuReply()で使う)。実機確認の結果、この2つは連動して
-// いなかった(液晶の天地は../s3_echo_bridge/atoms3_simple_robot/と同じで
-// 正しいが、IMUのZ軸だけそちらとは逆にする必要があった)ため、別々の
-// フラグに分けてある。:timer-on中のirtviewerでロボットのZ軸が逆(下向き
-// になるべきところが上向き等)に見える場合はここを反転すること。
-static const bool IMU_Z_INVERTED = false;
+
+// ---- IMUの取り付け向き補正(sendImuReply()で使う) ----
+// 実機で:read-imuの生値を採取して確認した結果(2026.9)、この構成は
+// ../s3_echo_bridge/atoms3_simple_robot/ に対してX軸まわり90度ぶん、
+// センサのY軸とZ軸の役割が入れ替わっている(通常姿勢でY=cosθ,Z=sinθ
+// 「θ=前傾角」という回転になっており、X軸はロール軸として変化しない)。
+// 単純にどちらか1軸だけ符号反転すると物理的にあり得ない鏡映変換
+// (行列式-1)になってしまい、実際にZ軸だけ反転して試した際は
+// Madgwickフィルタが不安定になり:timer-on中に振動する不具合が出た
+// (実機確認)。行列式+1の正しい回転にするため、Y軸とZ軸を入れ替えた上で
+// 片方の符号を反転する(ジャイロも同じ回転で変換する。加速度・角速度とも
+// 物理的な回転に対しては同じ変換則に従うため)。
+// もし:timer-on中のロボット姿勢が前後逆(前傾させると後ろに反るなど)に
+// 見える場合は、IMU_YZ_SIGNを反転すること(90度回転の向きがもう片方)。
+static const int IMU_YZ_SIGN = 1;
 
 // ---- 画面レイアウト(単語の途中で改行しないよう、あらかじめ短い行に分けてある) ----
 // 静止部分(setup()で一度だけ描画): タイトル+配線早見表。
@@ -190,21 +200,20 @@ void updateStatusDisplay() {
 
 // IMU予約OPCODEの応答フレームを組み立ててPCへ返す(../s3_echo_bridge/
 // atoms3_simple_robot/ の sendImuReply と基本は同一の計算式・フレーム形式)。
-// ただしIMU_Z_INVERTEDがtrueの間はZ軸(加速度az・角速度gz)の符号を
-// 反転して補正する。
+// ただしIMU_YZ_SIGN(取り付け向き補正、上のコメント参照)により、Y軸と
+// Z軸を入れ替えた回転をここで適用する。
 void sendImuReply() {
   m5::imu_data_t data = {};
   if (M5.Imu.isEnabled()) {
     M5.Imu.update();
     data = M5.Imu.getImuData();
   }
-  float zSign = IMU_Z_INVERTED ? -1.0f : 1.0f;
   int16_t ax = (int16_t)lroundf(data.accel.x * 1000.0f);  // milli-g
-  int16_t ay = (int16_t)lroundf(data.accel.y * 1000.0f);
-  int16_t az = (int16_t)lroundf(zSign * data.accel.z * 1000.0f);
+  int16_t ay = (int16_t)lroundf(IMU_YZ_SIGN * data.accel.z * 1000.0f);
+  int16_t az = (int16_t)lroundf(-IMU_YZ_SIGN * data.accel.y * 1000.0f);
   int16_t gx = (int16_t)lroundf(data.gyro.x * 10.0f);  // 0.1 deg/s
-  int16_t gy = (int16_t)lroundf(data.gyro.y * 10.0f);
-  int16_t gz = (int16_t)lroundf(zSign * data.gyro.z * 10.0f);
+  int16_t gy = (int16_t)lroundf(IMU_YZ_SIGN * data.gyro.z * 10.0f);
+  int16_t gz = (int16_t)lroundf(-IMU_YZ_SIGN * data.gyro.y * 10.0f);
 
   uint8_t frame[15];
   frame[0] = 0x0F;
