@@ -57,7 +57,7 @@ static const bool MOUNTED_UPSIDE_DOWN = false;
 // 正しいが、IMUのZ軸だけそちらとは逆にする必要があった)ため、別々の
 // フラグに分けてある。:timer-on中のirtviewerでロボットのZ軸が逆(下向き
 // になるべきところが上向き等)に見える場合はここを反転すること。
-static const bool IMU_Z_INVERTED = true;
+static const bool IMU_Z_INVERTED = false;
 
 // ---- 画面レイアウト(単語の途中で改行しないよう、あらかじめ短い行に分けてある) ----
 // 静止部分(setup()で一度だけ描画): タイトル+配線早見表。
