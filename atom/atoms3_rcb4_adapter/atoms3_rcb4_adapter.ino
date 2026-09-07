@@ -67,7 +67,7 @@ static const bool MOUNTED_UPSIDE_DOWN = false;
 // 物理的な回転に対しては同じ変換則に従うため)。
 // もし:timer-on中のロボット姿勢が前後逆(前傾させると後ろに反るなど)に
 // 見える場合は、IMU_YZ_SIGNを反転すること(90度回転の向きがもう片方)。
-static const int IMU_YZ_SIGN = 1;
+static const int IMU_YZ_SIGN = -1;
 
 // ---- 画面レイアウト(単語の途中で改行しないよう、あらかじめ短い行に分けてある) ----
 // 静止部分(setup()で一度だけ描画): タイトル+配線早見表。
