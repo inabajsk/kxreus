@@ -19,15 +19,21 @@ M5STACK_URL=https://static-cdn.m5stack.com/resource/arduino/package_m5stack_inde
 # m5stack:esp32コアが未導入ならそれも入れる(初めてこのフォルダをcloneした
 # マシンでも、このスクリプト単体でそのまま書き込みまで進められるように)。
 ensure_arduino_cli() {
-  if ! command -v arduino-cli >/dev/null 2>&1; then
-    echo "[setup] arduino-cli not found. installing to \$HOME/.local/bin ..."
+  # command -vだけだと「ファイルはあるが中身が壊れている(0バイト等)」
+  # 状態を見抜けない(空ファイルは実行しても即成功・無出力で終わるため、
+  # 以降のすべてのarduino-cli呼び出しが無反応で成功したように見えてしまう
+  # …という実際の不具合があった)。arduino-cli versionの出力が空でないか
+  # まで確認する。
+  if ! command -v arduino-cli >/dev/null 2>&1 || [ -z "$(arduino-cli version 2>/dev/null)" ]; then
+    echo "[setup] arduino-cli not found or broken. (re)installing to \$HOME/.local/bin ..."
+    rm -f "$HOME/.local/bin/arduino-cli"
     mkdir -p "$HOME/.local/bin"
     curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh \
       | BINDIR="$HOME/.local/bin" sh
     export PATH="$HOME/.local/bin:$PATH"
   fi
-  if ! command -v arduino-cli >/dev/null 2>&1; then
-    echo "[setup] arduino-cli install failed. install it manually and re-run." >&2
+  if [ -z "$(arduino-cli version 2>/dev/null)" ]; then
+    echo "[setup] arduino-cli install failed (still broken/empty). install it manually and re-run." >&2
     exit 1
   fi
 
