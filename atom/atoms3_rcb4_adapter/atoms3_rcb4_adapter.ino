@@ -197,8 +197,15 @@ void updateStatusDisplay() {
 
 // IMU予約OPCODEの応答フレームを組み立ててPCへ返す(../s3_echo_bridge/
 // atoms3_simple_robot/ の sendImuReply と基本は同一の計算式・フレーム形式)。
-// ただしIMU_Y_SIGN・IMU_Z_SIGN(取り付け向き補正、上のコメント参照)により、
-// Y軸・Z軸それぞれの符号を反転する(X軸=ロール軸はそのまま)。
+// 加速度はIMU_Y_SIGN・IMU_Z_SIGNで補正(直立姿勢の向きを決める)。
+//
+// ジャイロは加速度とは別に、atominterface.lの:madgwick-update/:read-gravity-imuを
+// 使って実際に回転を積分するシミュレーションで確認した(2026.9)。
+//   - gy(ヨー追跡 :imu-yaw に直接使われる)は向きが合っていたのでそのまま。
+//   - gx(ピッチ)・gz(ロール)はMadgwickフィルタでの回転方向がyaw実機確認済み分
+//     とは独立に決まっており、実機で「ヨーは正しいがピッチ・ロールが逆」と
+//     確認されたため、gx・gzだけ符号反転する(gyはyaw追跡専用でMadgwickの
+//     ピッチ・ロール計算には別経路のため、独立に調整できる)。
 void sendImuReply() {
   m5::imu_data_t data = {};
   if (M5.Imu.isEnabled()) {
@@ -208,9 +215,9 @@ void sendImuReply() {
   int16_t ax = (int16_t)lroundf(data.accel.x * 1000.0f);  // milli-g
   int16_t ay = (int16_t)lroundf(IMU_Y_SIGN * data.accel.y * 1000.0f);
   int16_t az = (int16_t)lroundf(IMU_Z_SIGN * data.accel.z * 1000.0f);
-  int16_t gx = (int16_t)lroundf(data.gyro.x * 10.0f);  // 0.1 deg/s
-  int16_t gy = (int16_t)lroundf(IMU_Y_SIGN * data.gyro.y * 10.0f);
-  int16_t gz = (int16_t)lroundf(IMU_Z_SIGN * data.gyro.z * 10.0f);
+  int16_t gx = (int16_t)lroundf(-1 * data.gyro.x * 10.0f);  // 0.1 deg/s (ピッチ、符号反転)
+  int16_t gy = (int16_t)lroundf(IMU_Y_SIGN * data.gyro.y * 10.0f);  // ヨー追跡用、そのまま
+  int16_t gz = (int16_t)lroundf(data.gyro.z * 10.0f);  // ロール、符号反転(IMU_Z_SIGN無し)
 
   uint8_t frame[15];
   frame[0] = 0x0F;
