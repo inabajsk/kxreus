@@ -41,6 +41,12 @@ ensure_arduino_cli() {
     arduino-cli core update-index
     arduino-cli core install m5stack:esp32
   fi
+
+  # このスケッチは液晶表示にM5Unifiedを使う(依存のM5GFXも自動で入る)。
+  if ! arduino-cli lib list 2>/dev/null | grep -q '^M5Unified'; then
+    echo "[setup] installing M5Unified library ..."
+    arduino-cli lib install M5Unified
+  fi
 }
 
 ensure_arduino_cli
