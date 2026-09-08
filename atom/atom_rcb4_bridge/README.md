@@ -85,22 +85,39 @@ RCB4-miniにはIMUが無い。AtomS3にはあるので、他のkxreus ATOMファ
 1フレームにつき2バイトしか保留しない。
 
 IMUが初期化できていない場合は全ゼロで応答する(他ファームと同じ)。加速度が
-零ベクトルになるので、重力方向を求める側で必ず失敗する。`rcb4`側の
-`RCB4Interface.read_imu_data()`は全ゼロを検出して例外にする。
+零ベクトルになるので、重力方向を求める側で必ず失敗する。読む側は全ゼロを
+エラーとして扱うこと。
 
-Python側:
+Python側(pyserialだけで完結する。上の疎通確認スクリプトと同じ書き方):
 
 ```python
-from rcb4.rcb4interface import RCB4Interface
-interface = RCB4Interface()
-interface.auto_open()
-q, acc, gyro = interface.read_imu_data()   # q は None(生値のみでフィルタ無し)
-                                           # acc [m/s^2], gyro [rad/s]
+import struct
+import serial
+
+with serial.Serial("/dev/ttyACM0", 1250000, timeout=1.0) as port:
+    port.write(bytes([0x03, 0x90, 0x93]))
+    reply = port.read(15)
+
+assert len(reply) == 15 and reply[1] == 0x90
+assert sum(reply[:14]) & 0xFF == reply[14], "checksum"
+ax, ay, az, gx, gy, gz = struct.unpack("<6h", reply[2:14])
+accel = [v / 1000.0 * 9.80665 for v in (ax, ay, az)]   # milli-g -> m/s^2
+gyro = [v / 10.0 * 3.141592653589793 / 180.0
+        for v in (gx, gy, gz)]                         # 0.1deg/s -> rad/s
+assert any(accel), "IMU returned all zeros"
 ```
+
+**応答の値はフレームの先頭からではなく2バイト目から始まる。** 長さとオペコード
+を読み飛ばさずにunpackすると、もっともらしい大きさの誤った値が出てくる
+(実際に `|a| = 18146 mg` を追いかけた)。
 
 クォータニオンは返らない(ブリッジは生値を送るだけでフィルタを持たない)ので、
 重力方向は加速度から求める。デプロイスクリプトなら
 `imu_gravity_source: accel`。
+
+`rcb4`側にも `RCB4Interface.read_imu_data()` を用意してあるが、**これはまだ
+どのリリースにも公開ブランチにも入っていない**(PyPIの0.1.3には無い)。公開され
+るまでは上のpyserial版を使うこと。
 
 ## PC側動作確認スクリプト
 
