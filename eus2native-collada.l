@@ -393,16 +393,28 @@
           ((and (>= ay ax) (>= ay az)) "p")
           (t "y"))))
 
+;; 実機確認済み: ロボットによって左右の表し方が異なる。Unitree G1/
+;; Booster K1は"left"/"right"という単語をjoint名のどこかに含む形式
+;; (substringp判定で十分)。一方Kawasaki RHP9は"L_SHOULDER_P"/
+;; "R_KNEE_P"のように"L_"/"R_"という1文字プレフィックスのみで表す形式
+;; (substringpだと"lc-e-linear-joint"のような補助アクチュエータ関節
+;; (パラレルリンク機構、実関節ではない)まで誤って拾ってしまうため、
+;; 先頭2文字が"l_"/"r_"かどうかで判定する)。
 (defun limb-side-of-real-name (name)
   (cond ((substringp "left" name) "l")
         ((substringp "right" name) "r")
+        ((and (>= (length name) 2) (string= (subseq name 0 2) "l_")) "l")
+        ((and (>= (length name) 2) (string= (subseq name 0 2) "r_")) "r")
         (t nil)))
 
 (defun limb-part-of-real-name (name)
   (cond ((substringp "shoulder" name) (cons "arm" "shoulder"))
         ((substringp "elbow" name) (cons "arm" "elbow"))
         ((substringp "wrist" name) (cons "arm" "wrist"))
+        ;; "hip"(Unitree G1/Booster K1)、"crotch"(RHP9)のどちらも
+        ;; :lleg/:rleg-crotch-*に統一する。
         ((substringp "hip" name) (cons "leg" "crotch"))
+        ((substringp "crotch" name) (cons "leg" "crotch"))
         ((substringp "knee" name) (cons "leg" "knee"))
         ((substringp "ankle" name) (cons "leg" "ankle"))
         (t nil)))

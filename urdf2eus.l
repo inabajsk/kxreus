@@ -102,7 +102,7 @@
 ;; ---- URDFの<link>1個ぶんの情報 ----
 
 (defclass urdf-link-info :super propertied-object
-  :slots (name mesh-file mass centroid inertia))
+  :slots (name mesh-file mass centroid inertia visual-origin))
 
 (defun parse-urdf-link (elem mesh-basedir)
   (let* ((name (xml-attr (xml-tag-attrs elem) "name"))
@@ -110,6 +110,20 @@
          (geom (and visual (xml-find visual "geometry")))
          (mesh (and geom (xml-find geom "mesh")))
          (mesh-file (and mesh (xml-attr (xml-tag-attrs mesh) "filename")))
+         ;; <visual><origin>: メッシュファイル自身のローカル座標系と
+         ;; リンク自身の原点がずれている場合に指定される(実機確認済み:
+         ;; RHP9のURDFで前腕・大腿部等、複数のリンクがこれを使っており、
+         ;; 恒等変換のまま無視すると、そのリンクの運動学的な位置は
+         ;; 正しいのに、見た目のメッシュだけ全く別の場所にずれて表示
+         ;; されてしまっていた)。
+         (visual-origin-elem (and visual (xml-find visual "origin")))
+         (visual-origin (if visual-origin-elem
+                             (make-coords
+                              :pos (m2mm-vec (apply #'float-vector
+                                                     (parse-floats (xml-attr (xml-tag-attrs visual-origin-elem) "xyz" "0 0 0"))))
+                              :rot (let ((rpy (parse-floats (xml-attr (xml-tag-attrs visual-origin-elem) "rpy" "0 0 0"))))
+                                     (rpy-matrix (nth 2 rpy) (nth 1 rpy) (nth 0 rpy))))
+                           (make-coords)))
          (inertial (xml-find elem "inertial"))
          (mass-elem (and inertial (xml-find inertial "mass")))
          (origin-elem (and inertial (xml-find inertial "origin")))
@@ -132,7 +146,8 @@
             (li . mesh-file) (and mesh-file (resolve-mesh-path mesh-file mesh-basedir))
             (li . mass) (kg2g mass)
             (li . centroid) centroid
-            (li . inertia) i)
+            (li . inertia) i
+            (li . visual-origin) visual-origin)
       li)))
 
 ;; URDFのmesh filenameは"meshes/foo.stl"(URDF自身からの相対パス、
@@ -438,7 +453,7 @@
                    ;; 誤った位置)になっていた。サイズ(diagonal)は不変な
                    ;; ので個々のリンクの位置精度チェックでは検出できず、
                    ;; 集約bboxでのみ症状が出ていた)。
-                   (faces (and li (read-link-mesh-faces-local li (make-coords))))
+                   (faces (and li (read-link-mesh-faces-local li (li . visual-origin))))
                    (glv (if faces
                             (gl::make-glvertices-from-faces faces)
                           (gl::make-glvertices-from-faceset (make-cube 10 10 10)))))

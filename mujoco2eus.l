@@ -89,7 +89,7 @@
 ;; ---- <body>1個ぶんの情報 ----
 
 (defclass mjcf-body-info :super propertied-object
-  :slots (name pos-coords mass centroid inertia mesh-file
+  :slots (name pos-coords mass centroid inertia mesh-file geom-origin
           joint-name joint-type joint-axis joint-lower joint-upper))
 
 (defun mjcf-body-pos-coords (attrs)
@@ -125,6 +125,12 @@
          (geom (xml-find elem "geom"))
          (mesh-name (and geom (xml-attr (xml-tag-attrs geom) "mesh")))
          (mesh-file (and mesh-name (cdr (assoc mesh-name mesh-alist :test #'string=))))
+         ;; <geom>自身のpos/quat: メッシュ自体がbodyフレームからずれて
+         ;; 配置されている場合に指定される(urdf2eus.lの<visual><origin>
+         ;; と同種。実機確認済みの同種バグ: これを無視すると、そのbody
+         ;; の運動学的な位置は正しいのに、見た目のメッシュだけ別の場所に
+         ;; ずれて表示される)。
+         (geom-origin (if geom (mjcf-body-pos-coords (xml-tag-attrs geom)) (make-coords)))
          (joint-elem0 (xml-find elem "joint"))
          (bi (instance mjcf-body-info))
          ;; type="free"(6dof浮遊ベース)はrotational-joint/linear-joint
@@ -136,7 +142,7 @@
                           joint-elem0)))
     (setq (bi . name) name (bi . pos-coords) abs-coords
           (bi . mass) (kg2g mass) (bi . centroid) centroid (bi . inertia) inertia
-          (bi . mesh-file) mesh-file)
+          (bi . mesh-file) mesh-file (bi . geom-origin) geom-origin)
     ;; linear-jointに相当する概念が無いため、そのリンクは(rootと同様)
     ;; joint無しのリンクとして扱う(free jointの担うベースの6dofは
     ;; そもそも:transformで直接絶対位置を書き込んでいるので情報は失われ
@@ -270,7 +276,7 @@
                                    (read-link-mesh-faces-local
                                     (let ((li (instance urdf-link-info)))
                                       (setq (li . mesh-file) mesh-file) li)
-                                    (make-coords))))
+                                    (if bi (bi . geom-origin) (make-coords)))))
                        ;; read-link-mesh-faces-localは既にリンク自身の
                        ;; ローカル座標系で焼き込み済みなので、ここでさらに
                        ;; :set-offset link-invを掛けるのは二重変換になる
