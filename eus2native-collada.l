@@ -282,6 +282,70 @@
             (eus-name-string (send j :child-link))))
   (format strm "     (send self :assoc ~A_lk)~%" (eus-name-string root-link)))
 
+;; ---- リンク/腕/脚/頭ごとの姿勢リセットメソッド(:neutral等) ----
+;;
+;; 既存のcollada2eus生成ファイル(models/*.l)には:neutral/:reset-pose/
+;; :reset-manip-poseがあり、いずれも同じ本体(:rarm/:larm/:rleg/:lleg/
+;; :headの各関節を0にする)を持つ。実装は
+;; `(send self limb :angle-vector (float-vector 0 ...))`という、
+;; robot-model組み込みの汎用limb accessor(:rarm等、リンク名の
+;; prefixから自動でlimbを構成する仕組み)を経由している。
+;;
+;; このrobot-model組み込みのlimb accessorを生成時にネイティブロボットへ
+;; 試しに呼んでみたところ、:rarmは正しく高速に動くが:larmや:end-coords
+;; など一部の呼び出しが数十秒単位でハングする現象を実機で確認した
+;; (ネイティブのkxr-body構造がその探索アルゴリズムと相性が悪いと
+;; 見られる。原因の完全な特定はしていない)。595体のロボットすべてを
+;; バッチ生成する際にこれに依存するのは危険なので、生成時には一切
+;; 使わない。代わりに、関節名のprefix("rarm-","larm-","rleg-",
+;; "lleg-","head-")だけを見て生成時にlimbごとの関節リストを組み立て、
+;; 生成される:neutral等の本体では各関節の:joint-angleを直接0にする
+;; (:rarm等のlimb accessorには一切依存しない、実行時も安全)。
+(defun limb-of-joint-name (name)
+  (cond ((substringp "rarm-" name) :rarm)
+        ((substringp "larm-" name) :larm)
+        ((substringp "rleg-" name) :rleg)
+        ((substringp "lleg-" name) :lleg)
+        ((substringp "head-" name) :head)
+        (t nil)))
+
+(defun group-joints-by-limb (joints)
+  ;; ((:rarm "rarm-shoulder-p" "rarm-shoulder-r" ...) (:larm ...) ...)
+  ;; joint-listの元の順序を保ったまま、limbごとにまとめる。
+  (let (alist)
+    (dolist (j joints)
+      (let* ((name (eus-name-string j))
+             (limb (limb-of-joint-name name)))
+        (when limb
+          (let ((cell (assoc limb alist)))
+            (if cell
+                (setf (cdr cell) (append (cdr cell) (list name)))
+              (push (list limb name) alist))))))
+    (nreverse alist)))
+
+(defun dump-pose-method (strm method-name docstring limb-groups)
+  (format strm "  (:~A~%" method-name)
+  (format strm "   (&optional (limbs '(")
+  (dolist (g limb-groups) (format strm "~A " (car g)))
+  (format strm ")))~%")
+  (format strm "   ~S~%" docstring)
+  (format strm "   (unless (listp limbs) (setq limbs (list limbs)))~%")
+  (format strm "   (dolist (limb limbs)~%")
+  (format strm "     (case limb~%")
+  (dolist (g limb-groups)
+    (format strm "       (~A " (car g))
+    (dolist (jname (cdr g)) (format strm "(send self :~A :joint-angle 0) " jname))
+    (format strm ")~%"))
+  (format strm "       (t (format t \"Unknown limb is passed: ~~a~~%%\" limb))))~%")
+  (format strm "   (send self :angle-vector))~%"))
+
+(defun dump-pose-methods (strm joints)
+  (let ((limb-groups (group-joints-by-limb joints)))
+    (when limb-groups
+      (dump-pose-method strm "reset-pose" "Predefined pose named reset-pose." limb-groups)
+      (dump-pose-method strm "reset-manip-pose" "Predefined pose named reset-manip-pose." limb-groups)
+      (dump-pose-method strm "neutral" "Predefined pose named neutral." limb-groups))))
+
 ;; ---- ジョイント1個ぶん ----
 
 (defun joint-class-name (joint)
@@ -360,6 +424,13 @@
       (dolist (j joints)
         (format strm "  (:~A (&rest args) (forward-message-to ~A_jt args))~%"
                 (eus-name-string j) (eus-name-string j)))
+      ;; リンク名アクセサ(models/*.lにあり、eusmodels/*.lに無かったもの)
+      (dolist (l links)
+        (format strm "  (:~A_lk (&rest args) (forward-message-to ~A_lk args))~%"
+                (eus-name-string l) (eus-name-string l)))
+      ;; :neutral/:reset-pose/:reset-manip-pose(models/*.lにあり、
+      ;; eusmodels/*.lに無かったもの)
+      (dump-pose-methods strm joints)
       (format strm "  )~%~%")
       ;; ジオメトリ生成メソッド本体
       ;;
