@@ -226,6 +226,45 @@
                            (send f :vertices))))
      local-faces)))
 
+;; ---- XMLコメントの除去(tiny-xml::parseに渡す前の前処理) ----
+;;
+;; tiny-xml.l(xml-read2)のコメント処理は"<!--"で始まるタグを1個の
+;; 葉ノードとして扱うだけで、"-->"までを正しく読み飛ばすわけではない
+;; (実機確認済み)。そのため、コメントの中にタグらしき文字列(URDFでは
+;; よく「mujoco変換時はここのコメントを外す」という参考コード片が
+;; コメントとして書かれている、実際にUnitree G1のURDFで遭遇)が
+;; 含まれていると、コメントの中身まで本物のタグとして誤ってparseされて
+;; しまう。ここで"<!--"から最初の"-->"までを機械的に取り除いた一時
+;; ファイルを作り、それをtiny-xml::parseに渡す。
+(defun strip-xml-comments-to-tmpfile (path)
+  ;; 1文字ずつstring concatenateすると(EusLispのstringはimmutableで
+  ;; 毎回コピーが発生するため)O(n^2)になり数万文字のファイルで
+  ;; 極端に遅くなる(実機確認済み、24KB程度のURDFで数分以上かかり
+  ;; 実質ハング)。かわりに、非コメント部分を"チャンク"(部分文字列)の
+  ;; リストとして集め、最後に一度だけ結合する(O(n))。
+  (let* ((text (with-open-file (f path :direction :input)
+                 (let ((lines nil) line)
+                   (while (setq line (read-line f nil))
+                     (push line lines) (push (string #\Newline) lines))
+                   (apply #'concatenate string (nreverse lines)))))
+         (chunks nil) (i 0) (chunk-start 0) (n (length text)))
+    (while (< i n)
+      (if (and (<= (+ i 4) n) (string= (subseq text i (+ i 4)) "<!--"))
+          (let ((e (+ i 4)) (found nil))
+            (when (> i chunk-start) (push (subseq text chunk-start i) chunks))
+            (while (and (not found) (<= (+ e 3) n))
+              (if (string= (subseq text e (+ e 3)) "-->")
+                  (progn (setq i (+ e 3)) (setq found t))
+                (incf e)))
+            (unless found (setq i n))
+            (setq chunk-start i))
+        (incf i)))
+    (when (> n chunk-start) (push (subseq text chunk-start n) chunks))
+    (let ((tmpfile (format nil "/tmp/urdf2eus-nocomment-~A.xml" (unix::getpid))))
+      (with-open-file (f tmpfile :direction :output :if-exists :supersede)
+        (princ (apply #'concatenate string (nreverse chunks)) f))
+      tmpfile)))
+
 ;; ---- メイン ----
 
 (defun path-dirname (path)
@@ -238,7 +277,7 @@
     (if p (subseq path 0 p) ".")))
 
 (defun urdf-to-native-collada-file (urdf-path &key (outfile nil))
-  (let* ((doc (tiny-xml::parse urdf-path))
+  (let* ((doc (tiny-xml::parse (strip-xml-comments-to-tmpfile urdf-path)))
          (robot-elem (if (string= (xml-tag-name doc) "robot") doc (xml-find doc "robot")))
          (name-str (xml-attr (xml-tag-attrs robot-elem) "name"))
          (mesh-basedir (path-dirname urdf-path))
@@ -272,16 +311,31 @@
     ;; リンクごとにbodyset-linkインスタンスを構築(絶対=ルート相対coords
     ;; に直接:transformするので、実際の親子assocは不要。eus2native-
     ;; collada.lのdump-link-init-formはworldcoordsだけを見るため)。
+    ;;
+    ;; 注意: bodyset-linkの:bodiesには実メッシュのfaceset化(geometry::
+    ;; faceset :init :faces ...)を使わない。faceset:initが
+    ;; remove-duplicates(edges/vertices両方)を全faceの生データに対して
+    ;; 行っており、これがO(n^2)(実質n^3に近い、apply #'append→
+    ;; remove-duplicatesの組み合わせ)であるため、数万三角形規模の
+    ;; メッシュ(市販ロボットの公式CADメッシュ等でよくある)で実質
+    ;; ハングする(実機確認済み: 44658三角形のメッシュでfacesetの:init
+    ;; だけで10分以上経っても終わらなかった)。:bodiesはbodyset-linkの
+    ;; :init内の:assoc用に何か実体が要るだけなので安価なmake-cubeで
+    ;; 済ませる。
+    ;;
+    ;; さらに、全リンクぶんのface生データを事前に(let*の束縛として)
+    ;; 一括で保持するのも避ける。リンク数の多いロボット(20〜30リンク、
+    ;; 各数万三角形)では全リンクぶんの生頂点データが同時にメモリ上に
+    ;; 残り続け、GCが著しく遅くなることを実機確認済み(個々のメッシュは
+    ;; 数十秒で終わるのに全体では数十分経っても完了しなかった)。かわりに
+    ;; 最終出力ループ内でリンクごとにその場でfacesを読み、使い終わったら
+    ;; (次のリンクに移る際にGC対象にできるよう)保持しない。
     (let* ((link-obj-alist
             (mapcar
              #'(lambda (li)
                  (let* ((abs-coords (cdr (assoc (li . name) abs-coords-alist :test #'string=)))
-                        (faces (read-link-mesh-faces-local li (make-coords)))
-                        (body (if faces
-                                  (instance geometry::faceset :init :faces faces)
-                                (make-cube 10 10 10)))
                         (lk (instance bodyset-link :init (make-cascoords)
-                                      :bodies (list body) :name (li . name))))
+                                      :bodies (list (make-cube 10 10 10)) :name (li . name))))
                    (send lk :weight (li . mass))
                    (setq (lk . acentroid) (li . centroid))
                    (setq (lk . inertia-tensor) (li . inertia))
@@ -356,13 +410,23 @@
           (format strm "(defmethod ~A~%" classname)
           (dolist (l links)
             (let* ((lname (eus-name-string l))
-                   (glv-src (car (send l :bodies)))
-                   (link-inv (send (send l :worldcoords) :inverse-transformation))
-                   (glv (let ((g (gl::make-glvertices-from-faceset glv-src)))
-                          (send g :set-offset link-inv)
-                          g))
-                   (bbox (send glv :calc-bounding-box)))
-              (dump-glvertices-geom-method strm lname (send bbox :center) (send bbox :diagonal) (list glv))))
+                   (li (find (send l :name) link-infos :key #'(lambda (x) (x . name)) :test #'string=))
+                   ;; read-link-mesh-faces-localは既にリンク自身のローカル
+                   ;; 座標系で焼き込み済み(visual-originのみ適用、絶対座標
+                   ;; へは変換しない)なので、ここでさらに:set-offset
+                   ;; link-invを掛けるのは二重変換になる(実機確認済みの
+                   ;; バグ: head-neck-pの箱がZ=[-8,69](正しい、リンク相対)
+                   ;; ではなくZ=[-126.5,-49.5](link-invが二重適用された
+                   ;; 誤った位置)になっていた。サイズ(diagonal)は不変な
+                   ;; ので個々のリンクの位置精度チェックでは検出できず、
+                   ;; 集約bboxでのみ症状が出ていた)。
+                   (faces (and li (read-link-mesh-faces-local li (make-coords))))
+                   (glv (if faces
+                            (gl::make-glvertices-from-faces faces)
+                          (gl::make-glvertices-from-faceset (make-cube 10 10 10)))))
+              (let ((bbox (send glv :calc-bounding-box)))
+                (dump-glvertices-geom-method strm lname (send bbox :center) (send bbox :diagonal) (list glv)))
+              (setq faces nil)))
           (format strm "  )~%"))
         (format t ";; urdf-to-native-collada-file: wrote ~A (~A links, ~A joints)~%"
                 outfile (length links) (length joints))

@@ -60,12 +60,29 @@
 
 ;; ---- <asset>のmesh名->ファイルパスの対応 ----
 
+(defun mjcf-file-basename-noext (path)
+  ;; <mesh>にname属性が無い場合、MuJoCoの規約でfileのbasename
+  ;; (拡張子抜き)がそのままmesh名になる。
+  (let* ((parts (string-to-list path #\/))
+         (fname (car (last parts)))
+         (dotparts (string-to-list fname #\.)))
+    (if (> (length dotparts) 1)
+        (join-strings (butlast dotparts) ".")
+      fname)))
+
 (defun mjcf-asset-mesh-alist (root-elem mesh-basedir)
-  (let ((asset (xml-find root-elem "asset")))
+  ;; <compiler meshdir="...">はmesh要素のfile属性の基準ディレクトリを
+  ;; 変える(MuJoCoの規約)。URDFには無い概念なのでここだけ独自対応。
+  (let* ((compiler (xml-find root-elem "compiler"))
+         (meshdir (and compiler (xml-attr (xml-tag-attrs compiler) "meshdir")))
+         (mesh-root (if meshdir (format nil "~A/~A" mesh-basedir meshdir) mesh-basedir))
+         (asset (xml-find root-elem "asset")))
     (if asset
         (mapcar #'(lambda (m)
-                    (cons (xml-attr (xml-tag-attrs m) "name")
-                          (resolve-mesh-path (xml-attr (xml-tag-attrs m) "file") mesh-basedir)))
+                    (let* ((attrs (xml-tag-attrs m))
+                           (file (xml-attr attrs "file"))
+                           (name (xml-attr attrs "name" (mjcf-file-basename-noext file))))
+                      (cons name (resolve-mesh-path file mesh-root))))
                 (xml-find-all asset "mesh"))
       nil)))
 
@@ -108,11 +125,22 @@
          (geom (xml-find elem "geom"))
          (mesh-name (and geom (xml-attr (xml-tag-attrs geom) "mesh")))
          (mesh-file (and mesh-name (cdr (assoc mesh-name mesh-alist :test #'string=))))
-         (joint-elem (xml-find elem "joint"))
-         (bi (instance mjcf-body-info)))
+         (joint-elem0 (xml-find elem "joint"))
+         (bi (instance mjcf-body-info))
+         ;; type="free"(6dof浮遊ベース)はrotational-joint/linear-joint
+         ;; どちらでも表現できないため、jointが無い(ルートと同様)扱いに
+         ;; する。ベース自身の絶対位置は:transformで直接書き込むので
+         ;; 情報は失われない。
+         (joint-elem (and joint-elem0
+                          (not (string= (xml-attr (xml-tag-attrs joint-elem0) "type" "hinge") "free"))
+                          joint-elem0)))
     (setq (bi . name) name (bi . pos-coords) abs-coords
           (bi . mass) (kg2g mass) (bi . centroid) centroid (bi . inertia) inertia
           (bi . mesh-file) mesh-file)
+    ;; linear-jointに相当する概念が無いため、そのリンクは(rootと同様)
+    ;; joint無しのリンクとして扱う(free jointの担うベースの6dofは
+    ;; そもそも:transformで直接絶対位置を書き込んでいるので情報は失われ
+    ;; ない、可動関節としての表現だけを省略する)。
     (when joint-elem
       (let ((jattrs (xml-tag-attrs joint-elem)))
         (setq (bi . joint-name) (xml-attr jattrs "name")
@@ -128,7 +156,7 @@
 ;; ---- メイン ----
 
 (defun mujoco-to-native-collada-file (mjcf-path &key (outfile nil))
-  (let* ((doc (tiny-xml::parse mjcf-path))
+  (let* ((doc (tiny-xml::parse (strip-xml-comments-to-tmpfile mjcf-path)))
          (root-elem (if (string= (xml-tag-name doc) "mujoco") doc (xml-find doc "mujoco")))
          (name-str (xml-attr (xml-tag-attrs root-elem) "model"))
          (mesh-basedir (path-dirname mjcf-path))
@@ -141,18 +169,20 @@
       ;; 複雑になるため、ここでは素直にelem木を再走査する)。
       (let* ((root-bi (car body-infos))
              (name-of-bi (mapcar #'(lambda (bi) (cons (bi . name) bi)) body-infos))
+             ;; メッシュの実データ(faces)はbodyset-linkの:bodiesには
+             ;; 入れない。geometry::faceset:initがedges/verticesの
+             ;; remove-duplicatesを全faceの生データに対して行うため、
+             ;; 数万三角形規模のメッシュで実質ハングする(urdf2eus.lで
+             ;; 実機確認済み)。:bodiesは:assoc用の安価なmake-cubeで
+             ;; 済ませる。また、全リンクぶんのfacesを事前に一括保持する
+             ;; のも避ける(リンク数が多いロボットでGCが著しく遅くなる、
+             ;; urdf2eus.lで実機確認済み)。最終出力ループでリンクごとに
+             ;; その場でfacesを読む(name-of-bi経由でbi(mesh-fileを
+             ;; 持つ)を引く)。
              (links (mapcar
                      #'(lambda (bi)
-                         (let* ((faces (and (bi . mesh-file) (probe-file (bi . mesh-file))
-                                             (read-link-mesh-faces-local
-                                              (let ((li (instance urdf-link-info)))
-                                                (setq (li . mesh-file) (bi . mesh-file)) li)
-                                              (make-coords))))
-                                (body (if faces
-                                          (instance geometry::faceset :init :faces faces)
-                                        (make-cube 10 10 10)))
-                                (lk (instance bodyset-link :init (make-cascoords)
-                                              :bodies (list body) :name (bi . name))))
+                         (let ((lk (instance bodyset-link :init (make-cascoords)
+                                             :bodies (list (make-cube 10 10 10)) :name (bi . name))))
                            (send lk :weight (bi . mass))
                            (setq (lk . acentroid) (bi . centroid))
                            (setq (lk . inertia-tensor) (bi . inertia))
@@ -233,13 +263,23 @@
               (format strm "(defmethod ~A~%" classname)
               (dolist (l all-links)
                 (let* ((lname (eus-name-string l))
-                       (glv-src (car (send l :bodies)))
-                       (link-inv (send (send l :worldcoords) :inverse-transformation))
-                       (glv (let ((g (gl::make-glvertices-from-faceset glv-src)))
-                              (send g :set-offset link-inv)
-                              g))
-                       (bbox (send glv :calc-bounding-box)))
-                  (dump-glvertices-geom-method strm lname (send bbox :center) (send bbox :diagonal) (list glv))))
+                       (bi (cdr (assoc (send l :name) name-of-bi :test #'string=)))
+                       (mesh-file (and bi (bi . mesh-file)))
+                       (faces (and mesh-file (probe-file mesh-file)
+                                   (read-link-mesh-faces-local
+                                    (let ((li (instance urdf-link-info)))
+                                      (setq (li . mesh-file) mesh-file) li)
+                                    (make-coords))))
+                       ;; read-link-mesh-faces-localは既にリンク自身の
+                       ;; ローカル座標系で焼き込み済みなので、ここでさらに
+                       ;; :set-offset link-invを掛けるのは二重変換になる
+                       ;; (urdf2eus.lで実機確認済みの同種バグ)。
+                       (glv (if faces
+                                (gl::make-glvertices-from-faces faces)
+                              (gl::make-glvertices-from-faceset (make-cube 10 10 10)))))
+                  (let ((bbox (send glv :calc-bounding-box)))
+                    (dump-glvertices-geom-method strm lname (send bbox :center) (send bbox :diagonal) (list glv)))
+                  (setq faces nil)))
               (format strm "  )~%"))
             (format t ";; mujoco-to-native-collada-file: wrote ~A (~A links, ~A joints)~%"
                     outfile (length all-links) (length joint-objs))
