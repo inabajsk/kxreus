@@ -266,3 +266,43 @@
                               tmp-v0 tmp-v1 tmp-v2 tmp-v3 tmp-v3a tmp-v3b tmp-m33)
          ))
   )
+
+;;;
+;;; ここから下はkxreus独自の追加(ROS本家のeuscollada-robot.lには無い)。
+;;;
+;;; :look-allで全身が正しくビューワに収まるようにするための補助。
+;;;
+;;; models/*.l(collada2eus生成)のbodyはcollada-body(実体のあるCSG
+;;; body、gl::glbody -> body)なので、:vertices呼び出しのたびに自分の
+;;; :worldcoords(関節・リンクの現在位置)を反映して動的に計算される。
+;;; :look-all(irtviewer.l)は(send-all x::draw-things :vertices)で
+;;; ロボットの全body(draw-thingsはロボットを:bodiesまで展開する)の頂点を
+;;; 集めてbboxを作るため、models/*.lは常に正しい全身のbboxが得られる。
+;;;
+;;; 一方eusmodels/*.l(eus2native-collada.lの生成)のbodyは生の
+;;; gl::glvertices。glverticesの:verticesは静的で、mesh-list(リンク
+;;; 相対に焼き込んだ生の頂点データ)から一度だけ計算してキャッシュした
+;;; bboxをそのまま返すだけで、:worldcoords(そのリンクの実際の位置)を
+;;; 一切反映しない(実機確認)。そのため:look-allが集めるbboxは「全リンク
+;;; が原点にあるかのような」範囲になり、実際に離れた位置にある手足を
+;;; 含む全身の正しい範囲より小さく見積もられてしまい、ビューワから
+;;; ロボットがはみ出す。
+;;;
+;;; 対策として、既に検証済みの生成ロジック(描画・関節追従)には一切
+;;; 触れず、:look-all用に正しい(worldcoords込みの)bboxを計算する
+;;; メソッドだけをeuscollada-robotに追加する。各bodyの:vertices(局所
+;;; frameでのbounding-boxの頂点、キャッシュ済みで軽い)を、そのbodyの
+;;; 現在の:worldcoordsで変換して集める。
+(defmethod euscollada-robot
+  (:look-all-bbox
+   ()
+   (let (vlst)
+     (dolist (bd (send self :bodies))
+       (let ((wc (send bd :worldcoords)))
+         (dolist (v (send bd :vertices))
+           (push (send wc :transform-vector v) vlst))))
+     (geo::make-bounding-box vlst)))
+  (:look-all
+   (&optional (viewer (and (boundp '*irtviewer*) *irtviewer*)))
+   (unless viewer (error "euscollada-robot: :look-all needs a viewer (none given, and *irtviewer* is not bound)"))
+   (send viewer :look-all (send self :look-all-bbox))))
