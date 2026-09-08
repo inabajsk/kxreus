@@ -17,6 +17,8 @@ POLICY. The screen says which.
 
     r       start. The hand goes to the home stance first (about a
             second, shown as HOME), then the policy takes over standing
+    g       rise: roll on the wheels -> stand on the fingertips
+    h       sit:  fingertips -> back onto the wheels
     w / s   forward speed up / down
     a / d   turn left / right
     space   hold: ramp back to the home pose, policy still running
@@ -48,9 +50,13 @@ DEVICE_FRAME_SIZE = 34
 # Velocities travel as int16 thousandths, so 0.35 m/s is 350.
 VELOCITY_SCALE = 1000.0
 
-FREE, RUN, HOLD = 0, 1, 2
-STATE_NAMES = {0: "IDLE", 1: "RUN", 2: "HOLD", 3: "FAULT", 4: "HOME"}
-MODE_NAMES = {0: "free", 1: "run", 2: "hold"}
+FREE, RUN, HOLD, RISE, SIT = 0, 1, 2, 3, 4
+STATE_NAMES = {0: "IDLE", 1: "RUN", 2: "HOLD", 3: "FAULT", 4: "HOME",
+               5: "SEQ"}
+MODE_NAMES = {0: "free", 1: "run", 2: "hold", 3: "rise", 4: "sit"}
+# The order lib/policy compiles them in.
+ACTOR_NAMES = {0: "crawl", 1: "omni", 2: "walk", 3: "legs", 4: "rise", 5: "sit"}
+# The device sets bit 7 of the actor byte when it is NOT using the IMU.
 
 # The same limits hand_deploy.py's teleop uses, so the stick feels the same.
 VX_MIN, VX_MAX, VX_STEP = -0.3, 0.5, 0.05
@@ -62,7 +68,7 @@ WZ_MAX, WZ_STEP = 1.0, 0.1
 SEND_INTERVAL_S = 0.1
 
 
-def host_frame(mode, vx, vy, wz):
+def host_frame(mode, vx, vy, wz, use_imu=False):
     """Build the 9 byte command frame.
 
     Parameters
@@ -71,6 +77,14 @@ def host_frame(mode, vx, vy, wz):
         FREE, RUN or HOLD.
     vx, vy, wz : float
         Velocity command in m/s and rad/s.
+    use_imu : bool
+        Whether the device should take its attitude from the IMU. Default
+        False, which is the policy's own stance constant. The IMU is the
+        physically honest source, but the runs that actually worked on this
+        hand were the ones without it, and the mounting rotation still has a
+        ~10 degree residual that has not been separated into "board tilted"
+        from "hand not level". Off until that is measured, not because the
+        IMU is wrong.
 
     Returns
     -------
@@ -79,7 +93,7 @@ def host_frame(mode, vx, vy, wz):
     body = struct.pack(
         "<BBhhh",
         HOST_MAGIC,
-        mode,
+        mode if use_imu else (mode | 0x80),
         int(round(vx * VELOCITY_SCALE)),
         int(round(vy * VELOCITY_SCALE)),
         int(round(wz * VELOCITY_SCALE)),
@@ -95,13 +109,14 @@ def read_telemetry(link):
     """
     latest = None
     for rest in link.frames():
-        (state, request, _pad, step, loop_us, overruns, errors,
+        (state, request, actor, step, loop_us, overruns, errors,
          host_frames, peak, vx, wz, home_err, pose_err) = struct.unpack(
             "<BBBIIIIIhhhhh", rest[:DEVICE_FRAME_SIZE - 1]
         )
         latest = {
             "state": state,
             "request": request,
+            "actor": actor,
             "step": step,
             "loop_us": loop_us,
             "overruns": overruns,
@@ -266,12 +281,19 @@ def main():
 
     vx = wz = 0.0
     mode = FREE
+    # Matches the device's own default and the web page's, so the first frame
+    # this program sends does not silently switch the attitude source out from
+    # under a hand that was working.
+    use_imu = False
     last_send = 0.0
     telemetry = None
 
     print(__doc__.split("Put the AtomS3")[0].strip())
     print("\n  connected via {}".format(link.name))
-    print("\n  r start (home, then stand)   w/s speed   a/d turn"
+    print("\n  g rise   h sit   i attitude: stance constant <-> IMU"
+          " (a * after the policy name means constant)")
+    print("  Attitude starts at the stance constant; press i for the IMU.")
+    print("  r start (home, then stand)   w/s speed   a/d turn"
           "   space hold   f free   q quit")
     print("\n  Servos stay free until you press r or a movement key.")
     print("  'rx' below counts frames the AtomS3 accepted from here."
@@ -304,6 +326,20 @@ def main():
                         vx = wz = 0.0
                     elif key == " ":
                         mode = HOLD
+                    elif key in "iI":
+                        # A/B the attitude source. The wheeled policy was
+                        # first driven with a constant gravity and a zero
+                        # gyro, and worked; the live IMU arrived at the same
+                        # time as the move onto the AtomS3, so this is the
+                        # only way to tell the two apart on the hand.
+                        use_imu = not use_imu
+                    elif key in "gG":
+                        # Wheels -> fingertips. The device owns the sequence
+                        # from here; it ramps, runs rise, and hands straight
+                        # over to the walking policy without a ramp between.
+                        mode = RISE
+                    elif key in "hH":
+                        mode = SIT
                     elif key in "fF":
                         mode = FREE
                         vx = wz = 0.0
@@ -315,7 +351,7 @@ def main():
                 now = time.time()
                 if now - last_send >= SEND_INTERVAL_S:
                     last_send = now
-                    link.send(host_frame(mode, vx, 0.0, wz))
+                    link.send(host_frame(mode, vx, 0.0, wz, use_imu))
 
                 fresh = read_telemetry(link)
                 if fresh is not None:
@@ -326,13 +362,15 @@ def main():
                     # command that never arrived.
                     print(
                         "\r  vx {:+.2f} wz {:+.2f} | {:<5s} req {:<4s}"
-                        " rx {:<6d} step {:<7d} loop {:5.1f}ms"
+                        " {:<5s} rx {:<6d} step {:<7d} loop {:5.1f}ms"
                         " over {:<4d} err {:<3d} |act| {:.2f}"
                         " home {:>6s} pose {:4.1f}d   ".format(
                             telemetry["vx"],
                             telemetry["wz"],
                             STATE_NAMES.get(telemetry["state"], "?"),
                             MODE_NAMES.get(telemetry["request"], "?"),
+                            ACTOR_NAMES.get(telemetry["actor"] & 0x7F, "?")
+                            + ("" if not telemetry["actor"] & 0x80 else "*"),
                             telemetry["host_frames"],
                             telemetry["step"],
                             telemetry["loop_us"] / 1000.0,
@@ -351,7 +389,7 @@ def main():
             # Leaving a hand held by a program that has stopped watching it is
             # the one outcome worth writing a finally block for.
             for _ in range(3):
-                link.send(host_frame(FREE, 0.0, 0.0, 0.0))
+                link.send(host_frame(FREE, 0.0, 0.0, 0.0, use_imu))
                 time.sleep(0.02)
             link.close()
             print("\nfreed.")

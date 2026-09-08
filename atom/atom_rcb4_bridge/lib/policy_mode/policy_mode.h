@@ -76,6 +76,9 @@ public:
         /// The board stopped answering. Servos freed, and it does not restart
         /// on its own.
         FAULT = 3,
+        /// Part-way through a rise or a sit. The sequence owns the hand until
+        /// it finishes or the host asks to stop.
+        SEQUENCE = 5,
     };
 
     /// What the host asks for in the `mode` byte of its frame.
@@ -83,6 +86,19 @@ public:
         FREE = 0,
         RUN = 1,
         HOLD = 2,
+        /// Wheels to fingertips, and back. Each runs a fixed sequence of
+        /// ramps and actors; see kRiseSequence.
+        RISE = 3,
+        SIT = 4,
+    };
+
+    /// The actors compiled in, in the order lib/policy lists them.
+    enum Actor : uint8_t {
+        /// The walking hand's own crawl policy, and the default: it is the
+        /// one that has actually walked this robot. The wheeled set below
+        /// was trained on the same hardware with a wheeled base in the model.
+        CRAWL = 0,
+        OMNI = 1, WALK = 2, LEGS = 3, RISE_A = 4, SIT_A = 5,
     };
 
 private:
@@ -128,6 +144,56 @@ private:
     /// @param then  what to become when the hand has got there.
     bool beginHoming(State then);
 
+    // ---------------------------------------------------------------
+    // Rise and sit
+    //
+    // A transition is a short fixed script, not a mode the operator drives:
+    // ramp into the stance the transition actor was trained to start from,
+    // run that actor for a couple of seconds, then hand over. The steps and
+    // their durations are the ones sim completed laps of (DEPLOY.md section
+    // 5), including two asymmetries that were not free:
+    //
+    //   rise -> legs_walk goes straight across with NO ramp. Rise ends about
+    //   0.7 rad rms from the fingertip stance and legs_walk pulls it in
+    //   within half a second, while ramping to home first collapsed part-way.
+    //
+    //   everything else ramps. Snapping from finger walking to a home pose
+    //   made the palm bounce and the hand fall.
+    // ---------------------------------------------------------------
+
+    /// One step of a transition: either ease the joints somewhere, or run an
+    /// actor for a while.
+    struct Step {
+        enum class Kind : uint8_t { RAMP, RUN } kind;
+        uint8_t actor;      ///< RUN: which actor. RAMP: whose home pose.
+        float seconds;      ///< RUN: how long. RAMP: the minimum time.
+    };
+
+    /// The two scripts, wheels to fingertips and back.
+    static const Step kRiseSequence[3];
+    static const Step kSitSequence[3];
+
+    /// Start a scripted transition. Returns false if one is already running.
+    bool beginSequence(const Step* steps, size_t count, uint8_t ends_as);
+
+    /// Advance the current sequence. Returns false when it has finished.
+    bool stepSequence();
+
+    /// Ease every joint from where it is to `target` over at least `seconds`.
+    ///
+    /// The time is a floor: a servo has its own speed limit and simply
+    /// arrives short of anything quicker, so the ramp takes whichever is
+    /// longer, what was asked or what the furthest joint needs.
+    /// Clip to the joint limits and send one position command.
+    bool writeJointTargets(const float* target);
+
+    void beginRamp(const float* target, float seconds);
+    bool stepRamp();
+
+    /// Load an actor and start it from a clean slate: gait clock at zero and
+    /// no action history, which is the state each was trained to begin from.
+    void beginActor(uint8_t actor);
+
     /// Decide whether homing is done: measure, retry if short and attempts
     /// remain, and latch the error either way.
     bool homingArrived();
@@ -160,6 +226,19 @@ private:
     void sendTelemetry();
     /// Assemble the observation the actor was trained on.
     void buildObs(float* obs) const;
+
+    /// Read the IMU into the two frames the observation wants: gravity in
+    /// root, angular velocity in the URDF base link frame.
+    ///
+    /// Honours `use_imu_`. Holding the attitude at the policy's own stance
+    /// instead is not a fallback but a comparison: the wheeled policy was
+    /// first driven from a host that had no IMU at all, so it saw a perfect
+    /// constant gravity and a zero angular velocity, and it worked. Feeding
+    /// the real thing adds a bias of about 10 deg AND closes a loop that did
+    /// not exist before -- the hand shakes, the gyro sees it, the policy
+    /// answers. Being able to switch at runtime is what separates those two
+    /// changes, which were made at the same time.
+    void readAttitude(float* gravity_root, float* ang_vel_gyro) const;
     bool step();
     void freeServos();
 
@@ -226,6 +305,49 @@ private:
     /// Host frames accepted, checksum and all. The one number that separates
     /// a quiet operator from a broken link.
     uint32_t host_frames_ = 0;
+
+    const Step* sequence_ = nullptr;
+    size_t sequence_len_ = 0;
+    size_t sequence_at_ = 0;
+    uint8_t sequence_ends_as_ = OMNI;
+    uint32_t sequence_step_until_ms_ = 0;
+
+    float ramp_from_[POLICY_ACT_DIM] = {0.0f};
+    float ramp_to_[POLICY_ACT_DIM] = {0.0f};
+    uint32_t ramp_start_ms_ = 0;
+    uint32_t ramp_ms_ = 0;
+
+    /// Which actor is loaded. Selecting copies 200 KiB into SRAM, so it is
+    /// done at a transition boundary and never inside a control step.
+    ///
+    /// CRAWL by default: it is the one that has actually walked this robot,
+    /// and the wheeled set is reached through `rise`, which starts from a
+    /// stance a person has to place the hand in anyway.
+    uint8_t actor_ = CRAWL;
+
+    /// Whether the observation carries the measured attitude or the loaded
+    /// policy's stance constant. Host bit 0x80 of the request byte.
+    ///
+    /// The constant by default, because that is the configuration that has
+    /// driven this robot: every successful run so far -- the crawl policy
+    /// walking, the wheeled policy rolling -- was made from a host with no
+    /// IMU, feeding a perfect stance gravity and a zero angular velocity.
+    /// The measured attitude adds about 10 deg of bias AND closes a loop that
+    /// did not exist before, where the hand shakes, the gyro sees it and the
+    /// policy answers. It is worth having; it is not yet worth defaulting to.
+    bool use_imu_ = false;
+
+    /// The last raw request seen, so that a transition fires once per ask
+    /// rather than once per frame -- the host repeats itself ten times a
+    /// second.
+    Request last_seen_request_ = Request::FREE;
+
+    /// A transition that has been asked for but cannot start yet, because the
+    /// hand is still homing or already in a sequence. Held rather than
+    /// dropped: an ask that arrives a moment too early used to be recorded as
+    /// seen and then never acted on, so pressing the key did nothing at all
+    /// and pressing it again did nothing either.
+    Request pending_transition_ = Request::FREE;
     uint32_t homing_until_ms_ = 0;
     /// What to become once homing finishes. RUNNING when the policy was
     /// asked for, HOLDING when someone just wanted the hand in its stance.

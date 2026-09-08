@@ -172,11 +172,12 @@ void handleCommandRequest() {
     const bool live = snapshot.t.updated_ms != 0 &&
                       millis() - snapshot.t.updated_ms < 1000;
 
-    char body[288];
+    char body[352];
     snprintf(body, sizeof(body),
              "{\"state\":%u,\"vx\":%.3f,\"wz\":%.3f,\"loop_ms\":%.1f,"
              "\"err\":%lu,\"over\":%lu,\"draw_ms\":%.1f,"
-             "\"req\":%u,\"quiet\":%lu,\"rx\":%lu,\"step\":%lu,"
+             "\"req\":%u,\"actor\":%u,\"seq\":%u,"
+             "\"quiet\":%lu,\"rx\":%lu,\"step\":%lu,"
              "\"try\":%u,\"home_err\":%d,"
              "\"live\":%s,\"ok\":%s}",
              static_cast<unsigned>(snapshot.t.state), snapshot.t.vx, snapshot.t.wz,
@@ -185,6 +186,8 @@ void handleCommandRequest() {
              static_cast<unsigned long>(snapshot.t.overruns),
              snapshot.t.draw_us / 1000.0f,
              static_cast<unsigned>(snapshot.debug.request),
+             static_cast<unsigned>(snapshot.debug.actor),
+             static_cast<unsigned>(snapshot.debug.sequence_step),
              static_cast<unsigned long>(snapshot.debug.quiet_ms),
              static_cast<unsigned long>(snapshot.debug.host_frames),
              static_cast<unsigned long>(snapshot.debug.step),

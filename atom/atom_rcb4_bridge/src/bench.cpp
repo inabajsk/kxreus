@@ -71,9 +71,14 @@ void setup() {
     Serial.printf("board answered version query: %s\n",
                   rcb4_link.probeBoard(1000) ? "yes" : "NO");
     const bool in_ram = policy::begin();
-    Serial.printf("weights in RAM: %s (%u of %d layers)\n\n",
+    Serial.printf("policy: %s (%u of %u on this device)\n",
+                  policy::name(policy::selected()),
+                  static_cast<unsigned>(policy::selected() + 1),
+                  static_cast<unsigned>(policy::count()));
+    Serial.printf("weights in RAM: %s (%u of %u layers)\n\n",
                   in_ram ? "yes" : "no",
-                  static_cast<unsigned>(policy::layersInRam()), POLICY_LAYERS);
+                  static_cast<unsigned>(policy::layersInRam()),
+                  static_cast<unsigned>(policy::layers()));
 
     // 1. Inference. Fed with changing observations so the branch in the ELU
     // is exercised both ways and nothing can be hoisted out of the loop.

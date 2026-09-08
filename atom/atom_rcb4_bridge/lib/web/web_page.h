@@ -45,6 +45,8 @@ const char kWebPage[] PROGMEM = R"HTML(<!doctype html>
   button[aria-pressed="true"] { outline:2px solid #eee; }
   .run { background:#1e5b32; } .hold { background:#6b5a10; }
   .free { background:#6b2020; }
+  .rise { background:#1e4a6b; } .sit { background:#4a2b6b; }
+  #imu { font-size:14px; }
 </style></head><body>
 <header>
   <h1>KXR hand</h1>
@@ -55,6 +57,9 @@ const char kWebPage[] PROGMEM = R"HTML(<!doctype html>
   <button class="run"  data-mode="1">run</button>
   <button class="hold" data-mode="2">hold</button>
   <button class="free" data-mode="0">free</button>
+  <button class="rise" data-mode="3">rise</button>
+  <button class="sit"  data-mode="4">sit</button>
+  <button id="imu">attitude</button>
 </div>
 <script>
 // Matches tools/policy_teleop.py, which matches what the actor was trained
@@ -65,7 +70,7 @@ const VX_MAX = 0.5, VX_MIN = -0.3, WZ_MAX = 1.0;
 // creep.
 const DEAD = 0.12;
 
-let mode = 0, vx = 0, wz = 0;
+let mode = 0, vx = 0, wz = 0, useImu = false;
 
 const cv = document.getElementById('stick');
 const ctx = cv.getContext('2d');
@@ -136,14 +141,26 @@ for (const b of document.querySelectorAll('button[data-mode]')) {
   b.addEventListener('click', () => {
     mode = +b.dataset.mode;
     if (mode !== 1) { kx = 0; ky = 0; setFromKnob(); }
+    // rise and sit fire once per ask on the device, so the stick returning
+    // to run is what lets them be asked again.
+    if (mode === 3 || mode === 4) setTimeout(() => { mode = 1; }, 400);
   });
 }
+document.getElementById('imu').addEventListener('click', () => {
+  useImu = !useImu;
+  document.getElementById('imu').textContent =
+    useImu ? 'attitude: IMU' : 'attitude: fixed';
+});
+document.getElementById('imu').textContent = 'attitude: fixed';
 
 // The same 9 byte frame the USB client sends, hex in a query string. A GET
 // keeps the device's parser to a string compare and a hex decode.
 function frame() {
   const b = new Uint8Array(9), d = new DataView(b.buffer);
-  b[0] = 0xA5; b[1] = mode;
+  // Bit 7 selects the attitude source: clear = the IMU, set = the loaded
+  // policy's stance constant. Default is the constant, which is what every
+  // successful run of this robot has used.
+  b[0] = 0xA5; b[1] = useImu ? mode : (mode | 0x80);
   d.setInt16(2, Math.round(vx * 1000), true);
   d.setInt16(4, 0, true);
   d.setInt16(6, Math.round(wz * 1000), true);
@@ -152,7 +169,9 @@ function frame() {
   return Array.from(b, x => x.toString(16).padStart(2, '0')).join('');
 }
 
-const STATES = {0:'idle', 1:'running', 2:'holding', 3:'FAULT', 4:'homing'};
+const STATES = {0:'idle', 1:'running', 2:'holding', 3:'FAULT', 4:'homing',
+                5:'transition'};
+const ACTORS = ['crawl','omni','walk','legs','rise','sit'];
 let inflight = false;
 async function tick() {
   if (inflight) return;   // one request at a time; the device serves one
@@ -172,7 +191,9 @@ async function tick() {
       b.setAttribute('aria-pressed', +b.dataset.mode === t.state ? 'true' : 'false');
     }
     document.getElementById('state').textContent =
-      `${STATES[t.state] ?? '?'} · vx ${t.vx.toFixed(2)} wz ${t.wz.toFixed(2)}`
+      `${STATES[t.state] ?? '?'} · ${ACTORS[t.actor & 0x7f] ?? '?'}`
+      + `${t.actor & 0x80 ? '*' : ''}`
+      + ` · vx ${t.vx.toFixed(2)} wz ${t.wz.toFixed(2)}`
       + ` · ${t.loop_ms.toFixed(0)} ms · err ${t.err}`;
   } catch (e) {
     document.getElementById('state').textContent = 'no answer from the hand';

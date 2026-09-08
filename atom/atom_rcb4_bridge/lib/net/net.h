@@ -142,6 +142,11 @@ struct Telemetry {
 
 struct Debug {
     uint8_t request;
+    /// Which actor is loaded, and where a transition has got to. Without
+    /// these, "did the policy change?" cannot be answered from outside --
+    /// which is exactly the question a hand that judders after a sit raises.
+    uint8_t actor;
+    uint8_t sequence_step;
     uint32_t quiet_ms;
     uint32_t host_frames;
     uint32_t step;
