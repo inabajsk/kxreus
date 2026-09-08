@@ -124,12 +124,30 @@
      (list (to-open-tag stag)))
     (t (xml-read3 file (list (to-open-tag stag))))))
 
+;; タグ名と属性文字列の間の区切りは半角スペース1文字とは限らない
+;; (SolidWorksのURDFエクスポータ等が生成するXMLでは、"<robot\n
+;; name=..." のようにタグ名の直後で改行してから属性が続く、いわゆる
+;; 整形済みXMLがよくある。実機確認済み: Booster K1のURDFがこの形式で、
+;; 元のposition #\ (半角スペースのみ)判定では改行を区切りとして認識
+;; できず、タグ名が"robot\n"のように改行を含んだ文字列になってしまい、
+;; その後の(string= (xml-tag-name doc) "robot")などの比較が全て失敗して
+;; リンク・ジョイントが1個も読めなくなっていた)。空白文字全般(スペース・
+;; タブ・改行・CR)を区切りとして扱う。
+(defun xml-ws-char-p (c)
+  (or (eql c #\Space) (eql c #\Tab) (eql c #\Newline) (eql c 13)))
+
+(defun xml-position-ws (s)
+  (dotimes (i (length s))
+    (when (xml-ws-char-p (elt s i)) (return-from xml-position-ws i)))
+  nil)
+
 (defun to-open-tag (stag)
-  (let* ((tag (string-trim '(#\ ) stag))
-         (p (position #\ tag)))
+  (let* ((tag (string-trim (list #\Space #\Tab #\Newline 13) stag))
+         (p (xml-position-ws tag)))
     (if (null p)
         tag
-      (list (subseq tag 0 p) (subseq tag (+ p 1))))))
+      (list (subseq tag 0 p)
+            (string-left-trim (list #\Space #\Tab #\Newline 13) (subseq tag (+ p 1)))))))
 
 (defun xml-read3 (file lst)
   (let* ((text (read-xml-text file))

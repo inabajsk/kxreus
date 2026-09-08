@@ -38,15 +38,23 @@
 (defun kgm2-2-gmm2 (x) (* x 1e9))
 
 ;; ---- XML属性文字列("key1=\"val1\" key2=\"val2 with space\"")のparse ----
+;;
+;; SolidWorksのURDFエクスポータ等が出力する整形済みXMLでは、1個のタグの
+;; 中で属性ごとに改行+インデントされていることがよくある(実機確認済み:
+;; Booster K1のURDFがこの形式で、区切りを半角スペースだけと想定していた
+;; 元の実装では改行が属性名の一部に混入し、attrのlookupが全て失敗して
+;; いた)。空白文字全般(スペース・タブ・改行・CR)を区切りとして扱う。
+(defun xml-attr-ws-p (c)
+  (or (eql c #\Space) (eql c #\Tab) (eql c #\Newline) (eql c 13)))
 
 (defun parse-xml-attrs (s)
   (let ((result nil) (i 0) (n (length s)))
     (while (< i n)
-      (while (and (< i n) (eql (elt s i) #\ )) (incf i))
+      (while (and (< i n) (xml-attr-ws-p (elt s i))) (incf i))
       (when (< i n)
         (let ((key-start i))
           (while (and (< i n) (not (eql (elt s i) #\=))) (incf i))
-          (let ((key (string-trim " " (subseq s key-start i))))
+          (let ((key (string-trim (list #\Space #\Tab #\Newline 13) (subseq s key-start i))))
             (incf i) ;; skip '='
             (when (and (< i n) (eql (elt s i) #\"))
               (incf i) ;; skip opening quote
@@ -242,10 +250,19 @@
   ;; 極端に遅くなる(実機確認済み、24KB程度のURDFで数分以上かかり
   ;; 実質ハング)。かわりに、非コメント部分を"チャンク"(部分文字列)の
   ;; リストとして集め、最後に一度だけ結合する(O(n))。
+  ;; 注意: (string #\Newline)は使わないこと。このEusLispでは#\Newline
+  ;; などの文字リテラルがcharacter型ではなく単なる整数として扱われて
+  ;; おり、(string <整数>)はその10進表記の文字列("10")を返してしまう
+  ;; (実機確認済み: このバグにより改行が全て文字列"10"に化けており、
+  ;; SolidWorks製URDF(Booster K1)のようにタグの属性が複数行に渡る
+  ;; ファイルで、"10"がタグの内側に紛れ込んでタグ名・属性名を破壊して
+  ;; いた)。(coerce (list 10) string)は同じ改行コードを正しく1文字の
+  ;; 文字列に変換できる(tiny-xml.lのxml-file::eofが使っているのと同じ
+  ;; 手法)。
   (let* ((text (with-open-file (f path :direction :input)
                  (let ((lines nil) line)
                    (while (setq line (read-line f nil))
-                     (push line lines) (push (string #\Newline) lines))
+                     (push line lines) (push (coerce (list 10) string) lines))
                    (apply #'concatenate string (nreverse lines)))))
          (chunks nil) (i 0) (chunk-start 0) (n (length text)))
     (while (< i n)
