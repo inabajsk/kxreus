@@ -154,6 +154,36 @@
 ;; 一致する行を1つにまとめ、:indicesをそのユニークな頂点を指す値に
 ;; 張り替えることで、見た目上のメッシュ(三角形数・形状)は一切変えず
 ;; ファイルサイズだけを大きく削減できる。
+;; キーを(cons 頂点ベクタ 法線ベクタ)のまま:test #'equalのハッシュ
+;; テーブルに渡すと、ベクタ(配列)内容に基づく適切なハッシュ値が得られず
+;; (実機確認済み: 数万行規模の実在CADメッシュ(Unitree G1等)でハッシュが
+;; ほぼ機能せず、事実上全エントリが同じバケツに落ちてremove-duplicates
+;; 相当のO(n^2)スキャンになり、127296行のメッシュ1個で数分以上かかった)、
+;; O(n^2)的に劣化する。文字列キー(formatでフォーマット)やsortベースの
+;; 案も試したが、前者はformat呼び出し自体が遅く、後者はSTLの共有辺に
+;; 由来する重複キーが大量にある実データでquicksortが劣化するらしく
+;; (乱数の一意なデータでは速いのに、重複の多い実データでは同じ規模でも
+;; 2分以上かかることを実機確認)、どちらも実用的な速度が出なかった。
+;;
+;; 最終的に、キーを「整数に丸めたリスト」(浮動小数点ベクタではなく、
+;; 各要素をscale倍して丸めた整数のリスト)にすることで解決した。
+;; EusLispの:test #'equalハッシュテーブルは、リスト(cons)キーに対しては
+;; 内容ベースのハッシュが正しく機能する(実機確認済み: 127296行・
+;; 重複あり実データ相当のテストで一瞬で完了)。整数への丸めは、STLの
+;; 頂点が元々float32由来で有効数字が限られていること、かつ出力自体も
+;; 短precision(~11,4E)でしか保存しないことを踏まえ、実用上十分な
+;; 桁数(1e5倍)で行う。
+;;
+;; 注意: キーを組み立てる際、(concatenate list v nv)は使わないこと。
+;; 中身は同じ6要素でも、user::c-matrix-rowが返すベクタに対して
+;; concatenateを呼ぶと(elt個別アクセスは高速なのに)何らかの理由で
+;; 極端に遅くなる(実機確認済み: 127296行のうち先頭2万行の処理だけで
+;; 90秒以上かかり、事実上のボトルネックだった)。eltで1要素ずつ直接
+;; 取り出してlistに組む方式なら同じ規模で1秒未満。
+(defun mesh-dedupe-key (v nv)
+  (list (round (* (elt v 0) 100000)) (round (* (elt v 1) 100000)) (round (* (elt v 2) 100000))
+        (round (* (elt nv 0) 100000)) (round (* (elt nv 1) 100000)) (round (* (elt nv 2) 100000))))
+
 (defun dedupe-mesh-arrays (verts-matrix norms-matrix)
   (let* ((n (array-dimension verts-matrix 0))
          (h (make-hash-table :test #'equal))
@@ -162,7 +192,7 @@
     (dotimes (i n)
       (let* ((v (user::c-matrix-row verts-matrix i))
              (nv (user::c-matrix-row norms-matrix i))
-             (key (cons v nv))
+             (key (mesh-dedupe-key v nv))
              (existing (gethash key h)))
         (if existing
             (setf (elt indices i) existing)
