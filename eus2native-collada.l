@@ -376,6 +376,54 @@
       (dump-pose-method strm "reset-manip-pose" "Predefined pose named reset-manip-pose." limb-groups)
       (dump-pose-method strm "neutral" "Predefined pose named neutral." limb-groups))))
 
+;; ---- 汎用リムアクセサ(:larm-shoulder-p等)の自動生成 ----
+;;
+;; urdf2eus.l/mujoco2eus.lが読み込む実在ロボット(Unitree G1、Booster K1
+;; 等)のjoint名は、そのロボット固有の英語表記("left_shoulder_pitch_
+;; joint"等)であり、kxreus独自の"larm-shoulder-p"のような命名規則とは
+;; 異なる。そのままでは:larm-shoulder-p等の呼び出しができないため、
+;; 各jointの実際の名前に含まれるキーワード(shoulder/elbow/wrist/
+;; hip/knee/ankle、left/right)と、そのjointの回転軸(x->roll、
+;; y->pitch、z->yaw。Unitree G1・Booster K1の両方でこの対応を実データ
+;; から確認済み)から、kxreus命名規則に沿ったエイリアスメソッドを機械的
+;; に生成し、実体のjointへforward-message-toする。
+(defun axis-dominant-rpy (axis)
+  (let ((ax (abs (elt axis 0))) (ay (abs (elt axis 1))) (az (abs (elt axis 2))))
+    (cond ((and (>= ax ay) (>= ax az)) "r")
+          ((and (>= ay ax) (>= ay az)) "p")
+          (t "y"))))
+
+(defun limb-side-of-real-name (name)
+  (cond ((substringp "left" name) "l")
+        ((substringp "right" name) "r")
+        (t nil)))
+
+(defun limb-part-of-real-name (name)
+  (cond ((substringp "shoulder" name) (cons "arm" "shoulder"))
+        ((substringp "elbow" name) (cons "arm" "elbow"))
+        ((substringp "wrist" name) (cons "arm" "wrist"))
+        ((substringp "hip" name) (cons "leg" "crotch"))
+        ((substringp "knee" name) (cons "leg" "knee"))
+        ((substringp "ankle" name) (cons "leg" "ankle"))
+        (t nil)))
+
+(defun dump-generic-limb-accessors (strm joints)
+  (let (seen)
+    (dolist (j joints)
+      (let* ((jname (eus-name-string j))
+             (side (limb-side-of-real-name jname))
+             (part (limb-part-of-real-name jname)))
+        (when (and side part)
+          (let ((method-name (format nil "~A~A-~A-~A" side (car part) (cdr part)
+                                      (axis-dominant-rpy (j . axis)))))
+            (if (member method-name seen :test #'string=)
+                (warning-message 1 "eus2native-collada: duplicate generic accessor ~A (joint ~A), skipping~%"
+                                  method-name jname)
+              (progn
+                (push method-name seen)
+                (format strm "  (:~A (&rest args) (forward-message-to ~A_jt args))~%"
+                        method-name jname)))))))))
+
 ;; ---- ジョイント1個ぶん ----
 
 (defun joint-class-name (joint)

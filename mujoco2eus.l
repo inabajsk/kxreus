@@ -258,6 +258,7 @@
               (dolist (l all-links)
                 (format strm "  (:~A_lk (&rest args) (forward-message-to ~A_lk args))~%"
                         (eus-name-string l) (eus-name-string l)))
+              (dump-generic-limb-accessors strm joint-objs)
               (dump-pose-methods strm joint-objs)
               (format strm "  )~%~%")
               (format strm "(defmethod ~A~%" classname)
