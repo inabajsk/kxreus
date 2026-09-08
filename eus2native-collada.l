@@ -268,7 +268,23 @@
                ;; 一致するようにする。
                (link-inv (send (send l :worldcoords) :inverse-transformation)))
           (dotimes (i (length bodies))
-            (let ((glv (gl::make-glvertices-from-faceset (elt bodies i))))
+            (let* ((body (elt bodies i))
+                   ;; kxr-bodyは、実際のCSG形状(:replace-obj)には*kxr-
+                   ;; fine-body*に応じて簡略形状(sbod, ネジ穴等の細部を
+                   ;; 省いた高速衝突判定向け)か詳細形状(bod)のどちらかを
+                   ;; 使うが、描画用に:generate-glverticesで作る
+                   ;; gl::aglvertices(:glverticesでアクセス可能)は常に
+                   ;; 詳細形状(bod、ネジ穴などの細部を含む実機確認済み)
+                   ;; から作られてキャッシュされている(kxrbody.l)。
+                   ;; bodyの自前形状(:faces)をそのまま使うと簡略形状に
+                   ;; なってしまう場合があるため、詳細版があれば優先して
+                   ;; 使う。
+                   (fine (and (find-method body :glvertices) (send body :glvertices)))
+                   (glv (if fine
+                            (gl::make-glvertices-from-faces
+                             (send fine :faces)
+                             :material (send fine :get-meshinfo :material 0))
+                          (gl::make-glvertices-from-faceset body))))
               (send glv :set-offset link-inv)
               (dump-glvertices-geom-method strm lname i glv)))))
       (format strm "  )~%"))
