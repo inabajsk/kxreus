@@ -120,6 +120,8 @@
   (cond
    (devname (send ri :com-open :devname devname :baud (or baud 500000)))
    ((kxr-kondo-usb?) (send ri :com-open :baud (or baud 1250000)))
+   ((probe-file "/dev/ttyKXR0")
+    (send ri :com-open :devname "ttyKXR0" :baud (or baud 500000)))
    ((probe-file "/dev/ttyUSB0")
     (send ri :com-open :devname "ttyUSB0" :baud (or baud 500000)))
    ((probe-file "/dev/ttyUSB1")
@@ -168,12 +170,16 @@
     (let* ((path (car (find-files :dir dir :subseq project-file-keystr :ext ext))))
       (if (probe-file path) path))))
 
-(defun create-robot-model-from-file (name-str &optional form)
+(defun create-robot-model-from-file (name-str &optional form &key use-external-tools (models-dir "models"))
+  ;; models-dir: 生成・キャッシュ先のサブディレクトリ名。既定"models"は
+  ;; 従来通り(collada2eus等の外部ツール生成が使ってきた場所)。
+  ;; kxr-create-robotが:model省略(既定)時にmodels-dir="eusmodels"を渡し、
+  ;; 今回のネイティブ生成の出力を既存のmodels/*.lキャッシュと分離する。
   (let* ((bconfig (kxr-body-config name-str))
 	 (model-params (if bconfig (cadr bconfig) nil))
 	 (mfile (format nil "~A/models/~A.l" (unix::getenv "EUSDIR") name-str))
 	 (pfile (format nil "~A/prog/models/~A.l" (unix::getenv "HOME") name-str))
-	 (hfile (format nil "~A/models/~A.l" (rcb4eus-dir) name-str))
+	 (hfile (rcb4eus-file (format nil "~A/~A.l" models-dir name-str)))
 	 (catkinfile (format nil "~A/catkin_ws_src/kxr_pkgs/kxr_models/euslisp/~A.l" (rcb4eus-dir) name-str))
 	 (rfile (rcb4eus-file name-str))
 	 r)
@@ -183,9 +189,12 @@
       ((probe-file pfile) (load pfile) (format t ";; load pfile:~A~%" pfile))
       ((probe-file hfile) (load hfile) (format t ";; load hfile:~A~%" hfile))
       ((probe-file catkinfile) (load catkinfile) (format t ";; load catkinfile:~A~%" catkinfile))
-      (bconfig (require :eus2wrl)
-	       (eus2collada-robot name-str)
-	       (load hfile)))
+      (bconfig
+       (rcb4eus-mkdir models-dir)
+       (if use-external-tools
+	   (progn (require :eus2wrl) (eus2collada-robot name-str))
+	 (progn (require :eus2native-collada) (native-robot-to-collada-file name-str :outfile hfile)))
+       (load hfile)))
     (when (and (null form) name-str)
       (setq form (list (read-from-string name-str))))
     (when (and form (listp form)
@@ -193,11 +202,12 @@
       (setq r (eval form))
       r)))
     
-(defun kxr-create-robot (&optional name-str &key (model 0) generate head)
+(defun kxr-create-robot (&optional name-str &key (model :auto) generate head use-external-tools)
   (let* ((bconfig (kxr-body-config name-str))
 	 (model-params (if bconfig (cadr bconfig) nil))
 	 (file (cadr (assoc :file (plist-to-alist model-params))))
 	 (form (cadr (assoc :form (plist-to-alist model-params))))
+	 native-mode models-dir use-ext
 	 r)
     (when head (setq model-params
 		     (replace-plist-key-value model-params :head head)))
@@ -205,6 +215,15 @@
       (require :eus2wrl)
       (eus2collada-robot name-str :head head)
       (setq model t))
+    ;; :model省略時(既定値:auto)は今回のネイティブ生成(外部ツール不使用、
+    ;; eus2native-collada.l)を使い、eusmodels/以下に生成・キャッシュする。
+    ;; :model 0や:model tを明示的に与えた場合は、従来通りexport-collada/
+    ;; collada2eus(外部ツール)を使い、models/以下に生成・キャッシュする
+    ;; (後方互換)。:model nilはどちらにも触れない(bodyだけのネイティブ
+    ;; robot-modelをそのまま使う、以前と同じ)。
+    (setq native-mode (eq model :auto))
+    (setq models-dir (if native-mode "eusmodels" "models"))
+    (setq use-ext (if native-mode use-external-tools t))
     (cond
      #|
      ((member :robotset model-params)
@@ -263,9 +282,9 @@
 	    ))
 	))
      ((and file (member :file model-params) (probe-file (rcb4eus-file file)))
-      (setq r (create-robot-model-from-file file form)))
-     ((or (null bconfig) (null model-params) (eq model t) (eq model 0))
-      (setq r (create-robot-model-from-file name-str)))
+      (setq r (create-robot-model-from-file file form :use-external-tools use-ext :models-dir models-dir)))
+     ((or (null bconfig) (null model-params) (eq model t) (eq model 0) native-mode)
+      (setq r (create-robot-model-from-file name-str nil :use-external-tools use-ext :models-dir models-dir)))
      ;;      ((and (eq model 0) (member :file model-params) (probe-file (rcb4eus-file file)))
      ;;       (setq r (create-robot-model-from-file name-str form)))
      ((substringp "khr" name-str)
@@ -302,7 +321,7 @@
 (defun kxr-make-robot (&optional name-str &key (initial-pos (float-vector 0 0 0))
 				 ((:viewer vw) (xwindow-ready?))
 				 (width 400) (height 400)
-				 (model 0) generate head)
+				 (model :auto) generate head)
   (let (r)
     (if (derivedp name-str robot-model) (setq name-str (send name-str :name)))
     (cond ((stringp name-str)
@@ -349,7 +368,7 @@
 (defun make-kxr-model-panel nil
   (setq *kxr-model-panel* (instance x::kxr-model-panel :create)))
 
-(defun make-kxr-robot (&optional name-str &key ((:viewer vw) (xwindow-ready?)) (ri t) (model 0)
+(defun make-kxr-robot (&optional name-str &key ((:viewer vw) (xwindow-ready?)) (ri t) (model :auto)
 				 (width 400) (height 400)
 				 (rcb4 t) generate head)
   (unless name-str (setq name-str (unix::getenv "ROBOT_NAME")))
