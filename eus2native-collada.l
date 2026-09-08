@@ -84,38 +84,97 @@
     (format strm ")"))
    (t (format strm "~S" obj))))
 
-;; ---- リンク1個ぶんのジオメトリ(bodyset-linkを構成する各bodyを1つの
-;; gl::glverticesに変換して埋め込む) ----
+;; ---- リンク1個ぶんのcollision-proxy body(実体のあるfacesetボディ) ----
+;;
+;; models/*.l(collada2eus生成)は、各リンクのcollisionボディとして
+;; qhull(凸包。faceの頂点を生成時にlocal-cds経由であらかじめ変換=焼き
+;; 込み済み)をcollada-bodyで包んでいる。faceset/body(qhullやこの
+;; boxの実クラス)の:verticesは:worldcoordsに応じて動的に再計算される
+;; ことを実機確認済み(faceset:update -> :reset-vertices)。そのため
+;; :look-all(全bodyの:vertices from draw-thingsでbboxを作る)が特別な
+;; クラス変更なしに正しく動く。
+;;
+;; ここでは真の凸包計算(qhullアルゴリズム)は実装せず、同じ安全な原理
+;; だけを再現する: リンク全bodyのbounding-box形状のfacesetを、頂点を
+;; "生成時にあらかじめ計算した位置"で直接構築する(:locateで後から
+;; 動かさない)。:locateを使うと、geomがまだ非identity座標のうちに
+;; glvをassocすることになり、assocが「今の絶対位置を保つ」ように
+;; glvへ補正オフセットを計算してしまい、後でgeomの祖先linkが
+;; :transformで動いた時にその補正が破綻する
+;; (過去に実機で確認した重大なバグ、meshが原点付近に潰れて見える
+;; 症状だった。memory: feedback-eus2native-collada-regression参照)。
+(defun box-corner (center half-dims sx sy sz)
+  (float-vector (+ (elt center 0) (* sx (elt half-dims 0)))
+                (+ (elt center 1) (* sy (elt half-dims 1)))
+                (+ (elt center 2) (* sz (elt half-dims 2)))))
 
-(defun dump-glvertices-geom-method (strm link-name idx glv)
-  (let ((nmesh (length (send glv :get-meshinfo :type))))
-    (format strm "  (:_make_instance_~A_geom~D ()~%" link-name idx)
-    ;; native-glvertices(euscollada-robot-base.l)は:vertices を
-    ;; worldcoords込みで動的に計算するgl::glverticesのサブクラス。
-    ;; :look-all(:vertices呼び出しでbboxを集める)が通常の呼び方
-    ;; ((objects ...)や(send *irtviewer* :look-all)、ロボット固有の
-    ;; メソッドを介さない)でも全身を正しく収められるようにするため。
-    ;; :draw等の他の挙動は変更していない。
-    (format strm "    (instance native-glvertices :init~%")
-    (format strm "     (list~%")
-    (dotimes (m nmesh)
-      (format strm "      (list~%")
-      (format strm "       (list :type ")
-      (dump-lisp-literal (send glv :get-meshinfo :type m) strm)
-      (format strm ")~%")
-      (format strm "       (list :material ")
-      (dump-lisp-literal (send glv :get-meshinfo :material m) strm)
-      (format strm ")~%")
-      (format strm "       (list :indices ")
-      (dump-lisp-literal (send glv :get-meshinfo :indices m) strm)
-      (format strm ")~%")
-      (format strm "       (list :vertices ")
-      (dump-lisp-literal (send glv :get-meshinfo :vertices m) strm)
-      (format strm ")~%")
-      (format strm "       (list :normals ")
-      (dump-lisp-literal (send glv :get-meshinfo :normals m) strm)
+(defun dump-box-faceset-literal (strm bbox-center bbox-dims)
+  (let* ((h (scale 0.5 bbox-dims))
+         (c--- (box-corner bbox-center h -1 -1 -1))
+         (c--+ (box-corner bbox-center h -1 -1  1))
+         (c-+- (box-corner bbox-center h -1  1 -1))
+         (c-++ (box-corner bbox-center h -1  1  1))
+         (c+-- (box-corner bbox-center h  1 -1 -1))
+         (c+-+ (box-corner bbox-center h  1 -1  1))
+         (c++- (box-corner bbox-center h  1  1 -1))
+         (c+++ (box-corner bbox-center h  1  1  1))
+         (faces (list
+                 (list c--- c--+ c-++ c-+-)   ;; -x
+                 (list c+-- c++- c+++ c+-+)   ;; +x
+                 (list c--- c+-- c+-+ c--+)   ;; -y
+                 (list c-+- c-++ c+++ c++-)   ;; +y
+                 (list c--- c-+- c++- c+--)   ;; -z
+                 (list c--+ c+-+ c+++ c-++)))) ;; +z
+    (format strm "(instance geometry::faceset :init :faces~%")
+    (format strm "  (list~%")
+    (dolist (f faces)
+      (format strm "   (instance geometry::face :init :vertices (list")
+      (dolist (v f) (format strm " ") (dump-lisp-literal v strm))
       (format strm "))~%"))
-    (format strm "      )))~%")))
+    (format strm "  ))~%")))
+
+;; ---- リンク1個ぶんの、全bodyをまとめたglvertices(mesh-listを結合) ----
+;;
+;; models/*.lはリンクごとに1個の統合メッシュなので、それに合わせる。
+;; kxr-bodyごとに材質(:material)が異なりうるので、1個のnative-
+;; glverticesインスタンスの中にbodyの数だけmesh-list要素を持たせる形で
+;; 結合し(材質は保持したまま)、オブジェクト数は1個にまとめる。
+(defun dump-combined-glv-mesh-list-literal (strm glv-list)
+  (format strm "(list~%")
+  (dolist (glv glv-list)
+    (let ((nmesh (length (send glv :get-meshinfo :type))))
+      (dotimes (m nmesh)
+        (format strm "  (list~%")
+        (format strm "   (list :type ")
+        (dump-lisp-literal (send glv :get-meshinfo :type m) strm)
+        (format strm ")~%")
+        (format strm "   (list :material ")
+        (dump-lisp-literal (send glv :get-meshinfo :material m) strm)
+        (format strm ")~%")
+        (format strm "   (list :indices ")
+        (dump-lisp-literal (send glv :get-meshinfo :indices m) strm)
+        (format strm ")~%")
+        (format strm "   (list :vertices ")
+        (dump-lisp-literal (send glv :get-meshinfo :vertices m) strm)
+        (format strm ")~%")
+        (format strm "   (list :normals ")
+        (dump-lisp-literal (send glv :get-meshinfo :normals m) strm)
+        (format strm "))~%"))))
+  (format strm "  )~%"))
+
+(defun dump-glvertices-geom-method (strm link-name bbox-center bbox-dims glv-list)
+  (format strm "  (:_make_instance_~A_geom0 ()~%" link-name)
+  (format strm "   (let* ((box ")
+  (dump-box-faceset-literal strm bbox-center bbox-dims)
+  (format strm "          )~%")
+  (format strm "          (geom (instance collada-body :init :replace-obj box :name ~S))~%" link-name)
+  (format strm "          (glv (instance native-glvertices :init~%")
+  (format strm "               ")
+  (dump-combined-glv-mesh-list-literal strm glv-list)
+  (format strm "               )))~%")
+  (format strm "     (setq (geom . gl::aglvertices) glv)~%")
+  (format strm "     (send geom :assoc glv)~%")
+  (format strm "     geom))~%"))
 
 ;; ---- リンク1個ぶんの:init本体(ジオメトリ生成 + bodyset-link + 質量
 ;; パラメータ + ワールド座標) ----
@@ -127,15 +186,9 @@
   ;; リンク自体が起立時の脚の高さぶんZにオフセットしており、実機確認の
   ;; 結果、既存ファイルとは全リンク一律にズレてしまうことが分かった)。
   (let* ((lname (eus-name-string link))
-         (bodies (send link :bodies))
-         (n (length bodies))
          (rel-coords (send root-coords :transformation (send link :worldcoords))))
     (format strm "     ;; link: ~A_lk~%" lname)
-    (format strm "     (let ((geom-lst (list~%")
-    (dotimes (i n)
-      (format strm "                        (send self :_make_instance_~A_geom~D)~%" lname i))
-    (format strm "                        )))~%")
-    (format strm "       (dolist (g (cdr geom-lst)) (send (car geom-lst) :assoc g))~%")
+    (format strm "     (let ((geom-lst (list (send self :_make_instance_~A_geom0))))~%" lname)
     (format strm "       (setq ~A_lk (instance bodyset-link :init (make-cascoords)~%" lname)
     (format strm "                             :bodies geom-lst~%")
     (format strm "                             :name ~S))~%" lname)
@@ -259,9 +312,15 @@
                 (eus-name-string j) (eus-name-string j)))
       (format strm "  )~%~%")
       ;; ジオメトリ生成メソッド本体
+      ;;
+      ;; models/*.l(collada2eus生成)と同じく、リンクごとに1個の
+      ;; geom(collision-proxy bodyでラップ)にまとめる(以前はkxr-body
+      ;; ごとに別々のnative-glverticesを作っていたが、models/*.lの構造
+      ;; に合わせるようリクエストされ変更)。
       (format strm "(defmethod ~A~%" classname)
       (dolist (l links)
-        (let* ((lname (eus-name-string l)) (bodies (send l :bodies))
+        (let* ((lname (eus-name-string l))
+               (bodies (send l :bodies))
                ;; bodyの頂点はネイティブrobot-modelの絶対worldcoordsで
                ;; 焼き込まれている(gl::glverticesは「頂点データ」と
                ;; 「表示用coords」が別物で、:transformは頂点を動かさず
@@ -272,27 +331,33 @@
                ;; リンク相対(=リンクの絶対worldcoordsの逆変換)に焼き直す
                ;; ことで、後で:transformを掛けたときに正しい絶対位置に
                ;; 一致するようにする。
-               (link-inv (send (send l :worldcoords) :inverse-transformation)))
-          (dotimes (i (length bodies))
-            (let* ((body (elt bodies i))
-                   ;; kxr-bodyは、実際のCSG形状(:replace-obj)には*kxr-
-                   ;; fine-body*に応じて簡略形状(sbod, ネジ穴等の細部を
-                   ;; 省いた高速衝突判定向け)か詳細形状(bod)のどちらかを
-                   ;; 使うが、描画用に:generate-glverticesで作る
-                   ;; gl::aglvertices(:glverticesでアクセス可能)は常に
-                   ;; 詳細形状(bod、ネジ穴などの細部を含む実機確認済み)
-                   ;; から作られてキャッシュされている(kxrbody.l)。
-                   ;; bodyの自前形状(:faces)をそのまま使うと簡略形状に
-                   ;; なってしまう場合があるため、詳細版があれば優先して
-                   ;; 使う。
-                   (fine (and (find-method body :glvertices) (send body :glvertices)))
-                   (glv (if fine
-                            (gl::make-glvertices-from-faces
-                             (send fine :faces)
-                             :material (send fine :get-meshinfo :material 0))
-                          (gl::make-glvertices-from-faceset body))))
-              (send glv :set-offset link-inv)
-              (dump-glvertices-geom-method strm lname i glv)))))
+               (link-inv (send (send l :worldcoords) :inverse-transformation))
+               (glv-list
+                (mapcar
+                 #'(lambda (body)
+                     ;; kxr-bodyは、実際のCSG形状(:replace-obj)には
+                     ;; *kxr-fine-body*に応じて簡略形状(sbod, ネジ穴等
+                     ;; の細部を省いた高速衝突判定向け)か詳細形状(bod)
+                     ;; のどちらかを使うが、描画用に:generate-
+                     ;; glverticesで作るgl::aglvertices(:glverticesで
+                     ;; アクセス可能)は常に詳細形状(bod、ネジ穴などの
+                     ;; 細部を含む実機確認済み)から作られてキャッシュ
+                     ;; されている(kxrbody.l)。bodyの自前形状(:faces)
+                     ;; をそのまま使うと簡略形状になってしまう場合が
+                     ;; あるため、詳細版があれば優先して使う。
+                     (let* ((fine (and (find-method body :glvertices) (send body :glvertices)))
+                            (glv (if fine
+                                     (gl::make-glvertices-from-faces
+                                      (send fine :faces)
+                                      :material (send fine :get-meshinfo :material 0))
+                                   (gl::make-glvertices-from-faceset body))))
+                       (send glv :set-offset link-inv)
+                       glv))
+                 bodies))
+               (all-points (flatten (mapcar #'(lambda (g) (send g :actual-vertices)) glv-list)))
+               (bbox (geo::make-bounding-box all-points)))
+          (dump-glvertices-geom-method
+           strm lname (send bbox :center) (send bbox :diagonal) glv-list)))
       (format strm "  )~%"))
     (format t ";; native-robot-to-collada-file: wrote ~A (~A links, ~A joints)~%"
             outfile (length links) (length joints))
