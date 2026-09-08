@@ -288,11 +288,25 @@
 ;;; 含む全身の正しい範囲より小さく見積もられてしまい、ビューワから
 ;;; ロボットがはみ出す。
 ;;;
-;;; 対策として、既に検証済みの生成ロジック(描画・関節追従)には一切
-;;; 触れず、:look-all用に正しい(worldcoords込みの)bboxを計算する
-;;; メソッドだけをeuscollada-robotに追加する。各bodyの:vertices(局所
-;;; frameでのbounding-boxの頂点、キャッシュ済みで軽い)を、そのbodyの
-;;; 現在の:worldcoordsで変換して集める。
+;;; 対策1: euscollada-robotに、正しい(worldcoords込みの)bboxを計算する
+;;; :look-all-bbox/:look-allメソッドを追加する(明示的に呼ぶ必要がある)。
+;;;
+;;; 対策2(本命): eus2native-collada.lが生成するbodyのクラスを、生の
+;;; gl::glverticesではなく、下記のnative-glverticesにする。:vertices
+;;; だけをオーバーライドし、キャッシュ済みの局所bbox頂点(生のglvertices
+;;; の:verticesが返すもの、既に計算・キャッシュ済みで軽い)を、その都度
+;;; 現在の:worldcoordsで変換して返す。これにより、
+;;; (send *irtviewer* :look-all)や(objects (list robot))のような
+;;; 通常の(ロボット固有のメソッドを呼ばない)呼び出し方でも、models/*.l
+;;; と同じように全身が正しくビューワに収まるようになる。
+;;; :draw等の他の挙動はgl::glverticesから一切変更していない。
+(defclass native-glvertices :super gl::glvertices :slots ())
+(defmethod native-glvertices
+  (:vertices
+   ()
+   (let ((wc (send self :worldcoords)))
+     (mapcar #'(lambda (v) (send wc :transform-vector v)) (send-super :vertices)))))
+
 (defmethod euscollada-robot
   (:look-all-bbox
    ()

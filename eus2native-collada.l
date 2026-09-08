@@ -90,7 +90,13 @@
 (defun dump-glvertices-geom-method (strm link-name idx glv)
   (let ((nmesh (length (send glv :get-meshinfo :type))))
     (format strm "  (:_make_instance_~A_geom~D ()~%" link-name idx)
-    (format strm "    (instance gl::glvertices :init~%")
+    ;; native-glvertices(euscollada-robot-base.l)は:vertices を
+    ;; worldcoords込みで動的に計算するgl::glverticesのサブクラス。
+    ;; :look-all(:vertices呼び出しでbboxを集める)が通常の呼び方
+    ;; ((objects ...)や(send *irtviewer* :look-all)、ロボット固有の
+    ;; メソッドを介さない)でも全身を正しく収められるようにするため。
+    ;; :draw等の他の挙動は変更していない。
+    (format strm "    (instance native-glvertices :init~%")
     (format strm "     (list~%")
     (dotimes (m nmesh)
       (format strm "      (list~%")
