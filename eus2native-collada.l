@@ -44,11 +44,19 @@
 ;; 使うこと。princにformat文字列を渡すと"~%"がそのままの2文字として
 ;; 出力されてしまうバグを実機で確認済み(このファイルの最初の実装ミス)。
 
+;; *dump-float-precision*が:shortの間は、メッシュの頂点・法線データ
+;; だけ有効数字4桁(0.01mmオーダーの精度、見た目にも衝突判定にも
+;; 十分)で書き出し、ファイルサイズを抑える。関節軸・:transform等の
+;; 運動学的に重要な値は既定(:full, 9桁)のまま変えない。
+(defvar *dump-float-precision* :full)
+
 (defun dump-float (x strm)
   ;; EusLispのfloat-vector要素はsingle precision(C float)なので、
   ;; 9桁の有効数字があれば往復変換して情報が失われない
   ;; (実際に(format nil "~16,9E" ...) -> read-from-stringで往復確認済み)。
-  (format strm "~16,9E" (float x)))
+  (if (eq *dump-float-precision* :short)
+      (format strm "~11,4E" (float x))
+    (format strm "~16,9E" (float x))))
 
 (defun eus-name-string (obj)
   ;; リンクの:nameは文字列、ジョイントの:nameはキーワード(大文字)を返す
@@ -133,6 +141,43 @@
       (format strm "))~%"))
     (format strm "  ))~%")))
 
+;; ---- 頂点の重複除去 ----
+;;
+;; gl::make-glvertices-from-faces(glvertices構築の共通経路、fine形状
+;; からもbodyの自前faceからも常にこれを通る)は、三角形ごとに3頂点を
+;; 独立して書き出すだけで、隣接三角形どうしの共有頂点をまとめる処理を
+;; 一切しない(実装を読んで確認済み)。そのため:indicesは常に単純な
+;; 0..3N-1の連番で、頂点・法線の行数は「ユニークな頂点数」ではなく
+;; 「(三角形数)×3」になっている。実測(torsoのある1メッシュ)で
+;; 3936行に対しユニークな頂点はわずか610個(6.45倍の重複)であり、
+;; 生成ファイルサイズの大部分はここに由来する。頂点+法線のペアが完全に
+;; 一致する行を1つにまとめ、:indicesをそのユニークな頂点を指す値に
+;; 張り替えることで、見た目上のメッシュ(三角形数・形状)は一切変えず
+;; ファイルサイズだけを大きく削減できる。
+(defun dedupe-mesh-arrays (verts-matrix norms-matrix)
+  (let* ((n (array-dimension verts-matrix 0))
+         (h (make-hash-table :test #'equal))
+         (indices (instantiate integer-vector n))
+         (vlist nil) (nlist nil) (cnt 0))
+    (dotimes (i n)
+      (let* ((v (user::c-matrix-row verts-matrix i))
+             (nv (user::c-matrix-row norms-matrix i))
+             (key (cons v nv))
+             (existing (gethash key h)))
+        (if existing
+            (setf (elt indices i) existing)
+          (progn
+            (setf (gethash key h) cnt)
+            (setf (elt indices i) cnt)
+            (push v vlist) (push nv nlist)
+            (incf cnt)))))
+    (setq vlist (nreverse vlist) nlist (nreverse nlist))
+    (let ((new-v (make-matrix cnt 3)) (new-n (make-matrix cnt 3)) (i 0))
+      (dolist (v vlist) (user::c-matrix-row new-v i v t) (incf i))
+      (setq i 0)
+      (dolist (nv nlist) (user::c-matrix-row new-n i nv t) (incf i))
+      (values new-v new-n indices))))
+
 ;; ---- リンク1個ぶんの、全bodyをまとめたglvertices(mesh-listを結合) ----
 ;;
 ;; models/*.lはリンクごとに1個の統合メッシュなので、それに合わせる。
@@ -144,22 +189,27 @@
   (dolist (glv glv-list)
     (let ((nmesh (length (send glv :get-meshinfo :type))))
       (dotimes (m nmesh)
-        (format strm "  (list~%")
-        (format strm "   (list :type ")
-        (dump-lisp-literal (send glv :get-meshinfo :type m) strm)
-        (format strm ")~%")
-        (format strm "   (list :material ")
-        (dump-lisp-literal (send glv :get-meshinfo :material m) strm)
-        (format strm ")~%")
-        (format strm "   (list :indices ")
-        (dump-lisp-literal (send glv :get-meshinfo :indices m) strm)
-        (format strm ")~%")
-        (format strm "   (list :vertices ")
-        (dump-lisp-literal (send glv :get-meshinfo :vertices m) strm)
-        (format strm ")~%")
-        (format strm "   (list :normals ")
-        (dump-lisp-literal (send glv :get-meshinfo :normals m) strm)
-        (format strm "))~%"))))
+        (multiple-value-bind (dedup-v dedup-n dedup-idx)
+            (dedupe-mesh-arrays (send glv :get-meshinfo :vertices m)
+                                 (send glv :get-meshinfo :normals m))
+          (format strm "  (list~%")
+          (format strm "   (list :type ")
+          (dump-lisp-literal (send glv :get-meshinfo :type m) strm)
+          (format strm ")~%")
+          (format strm "   (list :material ")
+          (dump-lisp-literal (send glv :get-meshinfo :material m) strm)
+          (format strm ")~%")
+          (format strm "   (list :indices ")
+          (dump-lisp-literal dedup-idx strm)
+          (format strm ")~%")
+          (format strm "   (list :vertices ")
+          (let ((*dump-float-precision* :short))
+            (dump-lisp-literal dedup-v strm))
+          (format strm ")~%")
+          (format strm "   (list :normals ")
+          (let ((*dump-float-precision* :short))
+            (dump-lisp-literal dedup-n strm))
+          (format strm "))~%")))))
   (format strm "  )~%"))
 
 (defun dump-glvertices-geom-method (strm link-name bbox-center bbox-dims glv-list)
