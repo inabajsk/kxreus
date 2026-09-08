@@ -178,10 +178,17 @@ PCを指令だけの役に減らし、観測の組み立て・推論・サーボ
 
 PCが送るのは `vx, vy, wz` の3つだけ。残り65次元はAtomS3が自分で作る:
 歩行位相はステップカウンタ、`joint_pos`/`joint_vel` はRCB-4から読む、
-`actions` は自分の前回出力。`--imu fixed` 相当なので `projected_gravity` は
-定数 `[0,0,-1]`、`base_ang_vel` は0 -- **姿勢を見ないので、これは歩容の再現で
-あってバランス制御ではない**。AtomS3自身のIMUを使うには、この個体の取り付け
-回転(`imu_R_imu_to_root`)を測る必要があり、まだ測っていない。
+`actions` は自分の前回出力。
+
+`projected_gravity` と `base_ang_vel` の出どころは実行時に切り替わる。既定は
+`--imu fixed` 相当で、ポリシー自身の静止時重力定数と角速度0 -- **姿勢を見ない
+ので、これは歩容の再現であってバランス制御ではない**。AtomS3のIMUを使う経路も
+実装してあり、取り付け回転と角速度バイアスは測定済み(`imu_calibrate.py`)だが、
+残差が約10度あり「基板が傾いている」のか「手が水平でない」のかを分離できて
+いないため既定では切ってある。切り替えはコマンドフレームの bit 7。
+
+**ポリシーは6つ載っていて、立ち上がり・座りの遷移も端末側で完結する。**
+どれがどれで、どこを間違えたかは [`docs/policies.md`](docs/policies.md)。
 
 ### 重みの書き出し
 
@@ -201,6 +208,11 @@ onnxruntimeと突き合わせ、合わなければヘッダを書かない。
 出力は2つ。`policy_spec.h` (3 KiB、次元と制御定数と手先姿勢とサーボID) と
 `policy_weights.h` (918 KiB、重み本体)。分けてあるのは、ポリシーに触れる
 たびに235 KiBのfloatリテラルを再コンパイルしないため。
+
+`--name omni` のように名前を付けると `policy_spec_omni.h` /
+`policy_weights_omni.h` になり、複数のポリシーを同居させられる。実際の運用は
+こちらで、6つ載っている。足すとき・差し替えるときの手順と落とし穴は
+[`docs/policies.md`](docs/policies.md)。
 
 ### 実測 (AtomS3, RCB-4 mini, 19サーボ)
 
@@ -490,6 +502,7 @@ POLICYの「on」はhome姿勢へ行って保持するところまでで、**歩
 ## 関連ファイル
 
 - `platformio.ini`, `src/`, `lib/` : PlatformIO版の本番ファームウェア(3モード)
+- `docs/policies.md` : 6ポリシーの一覧・遷移シーケンス・書き出し手順と、間違えた箇所
 - `tools/export_policy.py` : ONNX actor -> Cヘッダ。onnxruntimeと突き合わせてから書く
 - `tools/policy_teleop.py` : POLICYモード用のPC側クライアント(USB/UDP)
 - `tools/wifi_setup.py` : Wi-Fi認証情報をNVSに書く(USB経由、一度だけ)
