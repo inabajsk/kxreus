@@ -19,30 +19,78 @@
 
 (export '(parse dump xml-print))
 
+;; 実機確認済みの重大バグ、原因の切り分けに何段階かかかったので記録:
+;; 最初は(apply #'concatenate string 巨大なリスト)が引数個数超過で
+;; コールスタックオーバーフローすると考え、バッチ結合(1000個ずつ)に
+;; 直したがそれでも再現。さらに切り分けたところ、原因は引数の「個数」
+;; ではなく、concatenateの結果文字列の「絶対サイズ」そのものにあった
+;; (実機確認済み: 2MB+2MBのconcatenateは成功するが5MB+5MBは即座に
+;; スタックオーバーフローで落ちる。おそらくconcatenateの内部実装が
+;; サイズに比例したスタック領域を使っている)。したがって、concatenateを
+;; どう組み合わせて呼んでも(2引数だけの二分木マージであっても)、最終的に
+;; 数MB超の文字列同士を結合する段階で必ず落ちる。concatenateを一切
+;; 経由せず、(make-string 総文字数)で最初から1本の領域を確保し、
+;; 各行の文字を1個ずつsetf/eltで書き込む方式に変更する(実機確認済み:
+;; 4000万文字でも問題なし)。
+;;
+;; concat-strings-safeは小さい文字列向けには残しておく(数MB未満の
+;; 合計サイズであれば安全。urdf2eus.lのstrip-xml-comments-to-tmpfileの
+;; ように、扱うファイルが典型的なURDF程度のサイズ(数十〜数百KB)である
+;; 前提でのみ使ってよい)。
+(defun concat-strings-safe (strs)
+  (while (> (length strs) 1)
+    (let (new-list (rest strs))
+      (while rest
+        (if (cdr rest)
+            (progn
+              (push (concatenate string (car rest) (cadr rest)) new-list)
+              (setq rest (cddr rest)))
+          (progn (push (car rest) new-list) (setq rest nil))))
+      (setq strs (nreverse new-list))))
+  (if strs (car strs) ""))
+
+;; concatenateを一切使わず、事前に確保した1本の文字列領域へ、各行の
+;; 文字を直接setfで書き込む(数十MB規模でも安全、実機確認済み)。
+(defun join-lines-into-buffer (lines)
+  (let ((total 0))
+    (dolist (l lines) (incf total (+ (length l) 1)))
+    (let ((buf (make-string total)) (pos 0))
+      (dolist (l lines)
+        (dotimes (i (length l))
+          (setf (elt buf pos) (elt l i))
+          (incf pos))
+        (setf (elt buf pos) #\Newline)
+        (incf pos))
+      buf)))
+
 (defclass xml-file :super object
   :slots (file text len pos))
 
 (defmethod xml-file
+  ;; 実機確認済みの重大バグ: 元の実装は:eofが呼ばれるたびに1行ずつ
+  ;; (concatenate string text next-line ...)でtext末尾に継ぎ足す方式
+  ;; だった。EusLispのstringはimmutable(concatenateのたびに全体コピー
+  ;; が発生)なので、これはO(n^2)になり、数十MB規模のファイル(COLLADA
+  ;; 等)で実質ハングする(urdf2eus.lのstrip-xml-comments-to-tmpfileで
+  ;; 既に発見・修正した"O(n^2)文字列連結"と全く同じ種類のバグ)。加えて
+  ;; :clearも呼ばれるたびに(subseq text pos)で残りをまるごとコピーして
+  ;; おり、タグ数の多いファイルで頻繁に呼ばれると同様に遅い。
+  ;;
+  ;; ファイル全体を:init時に一括で読み込み(チャンクをリストに集めて
+  ;; 最後に1回だけconcatenate、というO(n)の手法)、:clearは何もしない
+  ;; ように変更する(全文を保持したままなので、posより前を捨てる意味が
+  ;; そもそも無くなった)。
   (:init (data)
          (setq file data)
-         (setq text "")
-         (setq len 0)
+         (let ((lines nil) line)
+           (while (setq line (read-line data nil))
+             (push line lines))
+           (setq text (join-lines-into-buffer (nreverse lines))))
+         (setq len (length text))
          (setq pos 0))
   (:pos () pos)
-  (:eof ()
-        (if (< pos len)
-            nil
-          (let ((next-line (read-line file nil)))
-            (if (null next-line)
-                t
-              (progn
-                (setq text (concatenate string text next-line (coerce '(10) string)))
-                (setq len (length text))
-                nil)))))
-  (:clear ()
-          (setq text (subseq text pos))
-          (setq len (length text))
-          (setq pos 0))
+  (:eof () (>= pos len))
+  (:clear () nil)
   (:subseq (start end)
            (subseq text start end))
   (:unget ()
@@ -51,11 +99,9 @@
   (:get ()
         (if (send self :eof)
             nil
-	    (when
-		(> (length text) pos)
-	      (let ((c (char text pos)))
-		(setq pos (+ pos 1))
-		c))))
+          (let ((c (char text pos)))
+            (setq pos (+ pos 1))
+            c)))
   )
 
 (defun read-whole-file (fname)

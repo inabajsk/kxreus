@@ -304,7 +304,7 @@
                  (let ((lines nil) line)
                    (while (setq line (read-line f nil))
                      (push line lines) (push (coerce (list 10) string) lines))
-                   (apply #'concatenate string (nreverse lines)))))
+                   (tiny-xml::concat-strings-safe (nreverse lines)))))
          (chunks nil) (i 0) (chunk-start 0) (n (length text)))
     (while (< i n)
       (if (and (<= (+ i 4) n) (string= (subseq text i (+ i 4)) "<!--"))
@@ -320,7 +320,7 @@
     (when (> n chunk-start) (push (subseq text chunk-start n) chunks))
     (let ((tmpfile (format nil "/tmp/urdf2eus-nocomment-~A.xml" (unix::getpid))))
       (with-open-file (f tmpfile :direction :output :if-exists :supersede)
-        (princ (apply #'concatenate string (nreverse chunks)) f))
+        (princ (tiny-xml::concat-strings-safe (nreverse chunks)) f))
       tmpfile)))
 
 ;; ---- メイン ----
