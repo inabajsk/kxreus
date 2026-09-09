@@ -92,7 +92,18 @@
                 pad (fmt-e (gmm2-2-kgm2 (aref i 0 0))) (fmt-e (gmm2-2-kgm2 (aref i 1 1))) (fmt-e (gmm2-2-kgm2 (aref i 2 2)))
                 (fmt-e (gmm2-2-kgm2 (aref i 0 1))) (fmt-e (gmm2-2-kgm2 (aref i 0 2))) (fmt-e (gmm2-2-kgm2 (aref i 1 2))))))
     ;; joint
-    (if incoming-joint
+    ;;
+    ;; URDFのtype="fixed"な関節は、eus2native-collada.lの枠組みでは
+    ;; rotational-jointとして表現され、上限・下限ともURDF側の既定値
+    ;; (limit要素無し)である0になる。これをそのままMuJoCoの
+    ;; limited="true" range="0 0"として書くと、MuJoCoがrange[0]<
+    ;; range[1]を要求するため起動時に拒否される(実機確認済み: RHP9の
+    ;; head_left_camera_joint等、センサー取り付け用のfixed関節)。
+    ;; 上限=下限(可動域が実質無い)の場合は、そもそも動かせない関節と
+    ;; いうことなので<joint>タグ自体を省略し、親bodyに剛結合(MuJoCoの
+    ;; 既定動作)させる。
+    (if (and incoming-joint
+             (> (- (send incoming-joint :max-angle) (send incoming-joint :min-angle)) 1e-6))
         (let ((rotationalp (derivedp incoming-joint rotational-joint)))
           (format strm "~A  <joint name=\"~A\" type=\"~A\" pos=\"0 0 0\" axis=\"~A ~A ~A\"~%"
                   pad (eus-name-string incoming-joint) (mjcf-joint-type incoming-joint)
@@ -101,7 +112,7 @@
                   pad
                   (fmt-f (if rotationalp (deg2rad (send incoming-joint :min-angle)) (mm2m (send incoming-joint :min-angle))))
                   (fmt-f (if rotationalp (deg2rad (send incoming-joint :max-angle)) (mm2m (send incoming-joint :max-angle))))))
-      (format strm "~A  <freejoint/>~%" pad))
+      (unless incoming-joint (format strm "~A  <freejoint/>~%" pad)))
     ;; geom(メッシュ)
     (format strm "~A  <geom type=\"mesh\" mesh=\"~A_mesh\"/>~%" pad lname)
     ;; 子リンク(再帰)
