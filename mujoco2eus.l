@@ -70,6 +70,34 @@
         (join-strings (butlast dotparts) ".")
       fname)))
 
+;; ---- MJCFの色情報のparse ----
+;;
+;; <geom rgba="..."/>で直接指定される場合(Unitree G1/Booster K1の
+;; ロボット本体のgeomはこの形式)と、<geom material="名前"/>で
+;; <asset><material name="名前" rgba="..."/>を参照する場合の両方に
+;; 対応する。
+(defun mjcf-asset-material-alist (root-elem)
+  (let ((asset (xml-find root-elem "asset")))
+    (if asset
+        (remove nil
+                (mapcar #'(lambda (m)
+                            (let* ((attrs (xml-tag-attrs m))
+                                   (name (xml-attr attrs "name"))
+                                   (rgba (xml-attr attrs "rgba")))
+                              (and name rgba
+                                   (cons name (apply #'float-vector (parse-floats rgba))))))
+                        (xml-find-all asset "material")))
+      nil)))
+
+(defun mjcf-geom-color (geom material-alist)
+  (and geom
+       (let* ((attrs (xml-tag-attrs geom))
+              (rgba (xml-attr attrs "rgba")))
+         (cond (rgba (apply #'float-vector (parse-floats rgba)))
+               ((xml-attr attrs "material")
+                (cdr (assoc (xml-attr attrs "material") material-alist :test #'string=)))
+               (t nil)))))
+
 (defun mjcf-asset-mesh-alist (root-elem mesh-basedir)
   ;; <compiler meshdir="...">はmesh要素のfile属性の基準ディレクトリを
   ;; 変える(MuJoCoの規約)。URDFには無い概念なのでここだけ独自対応。
@@ -89,7 +117,7 @@
 ;; ---- <body>1個ぶんの情報 ----
 
 (defclass mjcf-body-info :super propertied-object
-  :slots (name pos-coords mass centroid inertia mesh-file geom-origin
+  :slots (name pos-coords mass centroid inertia mesh-file geom-origin color
           joint-name joint-type joint-axis joint-lower joint-upper))
 
 (defun mjcf-body-pos-coords (attrs)
@@ -111,7 +139,7 @@
 ;; (ルート相対)coords。返り値は (list body-info-list joint-info-list)
 ;; を子孫すべて含めてflattenしたもの。
 
-(defun parse-mjcf-body (elem parent-abs-coords mesh-alist mesh-basedir)
+(defun parse-mjcf-body (elem parent-abs-coords mesh-alist mesh-basedir &optional (material-alist nil))
   (let* ((attrs (xml-tag-attrs elem))
          (name (xml-attr attrs "name"))
          (rel-coords (mjcf-body-pos-coords attrs))
@@ -131,6 +159,7 @@
          ;; の運動学的な位置は正しいのに、見た目のメッシュだけ別の場所に
          ;; ずれて表示される)。
          (geom-origin (if geom (mjcf-body-pos-coords (xml-tag-attrs geom)) (make-coords)))
+         (color (mjcf-geom-color geom material-alist))
          (joint-elem0 (xml-find elem "joint"))
          (bi (instance mjcf-body-info))
          ;; type="free"(6dof浮遊ベース)はrotational-joint/linear-joint
@@ -142,7 +171,7 @@
                           joint-elem0)))
     (setq (bi . name) name (bi . pos-coords) abs-coords
           (bi . mass) (kg2g mass) (bi . centroid) centroid (bi . inertia) inertia
-          (bi . mesh-file) mesh-file (bi . geom-origin) geom-origin)
+          (bi . mesh-file) mesh-file (bi . geom-origin) geom-origin (bi . color) color)
     ;; linear-jointに相当する概念が無いため、そのリンクは(rootと同様)
     ;; joint無しのリンクとして扱う(free jointの担うベースの6dofは
     ;; そもそも:transformで直接絶対位置を書き込んでいるので情報は失われ
@@ -156,7 +185,7 @@
               (bi . joint-upper) (nth 1 (parse-floats (xml-attr jattrs "range" "0 0"))))))
     (let ((bodies (list bi)))
       (dolist (child (xml-find-all elem "body"))
-        (setq bodies (append bodies (parse-mjcf-body child abs-coords mesh-alist mesh-basedir))))
+        (setq bodies (append bodies (parse-mjcf-body child abs-coords mesh-alist mesh-basedir material-alist))))
       bodies)))
 
 ;; ---- メイン ----
@@ -167,9 +196,10 @@
          (name-str (xml-attr (xml-tag-attrs root-elem) "model"))
          (mesh-basedir (path-dirname mjcf-path))
          (mesh-alist (mjcf-asset-mesh-alist root-elem mesh-basedir))
+         (material-alist (mjcf-asset-material-alist root-elem))
          (worldbody (xml-find root-elem "worldbody"))
          (root-body-elem (xml-find worldbody "body")))
-    (let ((body-infos (parse-mjcf-body root-body-elem (make-coords) mesh-alist mesh-basedir)))
+    (let ((body-infos (parse-mjcf-body root-body-elem (make-coords) mesh-alist mesh-basedir material-alist)))
       ;; body-infosの先頭がルート。親子関係はXMLの入れ子構造そのものから
       ;; 再度たどる(parse-mjcf-bodyの戻り値だけでは親名の対応づけが
       ;; 複雑になるため、ここでは素直にelem木を再走査する)。
@@ -284,8 +314,9 @@
                        (glv (if faces
                                 (gl::make-glvertices-from-faces faces)
                               (gl::make-glvertices-from-faceset (make-cube 10 10 10)))))
-                  (let ((bbox (send glv :calc-bounding-box)))
-                    (dump-glvertices-geom-method strm lname (send bbox :center) (send bbox :diagonal) (list glv)))
+                  (let ((bbox (send glv :calc-bounding-box))
+                        (material (and bi (bi . color) (rgba-color-material (bi . color)))))
+                    (dump-glvertices-geom-method strm lname (send bbox :center) (send bbox :diagonal) (list glv) material))
                   (setq faces nil)))
               (format strm "  )~%"))
             (format t ";; mujoco-to-native-collada-file: wrote ~A (~A links, ~A joints)~%"

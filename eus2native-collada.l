@@ -208,13 +208,27 @@
       (dolist (nv nlist) (user::c-matrix-row new-n i nv t) (incf i))
       (values new-v new-n indices))))
 
+;; ---- URDF/MJCF由来のrgba色をjskeusのmaterial形式に変換 ----
+;;
+;; jskeusのglvertices materialは(list (list :ambient v) (list :diffuse
+;; v))という形式(既存モデルファイルの実例で確認済み)。ambientは
+;; diffuseの半分程度の明るさにするのが既存モデルでの慣習。
+(defun rgba-color-material (rgba)
+  (list (list :ambient (float-vector (* 0.5 (elt rgba 0)) (* 0.5 (elt rgba 1)) (* 0.5 (elt rgba 2)) (elt rgba 3)))
+        (list :diffuse rgba)))
+
 ;; ---- リンク1個ぶんの、全bodyをまとめたglvertices(mesh-listを結合) ----
 ;;
 ;; models/*.lはリンクごとに1個の統合メッシュなので、それに合わせる。
 ;; kxr-bodyごとに材質(:material)が異なりうるので、1個のnative-
 ;; glverticesインスタンスの中にbodyの数だけmesh-list要素を持たせる形で
 ;; 結合し(材質は保持したまま)、オブジェクト数は1個にまとめる。
-(defun dump-combined-glv-mesh-list-literal (strm glv-list)
+;;
+;; material-override: STLメッシュ自体は色情報を持てないため、
+;; glvにglから素直に取れる:materialは常にnilになる。URDF/MJCFの
+;; <material>/rgba由来の色が分かっている場合(urdf2eus.l/mujoco2eus.l
+;; から渡される)は、それをここで採用する。
+(defun dump-combined-glv-mesh-list-literal (strm glv-list &optional (material-override nil))
   (format strm "(list~%")
   (dolist (glv glv-list)
     (let ((nmesh (length (send glv :get-meshinfo :type))))
@@ -227,7 +241,7 @@
           (dump-lisp-literal (send glv :get-meshinfo :type m) strm)
           (format strm ")~%")
           (format strm "   (list :material ")
-          (dump-lisp-literal (send glv :get-meshinfo :material m) strm)
+          (dump-lisp-literal (or (send glv :get-meshinfo :material m) material-override) strm)
           (format strm ")~%")
           (format strm "   (list :indices ")
           (dump-lisp-literal dedup-idx strm)
@@ -242,7 +256,7 @@
           (format strm "))~%")))))
   (format strm "  )~%"))
 
-(defun dump-glvertices-geom-method (strm link-name bbox-center bbox-dims glv-list)
+(defun dump-glvertices-geom-method (strm link-name bbox-center bbox-dims glv-list &optional (material-override nil))
   (format strm "  (:_make_instance_~A_geom0 ()~%" link-name)
   (format strm "   (let* ((box ")
   (dump-box-faceset-literal strm bbox-center bbox-dims)
@@ -250,7 +264,7 @@
   (format strm "          (geom (instance collada-body :init :replace-obj box :name ~S))~%" link-name)
   (format strm "          (glv (instance native-glvertices :init~%")
   (format strm "               ")
-  (dump-combined-glv-mesh-list-literal strm glv-list)
+  (dump-combined-glv-mesh-list-literal strm glv-list material-override)
   (format strm "               )))~%")
   (format strm "     (setq (geom . gl::aglvertices) glv)~%")
   (format strm "     (send geom :assoc glv)~%")

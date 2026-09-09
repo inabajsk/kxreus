@@ -102,14 +102,39 @@
 ;; ---- URDFの<link>1個ぶんの情報 ----
 
 (defclass urdf-link-info :super propertied-object
-  :slots (name mesh-file mass centroid inertia visual-origin))
+  :slots (name mesh-file mass centroid inertia visual-origin color))
 
-(defun parse-urdf-link (elem mesh-basedir)
+;; ---- URDFの色情報(<material>)のparse ----
+;;
+;; URDFの<material>は2通りありうる: (a) <robot>直下でname+<color rgba=
+;; .../>を定義しておき、各リンクの<visual><material name="..."/>で
+;; 名前だけ参照する形式(Unitree G1で確認済み)、(b) <visual><material>
+;; の中に直接<color rgba=.../>を書く形式。前者のため、<robot>直下の
+;; <material>群を先にname->rgbaのalistとして集めておく必要がある。
+(defun parse-urdf-materials (robot-elem)
+  (let (alist)
+    (dolist (m (xml-find-all robot-elem "material"))
+      (let* ((mname (xml-attr (xml-tag-attrs m) "name"))
+             (color-elem (xml-find m "color")))
+        (when (and mname color-elem)
+          (push (cons mname
+                      (apply #'float-vector (parse-floats (xml-attr (xml-tag-attrs color-elem) "rgba" "0.8 0.8 0.8 1"))))
+                alist))))
+    alist))
+
+(defun parse-urdf-link (elem mesh-basedir &optional (materials-alist nil))
   (let* ((name (xml-attr (xml-tag-attrs elem) "name"))
          (visual (xml-find elem "visual"))
          (geom (and visual (xml-find visual "geometry")))
          (mesh (and geom (xml-find geom "mesh")))
          (mesh-file (and mesh (xml-attr (xml-tag-attrs mesh) "filename")))
+         (material-elem (and visual (xml-find visual "material")))
+         (material-color-elem (and material-elem (xml-find material-elem "color")))
+         (color (cond (material-color-elem
+                       (apply #'float-vector (parse-floats (xml-attr (xml-tag-attrs material-color-elem) "rgba" "0.8 0.8 0.8 1"))))
+                      ((and material-elem materials-alist)
+                       (cdr (assoc (xml-attr (xml-tag-attrs material-elem) "name") materials-alist :test #'string=)))
+                      (t nil)))
          ;; <visual><origin>: メッシュファイル自身のローカル座標系と
          ;; リンク自身の原点がずれている場合に指定される(実機確認済み:
          ;; RHP9のURDFで前腕・大腿部等、複数のリンクがこれを使っており、
@@ -147,7 +172,8 @@
             (li . mass) (kg2g mass)
             (li . centroid) centroid
             (li . inertia) i
-            (li . visual-origin) visual-origin)
+            (li . visual-origin) visual-origin
+            (li . color) color)
       li)))
 
 ;; URDFのmesh filenameは"meshes/foo.stl"(URDF自身からの相対パス、
@@ -315,7 +341,8 @@
          (mesh-basedir (path-dirname urdf-path))
          (link-elems (xml-find-all robot-elem "link"))
          (joint-elems (xml-find-all robot-elem "joint"))
-         (link-infos (mapcar #'(lambda (e) (parse-urdf-link e mesh-basedir)) link-elems))
+         (materials-alist (parse-urdf-materials robot-elem))
+         (link-infos (mapcar #'(lambda (e) (parse-urdf-link e mesh-basedir materials-alist)) link-elems))
          (joint-infos (mapcar #'parse-urdf-joint joint-elems))
          (root-name (urdf-root-link-name link-infos joint-infos))
          (abs-coords-alist (list (cons root-name (make-coords))))
@@ -457,8 +484,9 @@
                    (glv (if faces
                             (gl::make-glvertices-from-faces faces)
                           (gl::make-glvertices-from-faceset (make-cube 10 10 10)))))
-              (let ((bbox (send glv :calc-bounding-box)))
-                (dump-glvertices-geom-method strm lname (send bbox :center) (send bbox :diagonal) (list glv)))
+              (let ((bbox (send glv :calc-bounding-box))
+                    (material (and li (li . color) (rgba-color-material (li . color)))))
+                (dump-glvertices-geom-method strm lname (send bbox :center) (send bbox :diagonal) (list glv) material))
               (setq faces nil)))
           (format strm "  )~%"))
         (format t ";; urdf-to-native-collada-file: wrote ~A (~A links, ~A joints)~%"

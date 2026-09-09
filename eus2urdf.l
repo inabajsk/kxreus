@@ -90,15 +90,40 @@
       (dolist (face faces) (geometry::write-stl-face f face :scale 0.001)))
     fname))
 
+;; ---- リンク1個ぶんの色(<material><color rgba=.../></material>)----
+;;
+;; ネイティブモデルのglverticesの:material(urdf2eus.l/mujoco2eus.lが
+;; URDF/MJCFの色情報から設定したもの、あるいはkxreus独自モデルで元々
+;; 設定されているもの)からdiffuse色を読み取る。STLメッシュ自体は色を
+;; 持てないので、URDF側では別途<material>タグとして書き出す必要がある。
+(defun link-material-rgba (link)
+  ;; 実機確認済み: メッシュを持たないリンク(センサー取り付け点等)は
+  ;; gl::make-glvertices-from-faceset (make-cube 10 10 10)のフォール
+  ;; バックになり、jskeus自身が持つmake-cubeの既定マテリアルはalpha無し
+  ;; の3要素(#f(0.65 0.65 0.65))になっている。4要素前提でalpha成分に
+  ;; アクセスすると範囲外エラーになるため、無ければ1.0を補う。
+  (let* ((body (car (send link :bodies)))
+         (fine (and body (find-method body :glvertices) (send body :glvertices)))
+         (material (and fine (send fine :get-meshinfo :material 0)))
+         (diffuse (and material (cadr (assoc :diffuse material)))))
+    (and diffuse
+         (if (>= (length diffuse) 4)
+             diffuse
+           (float-vector (elt diffuse 0) (elt diffuse 1) (elt diffuse 2) 1.0)))))
+
 ;; ---- リンク1個ぶんの<link>要素 ----
 
 (defun dump-urdf-link (strm link mesh-relpath)
-  (let ((lname (eus-name-string link)))
+  (let ((lname (eus-name-string link))
+        (rgba (link-material-rgba link)))
     (format strm "  <link name=\"~A\">~%" lname)
     (format strm "    <visual>~%")
     (format strm "      <origin xyz=\"0 0 0\" rpy=\"0 0 0\"/>~%")
     (format strm "      <geometry><mesh filename=\"~A/~A.stl\" scale=\"1 1 1\"/></geometry>~%"
             mesh-relpath lname)
+    (when rgba
+      (format strm "      <material name=\"~A_material\"><color rgba=\"~A ~A ~A ~A\"/></material>~%"
+              lname (fmt-f (elt rgba 0)) (fmt-f (elt rgba 1)) (fmt-f (elt rgba 2)) (fmt-f (elt rgba 3))))
     (format strm "    </visual>~%")
     (format strm "    <collision>~%")
     (format strm "      <origin xyz=\"0 0 0\" rpy=\"0 0 0\"/>~%")

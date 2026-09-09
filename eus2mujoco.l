@@ -114,7 +114,13 @@
                   (fmt-f (if rotationalp (deg2rad (send incoming-joint :max-angle)) (mm2m (send incoming-joint :max-angle))))))
       (unless incoming-joint (format strm "~A  <freejoint/>~%" pad)))
     ;; geom(メッシュ)
-    (format strm "~A  <geom type=\"mesh\" mesh=\"~A_mesh\"/>~%" pad lname)
+    ;; link-material-rgba: eus2urdf.lで定義(:material diffuse色を読む
+    ;; だけの汎用ヘルパーなので、URDF/MJCFどちら向けでも共用する)。
+    (let ((rgba (link-material-rgba link)))
+      (if rgba
+          (format strm "~A  <geom type=\"mesh\" mesh=\"~A_mesh\" rgba=\"~A ~A ~A ~A\"/>~%"
+                  pad lname (fmt-f (elt rgba 0)) (fmt-f (elt rgba 1)) (fmt-f (elt rgba 2)) (fmt-f (elt rgba 3)))
+        (format strm "~A  <geom type=\"mesh\" mesh=\"~A_mesh\"/>~%" pad lname)))
     ;; 子リンク(再帰)
     (dolist (j (cdr (assoc lname children-alist :test #'string=)))
       (dump-mjcf-body strm (send j :child-link) j children-alist (+ indent 2) mesh-relpath))
