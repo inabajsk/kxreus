@@ -76,12 +76,21 @@
       (format strm " pos=\"0 0 0\""))
     (format strm ">~%")
     ;; inertial
-    (let ((c (mm2m-vec (link . acentroid))) (i (link . inertia-tensor)))
-      (format strm "~A  <inertial pos=\"~A ~A ~A\" mass=\"~A\"~%"
-              pad (fmt-f (elt c 0)) (fmt-f (elt c 1)) (fmt-f (elt c 2)) (fmt-f (g2kg (send link :weight))))
-      (format strm "~A    fullinertia=\"~A ~A ~A ~A ~A ~A\"/>~%"
-              pad (fmt-e (gmm2-2-kgm2 (aref i 0 0))) (fmt-e (gmm2-2-kgm2 (aref i 1 1))) (fmt-e (gmm2-2-kgm2 (aref i 2 2)))
-              (fmt-e (gmm2-2-kgm2 (aref i 0 1))) (fmt-e (gmm2-2-kgm2 (aref i 0 2))) (fmt-e (gmm2-2-kgm2 (aref i 1 2)))))
+    ;;
+    ;; 質量が実質ゼロ(URDFで単なるセンサー・カメラ等の取り付け基準点
+    ;; として質量・慣性テンソルを一切指定していないリンク)の場合、
+    ;; fullinertiaを全部0のまま書くとMuJoCoが起動時に"inertia must have
+    ;; positive eigenvalues"で拒否する(実機確認済み: RHP9の
+    ;; head_left_camera等)。この場合は<inertial>タグ自体を省略し、
+    ;; MuJoCoコンパイラにgeom形状から自動算出(既定密度)させる。
+    (let ((c (mm2m-vec (link . acentroid))) (i (link . inertia-tensor))
+          (mass-kg (g2kg (send link :weight))))
+      (when (> mass-kg 1e-9)
+        (format strm "~A  <inertial pos=\"~A ~A ~A\" mass=\"~A\"~%"
+                pad (fmt-f (elt c 0)) (fmt-f (elt c 1)) (fmt-f (elt c 2)) (fmt-f mass-kg))
+        (format strm "~A    fullinertia=\"~A ~A ~A ~A ~A ~A\"/>~%"
+                pad (fmt-e (gmm2-2-kgm2 (aref i 0 0))) (fmt-e (gmm2-2-kgm2 (aref i 1 1))) (fmt-e (gmm2-2-kgm2 (aref i 2 2)))
+                (fmt-e (gmm2-2-kgm2 (aref i 0 1))) (fmt-e (gmm2-2-kgm2 (aref i 0 2))) (fmt-e (gmm2-2-kgm2 (aref i 1 2))))))
     ;; joint
     (if incoming-joint
         (let ((rotationalp (derivedp incoming-joint rotational-joint)))
