@@ -1,14 +1,14 @@
 # AtomS3(液晶付き)を RCB4-mini 用 USB Dual Adapter の代わりにする(液晶表示版)
 
-`../atom_rcb4_bridge/`(バイト中継専用、液晶なしATOMでも書き込める素の版)を
+`../../atom_phone/atom_rcb4_bridge_kxrl4d/`(バイト中継専用、液晶なしATOMでも書き込める素の版)を
 ベースに、AtomS3の液晶へ配線早見表・通信中インジケータ・RCB4コマンドの
 LEN/CMD/checksum検証結果を表示する機能を追加した版。
 
 **液晶の無いプレーンなATOM(ATOM Lite/Matrixなど)には書き込めない。**
-その場合は `../atom_rcb4_bridge/` を使うこと。
+その場合は `../../atom_phone/atom_rcb4_bridge_kxrl4d/` を使うこと。
 
 配線・対象ハードウェア・PC側(kxreus)の設定・トラブルシューティングは
-`../atom_rcb4_bridge/README.md` と共通なのでそちらを参照。以下はこの版で
+`../../atom_phone/atom_rcb4_bridge_kxrl4d/README.md` と共通なのでそちらを参照。以下はこの版で
 追加した液晶表示機能についてのみ記す。
 
 ## 液晶表示

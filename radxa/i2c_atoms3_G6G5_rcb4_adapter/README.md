@@ -38,7 +38,7 @@ Radxa Zero (I2C_EE_M1, マスター) --I2C--> AtomS3(スレーブ, G1=SCL/G2=SDA
 | GND | 両方 | 共通GND |
 
 RCB4-mini COMコネクタのピン順(GND-Rx-Tx)・電圧レベルの注意点は
-`../../atom/atom_rcb4_bridge/README.md`と同じなのでそちらを参照。
+`../../atom_phone/atom_rcb4_bridge_kxrl4d/README.md`と同じなのでそちらを参照。
 
 ## 【重要】Radxa側のI2Cバス番号は未検証
 
@@ -60,7 +60,7 @@ i2cdetect -y <N>              # AtomS3のアドレス(既定0x08)が実際に見
 - **書き込み(Radxa→AtomS3→RCB4)**: I2Cの1回の書き込みトランザクションに
   RCB4向け生フレーム(`[length,opcode,...,checksum]`)をラッパー無しで
   そのまま乗せる。RCB4フレーム自体が先頭バイトに全長を持つため、追加の
-  枠組みは不要(`../../atom/atom_rcb4_bridge/`系と同じく、プロトコルの
+  枠組みは不要(`../../atom_phone/atom_rcb4_bridge_kxrl4d/`系と同じく、プロトコルの
   中身の解釈はしない)。
 - **読み出し(RCB4→AtomS3→Radxa)**: I2Cの読み出しは常に固定64バイト。
   内訳は`[有効バイト数(1byte)][データ(最大63byte、残りは0埋め)]`。
