@@ -377,6 +377,7 @@
 ;; 使って絶対座標を積み上げ、joint-index(1始まり)でkinematics_modelの
 ;; 関節リストを直接indexして関節定義を引く(実機確認済みの対応関係)。
 (defun collada-to-native-collada-file (dae-path &key (outfile nil))
+  (reset-eus-name-string-table)
   (let* ((all-nodes (parse-dae-visual-scene dae-path))
          (scene-root (find-if #'(lambda (n) (null (nth 1 n))) all-nodes))
          (name-str (nth 0 scene-root))

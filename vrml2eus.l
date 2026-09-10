@@ -361,6 +361,7 @@
 ;; という実インスタンス化パターンまで読み飛ばしてから、その中で
 ;; "name"/"humanoidBody"を探す。
 (defun vrml-to-native-collada-file (wrl-path &key (outfile nil))
+  (reset-eus-name-string-table)
   (setq *vt* (vrml-tokenize-file wrl-path))
   (let (name-str)
     (while (and *vt*

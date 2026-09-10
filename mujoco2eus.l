@@ -191,6 +191,7 @@
 ;; ---- メイン ----
 
 (defun mujoco-to-native-collada-file (mjcf-path &key (outfile nil))
+  (reset-eus-name-string-table)
   (let* ((doc (tiny-xml::parse (strip-xml-comments-to-tmpfile mjcf-path)))
          (root-elem (if (string= (xml-tag-name doc) "mujoco") doc (xml-find doc "mujoco")))
          (name-str (xml-attr (xml-tag-attrs root-elem) "model"))

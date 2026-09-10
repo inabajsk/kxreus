@@ -335,6 +335,7 @@
     (if p (subseq path 0 p) ".")))
 
 (defun urdf-to-native-collada-file (urdf-path &key (outfile nil))
+  (reset-eus-name-string-table)
   (let* ((doc (tiny-xml::parse (strip-xml-comments-to-tmpfile urdf-path)))
          (robot-elem (if (string= (xml-tag-name doc) "robot") doc (xml-find doc "robot")))
          (name-str (xml-attr (xml-tag-attrs robot-elem) "name"))

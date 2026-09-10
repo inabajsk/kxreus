@@ -171,10 +171,11 @@
       (if (probe-file path) path))))
 
 (defun create-robot-model-from-file (name-str &optional form &key use-external-tools (models-dir "models"))
-  ;; models-dir: 生成・キャッシュ先のサブディレクトリ名。既定"models"は
-  ;; 従来通り(collada2eus等の外部ツール生成が使ってきた場所)。
-  ;; kxr-create-robotが:model省略(既定)時にmodels-dir="eusmodels"を渡し、
-  ;; 今回のネイティブ生成の出力を既存のmodels/*.lキャッシュと分離する。
+  ;; models-dir: 生成・キャッシュ先のサブディレクトリ名。ネイティブ生成
+  ;; (use-external-tools nil、既定)・外部ツール生成(use-external-tools t、
+  ;; :model tの時)のどちらも同じ"models"に出力する(生成方式はファイル
+  ;; 先頭のコメントで区別する。native-robot-to-collada-file/eus2collada-
+  ;; robotそれぞれのヘッダコメント参照)。
   (let* ((bconfig (kxr-body-config name-str))
 	 (model-params (if bconfig (cadr bconfig) nil))
 	 (mfile (format nil "~A/models/~A.l" (unix::getenv "EUSDIR") name-str))
@@ -215,15 +216,16 @@
       (require :eus2wrl)
       (eus2collada-robot name-str :head head)
       (setq model t))
-    ;; :model省略時(既定値:auto)は今回のネイティブ生成(外部ツール不使用、
-    ;; eus2native-collada.l)を使い、eusmodels/以下に生成・キャッシュする。
-    ;; :model 0や:model tを明示的に与えた場合は、従来通りexport-collada/
-    ;; collada2eus(外部ツール)を使い、models/以下に生成・キャッシュする
-    ;; (後方互換)。:model nilはどちらにも触れない(bodyだけのネイティブ
-    ;; robot-modelをそのまま使う、以前と同じ)。
-    (setq native-mode (eq model :auto))
-    (setq models-dir (if native-mode "eusmodels" "models"))
-    (setq use-ext (if native-mode use-external-tools t))
+    ;; :model t を明示した時だけ、従来通りexport-collada/collada2eus
+    ;; (外部ツール)を使う。それ以外(省略時の既定値・0・:auto等)は
+    ;; すべて今回のネイティブ生成(外部ツール不使用、eus2native-collada.l)
+    ;; を使う。どちらの方式でも生成・キャッシュ先は同じ"models"ディレクトリ
+    ;; (生成方式はファイル先頭のコメントで区別する)。:model nilは
+    ;; どちらにも触れない(bodyだけのネイティブrobot-modelをそのまま使う、
+    ;; 以前と同じ、下のcondの(null model)節で処理する)。
+    (setq native-mode (not (eq model t)))
+    (setq models-dir "models")
+    (setq use-ext (or (eq model t) use-external-tools))
     (cond
      #|
      ((member :robotset model-params)
@@ -283,7 +285,7 @@
 	))
      ((and file (member :file model-params) (probe-file (rcb4eus-file file)))
       (setq r (create-robot-model-from-file file form :use-external-tools use-ext :models-dir models-dir)))
-     ((or (null bconfig) (null model-params) (eq model t) (eq model 0) native-mode)
+     ((or (null bconfig) (null model-params) (eq model t) native-mode)
       (setq r (create-robot-model-from-file name-str nil :use-external-tools use-ext :models-dir models-dir)))
      ;;      ((and (eq model 0) (member :file model-params) (probe-file (rcb4eus-file file)))
      ;;       (setq r (create-robot-model-from-file name-str form)))

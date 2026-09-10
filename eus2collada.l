@@ -104,6 +104,7 @@
 
 ;; ---- メイン ----
 (defun native-robot-to-collada-file (name-str &key (robot nil) (outfile nil))
+  (reset-eus-name-string-table)
   (unless robot
     (setq robot (make-kxr-robot name-str :model nil :viewer nil :ri nil)))
   (when (find-method robot :neutral) (send robot :neutral))

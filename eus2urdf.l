@@ -56,8 +56,31 @@
             pitch
             (atan2 (aref mat 1 0) (aref mat 0 0))))))
 
+;; kxrの一部ロボット構成(平行リンク機構等)では、別々のlink/joint
+;; オブジェクトが同じ:nameを持つことがある(実機確認済み:
+;; lleg6構成でlleg-crotch-rという名前のリンクが2個ある)。そのまま
+;; defclassの:slotsに使うと同名シンボルが重複しmake-classがセグ
+;; フォルトする。オブジェクトの同一性でメモ化し、名前が衝突した
+;; 2個目以降には"_2"等の連番を付けて一意化する(同じオブジェクトに
+;; 対する呼び出しは常に同じ名前を返す)。生成対象ロボットが変わる
+;; 度に(reset-eus-name-string-table)でこの状態をリセットすること。
+(defvar *eus-name-string-table* (make-hash-table :test #'eq))
+(defvar *eus-name-string-used* nil)
+
+(defun reset-eus-name-string-table ()
+  (setq *eus-name-string-table* (make-hash-table :test #'eq))
+  (setq *eus-name-string-used* nil))
+
 (defun eus-name-string (obj)
-  (string-downcase (string (send obj :name))))
+  (or (gethash obj *eus-name-string-table*)
+      (let* ((base (string-downcase (string (send obj :name))))
+             (name base) (i 2))
+        (while (member name *eus-name-string-used* :test #'string=)
+          (setq name (format nil "~A_~A" base i))
+          (incf i))
+        (push name *eus-name-string-used*)
+        (setf (gethash obj *eus-name-string-table*) name)
+        name)))
 
 ;; ---- リンク1個ぶんのメッシュ(STL)書き出し ----
 ;;
@@ -188,6 +211,7 @@
 
 (defun native-robot-to-urdf-file
     (name-str &key (robot nil) (outfile nil) (mesh-dir nil))
+  (reset-eus-name-string-table)
   (unless robot
     (setq robot (make-kxr-robot name-str :model nil :viewer nil :ri nil)))
   (when (find-method robot :neutral) (send robot :neutral))
