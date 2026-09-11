@@ -570,12 +570,21 @@ const FieldLog = (() => {
       state: t.state, actor: t.actor,
       vx: t.vx, wz: t.wz,
       gravity: t.gravity,
+      // Pre-mounting-rotation IMU reading (see net::Telemetry::accel_raw's
+      // own comment) -- kept alongside gravity so a mounting rotation can be
+      // estimated or checked from the log later without trusting whatever
+      // kImuToRoot this build happened to have baked in.
+      accel_raw: t.accel_raw, gyro_raw: t.gyro_raw,
       home_err: t.home_err, err: t.err,
       // Per real servo, same order as servoIds (see SERVO_IDS's own
       // comment): the id array travels with every record rather than once
       // per file, so a single line is enough to know what pulse[i]/
-      // target[i] are the i-th of, even read back out of context later.
-      servoIds: SERVO_IDS, pulse: t.pulse, target: t.target,
+      // target[i]/action[i] are the i-th of, even read back out of context
+      // later. action is the actor's own raw output -- see
+      // net::Telemetry::last_action's own comment: without it the
+      // observation vector the policy saw cannot be reconstructed, only
+      // what it was commanded to do about it (target).
+      servoIds: SERVO_IDS, pulse: t.pulse, target: t.target, action: t.action,
       synced: 0,
     };
     db.transaction(STORE, 'readwrite').objectStore(STORE).add(row);
@@ -722,8 +731,9 @@ async function syncNow() {
     }
     const records = batch.map(r => ({
       ts: r.ts, state: r.state, actor: r.actor, vx: r.vx, wz: r.wz,
-      gravity: r.gravity, home_err: r.home_err, err: r.err,
-      servoIds: r.servoIds, pulse: r.pulse, target: r.target,
+      gravity: r.gravity, accel_raw: r.accel_raw, gyro_raw: r.gyro_raw,
+      home_err: r.home_err, err: r.err,
+      servoIds: r.servoIds, pulse: r.pulse, target: r.target, action: r.action,
     }));
     const resp = await fetch(`${base}/upload`, {
       method: 'POST',
