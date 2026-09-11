@@ -318,10 +318,11 @@ void handleCommandRequest() {
     const bool live = snapshot.t.updated_ms != 0 &&
                       millis() - snapshot.t.updated_ms < 1000;
 
-    // Sized for the fixed fields plus two POLICY_ACT_DIM-long arrays (pulse,
-    // target) -- built with snprintf-and-advance rather than one format
-    // string, since neither array's length is known at compile time.
-    char body[420 + POLICY_ACT_DIM * 24];
+    // Sized for the fixed fields plus three POLICY_ACT_DIM-long arrays
+    // (pulse, target, action) -- built with snprintf-and-advance rather
+    // than one format string, since none of their lengths are known at
+    // compile time.
+    char body[520 + POLICY_ACT_DIM * 36];
     size_t len = snprintf(body, sizeof(body),
              "{\"state\":%u,\"vx\":%.3f,\"wz\":%.3f,\"loop_ms\":%.1f,"
              "\"err\":%lu,\"over\":%lu,\"draw_ms\":%.1f,"
@@ -329,6 +330,8 @@ void handleCommandRequest() {
              "\"quiet\":%lu,\"rx\":%lu,\"step\":%lu,"
              "\"try\":%u,\"home_err\":%d,"
              "\"gravity\":[%.3f,%.3f,%.3f],"
+             "\"accel_raw\":[%.4f,%.4f,%.4f],"
+             "\"gyro_raw\":[%.4f,%.4f,%.4f],"
              "\"live\":%s,\"ok\":%s,",
              static_cast<unsigned>(snapshot.t.state), snapshot.t.vx, snapshot.t.wz,
              snapshot.t.loop_us / 1000.0f,
@@ -344,12 +347,15 @@ void handleCommandRequest() {
              static_cast<unsigned>(snapshot.debug.homing_attempt),
              static_cast<int>(snapshot.debug.home_err),
              snapshot.t.gravity[0], snapshot.t.gravity[1], snapshot.t.gravity[2],
+             snapshot.t.accel_raw[0], snapshot.t.accel_raw[1], snapshot.t.accel_raw[2],
+             snapshot.t.gyro_raw[0], snapshot.t.gyro_raw[1], snapshot.t.gyro_raw[2],
              live ? "true" : "false", accepted ? "true" : "false");
     // Per real servo (see Telemetry::servo_count's own comment): the raw
     // pulse last read back, and the joint target (radians) that produced
-    // it, same order as /info's own "servoIds". Only fresh while
-    // RUNNING/HOLDING -- see sendTelemetry()'s own comment -- but sent
-    // every tick regardless, the same as gravity already is.
+    // it, same order as /info's own "servoIds". pulse is refreshed every
+    // tick regardless of state; target only means anything while
+    // RUNNING/HOLDING -- see Telemetry::servo_pulse's own comment -- but
+    // both are sent every tick regardless, the same as gravity already is.
     len += snprintf(body + len, sizeof(body) - len, "\"pulse\":[");
     for (uint8_t i = 0; i < snapshot.t.servo_count && len + 32 < sizeof(body); i++) {
         len += snprintf(body + len, sizeof(body) - len, "%s%u", i > 0 ? "," : "",
@@ -359,6 +365,14 @@ void handleCommandRequest() {
     for (uint8_t i = 0; i < snapshot.t.servo_count && len + 32 < sizeof(body); i++) {
         len += snprintf(body + len, sizeof(body) - len, "%s%.4f", i > 0 ? "," : "",
                         snapshot.t.joint_target_rad[i]);
+    }
+    // The actor's own raw output -- see Telemetry::last_action's own
+    // comment for why this, not just target, is needed to reconstruct the
+    // observation vector the policy actually saw.
+    len += snprintf(body + len, sizeof(body) - len, "],\"action\":[");
+    for (uint8_t i = 0; i < snapshot.t.servo_count && len + 32 < sizeof(body); i++) {
+        len += snprintf(body + len, sizeof(body) - len, "%s%.4f", i > 0 ? "," : "",
+                        snapshot.t.last_action[i]);
     }
     snprintf(body + len, sizeof(body) - len, "]}");
     server.send(200, "application/json", body);
@@ -902,8 +916,9 @@ bool provisioning() { return g_provisioning; }
 void setTelemetry(uint8_t state, float vx, float wz, uint32_t loop_us,
                   uint32_t errors, uint32_t overruns, uint32_t draw_us,
                   const Debug& debug, const float* gravity,
+                  const float* accel_raw, const float* gyro_raw,
                   const uint16_t* servo_pulse, const float* joint_target_rad,
-                  uint8_t servo_count) {
+                  const float* last_action, uint8_t servo_count) {
     portENTER_CRITICAL(&g_shared);
     g_telemetry.t.state = state;
     g_telemetry.t.vx = vx;
@@ -914,11 +929,15 @@ void setTelemetry(uint8_t state, float vx, float wz, uint32_t loop_us,
     g_telemetry.t.draw_us = draw_us;
     g_telemetry.debug = debug;
     memcpy(g_telemetry.t.gravity, gravity, sizeof(g_telemetry.t.gravity));
+    memcpy(g_telemetry.t.accel_raw, accel_raw, sizeof(g_telemetry.t.accel_raw));
+    memcpy(g_telemetry.t.gyro_raw, gyro_raw, sizeof(g_telemetry.t.gyro_raw));
     g_telemetry.t.servo_count = servo_count;
     memcpy(g_telemetry.t.servo_pulse, servo_pulse,
           servo_count * sizeof(*servo_pulse));
     memcpy(g_telemetry.t.joint_target_rad, joint_target_rad,
           servo_count * sizeof(*joint_target_rad));
+    memcpy(g_telemetry.t.last_action, last_action,
+          servo_count * sizeof(*last_action));
     g_telemetry.t.updated_ms = millis();
     portEXIT_CRITICAL(&g_shared);
 }

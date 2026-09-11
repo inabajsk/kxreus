@@ -1203,5 +1203,125 @@
      (send *irtviewer* :draw-objects)))
   )
 
+;;; ---------------------------------------------------------------------
+;;; Field logging (PC-side): raw IMU + joint angles, JSONL.
+;;;
+;;; This bridge (kxreus/atom/s3_echo_with_I2C/atom_s3_robot -- ESP-NOW
+;;; relay to RCB4, plus IMU/M5StickV passthrough) has no on-device policy
+;;; execution the way atom_phone/atom_rcb4_bridge_* does: the PC IS the
+;;; brain here, so raw IMU and real joint angles are only ever visible
+;;; together on THIS side, not in AtomS3 firmware. Logged the same way
+;;; (one JSON object per line, robot/date/session grouping) as
+;;; atom_phone/field_logs (see its own atom_common/tools/log_server.py),
+;;; so the same downstream tooling (mounting-rotation estimation,
+;;; policy-observation reconstruction) can read either source without
+;;; caring which one produced a given file -- see docs/gait_evaluation.md
+;;; in walking-kxr-rl for what that tooling is for.
+;;;
+;;; No JSON library ships with this euslisp, and this euslisp's `format`
+;;; does not support ~,6F-style omitted-width or ~4,'0D-style pad-char
+;;; directives (confirmed empirically: both silently produce garbage, not
+;;; an error) -- so numbers go through plain ~A (whose default float
+;;; printing is already valid JSON) and zero-padding is done by hand.
+
+(defun field-log-zpad2 (n)
+  (if (< n 10) (format nil "0~A" n) (format nil "~A" n)))
+
+(defun field-log-json-string (s)
+  ;; ~S double-quotes a lisp string with lisp's own escaping, which is
+  ;; sufficient (not a general JSON escaper) because every string this
+  ;; writes is program-generated (robot/session names, timestamps) --
+  ;; never arbitrary text that could carry a raw quote or backslash.
+  (format nil "~S" (string s)))
+
+(defun field-log-json-vector3 (v)
+  (format nil "[~A,~A,~A]" (aref v 0) (aref v 1) (aref v 2)))
+
+(defun field-log-join (strs sep)
+  ;; This euslisp's `format` has no working ~{...~^...~} loop directive
+  ;; (confirmed empirically: it printed the whole list as one ~A instead
+  ;; of iterating), so joining is done by hand.
+  (if (null strs) ""
+    (let ((out (car strs)))
+      (dolist (s (cdr strs)) (setq out (format nil "~A,~A" out s)))
+      out)))
+
+(defun field-log-json-joints (plist)
+  ;; plist: (name1 angle1 name2 angle2 ...), as returned by
+  ;; :read-angle-plist -- names may be strings or symbols (KXR joint
+  ;; names come back lower-case either way, see robots.py's own
+  ;; eus-name-string convention on the export side), angles in degrees
+  ;; (EusLisp's own angle-vector convention).
+  (let (parts)
+    (do ((p plist (cddr p))) ((null p))
+      (push (format nil "~A:~A" (field-log-json-string (string-downcase (string (car p))))
+                    (cadr p))
+            parts))
+    (format nil "{~A}" (field-log-join (reverse parts) ","))))
+
+(defmethod rcb4-interface
+  ;; ~/kxreus/atom/field_logs/<robot>/<date>/<session>.jsonl -- mkdir -p
+  ;; rather than mkdir-unless (utils.l) since this is 3 levels deep and
+  ;; mkdir-unless only ever makes one.
+  (:field-log-dir
+   (&optional robot-name)
+   ;; rcb4-interface's own `name` slot has no auto-accessor (a bare slot,
+   ;; unlike `robot`'s :forward one -- confirmed empirically: a plain
+   ;; :slots (name) with no :forward gets no reader at all), so the robot
+   ;; MODEL's own :name (a standard eus cascaded-link method) is what
+   ;; actually works here.
+   (let* ((name (string-downcase (string (or robot-name (send (send self :robot) :name) "robot"))))
+          (lt (unix::localtime))
+          (date (format nil "~A-~A-~A" (+ 1900 (aref lt 5))
+                        (field-log-zpad2 (+ 1 (aref lt 4))) (field-log-zpad2 (aref lt 3))))
+          (dir (format nil "~A/kxreus/atom/field_logs/~A/~A"
+                       (unix::getenv "HOME") name date)))
+     (unix::system (format nil "mkdir -p ~A" dir))
+     dir))
+  ;; One session per (robot, process): a fixed HHMMSS-based name, first
+  ;; call wins -- so every :field-log-tick within one euslisp process
+  ;; appends to the SAME file regardless of how much wall-clock time or
+  ;; how many day-rollovers happen in between, the same "one file per
+  ;; run" grouping atom_phone's own phone-side FieldLog uses.
+  (:field-log-session
+   (&optional robot-name)
+   (or (send self :get :field-log-session)
+       (let* ((lt (unix::localtime))
+              (session (format nil "~A~A~A" (field-log-zpad2 (aref lt 2))
+                               (field-log-zpad2 (aref lt 1)) (field-log-zpad2 (aref lt 0)))))
+         (send self :put :field-log-session session)
+         session)))
+  ;; Appends ONE record: raw IMU (accel g / gyro deg/s, AtomS3's own
+  ;; frame -- see atoms3_i2c_robot.ino's sendImuReply comment for the
+  ;; units) and real joint angles (degrees, RCB4 servo readback via
+  ;; :read-angle-plist), each tagged with which joint is which so no
+  ;; ordering convention has to travel with the file. Returns nil (and
+  ;; logs nothing) if the IMU read failed -- e.g. no IMU on this robot,
+  ;; or a communication hiccup -- rather than writing a record with a
+  ;; missing half.
+  (:field-log-tick
+   (&optional robot-name)
+   (let ((imu (send self :read-imu)))
+     (when imu
+       (let* ((accel (cadr (memq :accel imu)))
+              (gyro (cadr (memq :gyro imu)))
+              (joints (send self :read-angle-plist))
+              (path (format nil "~A/~A.jsonl" (send self :field-log-dir robot-name)
+                            (send self :field-log-session robot-name)))
+              (now (unix::gettimeofday)))
+         (with-open-file (s path :direction :output :if-exists :append :if-does-not-exist :create)
+           (format s "{~A:~A,~A:~A,~A:~A,~A:~A}~%"
+                   (field-log-json-string "ts") (+ (car now) (/ (cadr now) 1000000.0))
+                   (field-log-json-string "accel_raw") (field-log-json-vector3 accel)
+                   (field-log-json-string "gyro_raw") (field-log-json-vector3 gyro)
+                   (field-log-json-string "joint_pos_deg") (field-log-json-joints joints)))
+         t))))
+  ;; Convenience: call once from a :timer-on periodic function to log
+  ;; alongside whatever else that tick already does, e.g.
+  ;;   (send *ri* :timer-on #'(lambda () (ri-update *ri*) (send *ri* :field-log-tick)))
+  (:field-log-stop
+   ()
+   (send self :put :field-log-session nil)))
+
 
 

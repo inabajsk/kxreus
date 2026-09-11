@@ -183,6 +183,18 @@ struct Telemetry {
     /// while running) so a phone can draw an attitude indicator regardless
     /// of state. A unit vector; [0,0,-1] is level.
     float gravity[3];
+    /// The IMU chip's own reading, BEFORE kImuToRoot (each robot's mounting
+    /// rotation) is applied -- accel in g, gyro in deg/s, M5Unified's native
+    /// units, in the AtomS3's own frame. Published unconditionally and
+    /// independent of use_imu_: `gravity` above is what the POLICY sees
+    /// (control-facing, honours use_imu_'s fixed-value fallback), this is
+    /// what the CHIP actually reports regardless of whether that feeds
+    /// control -- kept so a field log can re-derive or check a robot's own
+    /// mounting rotation after the fact, without having to trust or invert
+    /// whatever kImuToRoot happened to be baked into the firmware that
+    /// produced the log. Zero if no IMU answered at all.
+    float accel_raw[3];
+    float gyro_raw[3];
     /// How many of the two arrays below are real servos (see PolicyMode's
     /// own g_servo_count): a joint with no wired servo -- the head/gripper
     /// joints on some of these robots -- is never included, so this can be
@@ -194,17 +206,33 @@ struct Telemetry {
     /// own native position unit -- see Rcb4Link::PULSE_NEUTRAL/DEG_TO_PULSE
     /// -- not degrees or radians), and the target writeJointTargets() asked
     /// of that same joint on the same control step, in radians (an offset
-    /// from home, before the pulse conversion). Only ever fresh while
-    /// PolicyMode::step() is actually running (RUNNING/HOLDING) -- see
-    /// sendTelemetry()'s own comment on why this does not add a second
-    /// hardware read for the other states, the same reasoning gravity's
-    /// caching already relies on. kWebPage's FieldLog is what actually
-    /// persists these, for a later training run to compare "what the policy
-    /// wanted" against "what the hardware did" per joint, not just in
-    /// aggregate (see also last_gravity_root_'s own comment on why this
-    /// kind of caching exists at all).
+    /// from home, before the pulse conversion). servo_pulse is refreshed
+    /// every telemetry tick regardless of state (a throttled extra read
+    /// while idle/homing/fault/motion, the control loop's own read while
+    /// RUNNING/HOLDING -- see sendTelemetry()'s and loop()'s own comments);
+    /// joint_target_rad has no meaning outside RUNNING/HOLDING (nothing is
+    /// being commanded) and is simply stale then. kWebPage's FieldLog is
+    /// what actually persists these, for a later training run to compare
+    /// "what the policy wanted" against "what the hardware did" per joint,
+    /// not just in aggregate (see also last_gravity_root_'s own comment on
+    /// why this kind of caching exists at all) -- and, combined with
+    /// accel_raw/gyro_raw above, to tell a genuine known-pose idle sample
+    /// (servo_pulse close to home) apart from an arbitrary hand-posed FREE
+    /// one, which a mounting-rotation estimate must not be fit against.
     uint16_t servo_pulse[POLICY_ACT_DIM];
     float joint_target_rad[POLICY_ACT_DIM];
+    /// The actor's own last output (raw network action, BEFORE the
+    /// action_scale/home offset that turns it into joint_target_rad) --
+    /// this is literally the `actions` observation term
+    /// (buildObs()'s own `obs[POLICY_OBS_ACTIONS_START + i]`), fed back into
+    /// the network on the NEXT step. Without it, a field log cannot
+    /// reconstruct the full observation vector the policy actually saw --
+    /// gravity/ang_vel/command/joint_pos/joint_vel are covered above and by
+    /// phase (reconstructable off Debug::step alone), but the network's own
+    /// prior action is state that exists ONLY here, nowhere physical to
+    /// re-derive it from. Same validity window as joint_target_rad (stale
+    /// outside RUNNING/HOLDING/SEQUENCE, since nothing is being produced).
+    float last_action[POLICY_ACT_DIM];
 };
 
 struct Debug {
@@ -223,8 +251,9 @@ struct Debug {
 void setTelemetry(uint8_t state, float vx, float wz, uint32_t loop_us,
                   uint32_t errors, uint32_t overruns, uint32_t draw_us,
                   const Debug& debug, const float* gravity,
+                  const float* accel_raw, const float* gyro_raw,
                   const uint16_t* servo_pulse, const float* joint_target_rad,
-                  uint8_t servo_count);
+                  const float* last_action, uint8_t servo_count);
 
 /// Called once, from PolicyMode::enter() right after buildServoOrder(): the
 /// real servo ids, in the fixed order every Telemetry's servo_pulse /

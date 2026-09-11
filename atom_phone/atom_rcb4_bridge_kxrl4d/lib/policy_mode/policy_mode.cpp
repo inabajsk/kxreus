@@ -543,7 +543,7 @@ void PolicyMode::sendTelemetry() {
         memcpy(gravity_root, last_gravity_root_, sizeof(gravity_root));
     } else {
         float ang_vel_gyro_unused[3];
-        readAttitude(gravity_root, ang_vel_gyro_unused);
+        readAttitude(gravity_root, ang_vel_gyro_unused, last_accel_raw_, last_gyro_raw_);
     }
     // Reordered from joint order (last_target_'s own layout) into
     // sorted/servo order, matching last_pulse_ and /info's own "servoIds" --
@@ -554,7 +554,8 @@ void PolicyMode::sendTelemetry() {
     }
     net::setTelemetry(static_cast<uint8_t>(state_), command_[0], command_[2],
                       loop_us_, total_errors_, overruns_, draw_us_, debug,
-                      gravity_root, last_pulse_, target_sorted, g_servo_count);
+                      gravity_root, last_accel_raw_, last_gyro_raw_,
+                      last_pulse_, target_sorted, last_action_, g_servo_count);
 
     switch (reply_to_) {
         case ReplyTo::USB: Serial.write(frame, sizeof(frame)); break;
@@ -575,7 +576,7 @@ void PolicyMode::buildObs(float* obs) const {
     // 0.35, against the +-0.05 of noise they were trained with.
     float gravity_root[3];
     float ang_vel_gyro[3];
-    readAttitude(gravity_root, ang_vel_gyro);
+    readAttitude(gravity_root, ang_vel_gyro, last_accel_raw_, last_gyro_raw_);
     memcpy(last_gravity_root_, gravity_root, sizeof(last_gravity_root_));
     for (size_t i = 0; i < 3; i++) {
         obs[POLICY_OBS_PROJECTED_GRAVITY_START + i] = gravity_root[i];
@@ -609,13 +610,25 @@ void PolicyMode::buildObs(float* obs) const {
     }
 }
 
-void PolicyMode::readAttitude(float* gravity_root, float* ang_vel_gyro) const {
+void PolicyMode::readAttitude(float* gravity_root, float* ang_vel_gyro,
+                              float* accel_raw, float* gyro_raw) const {
     m5::imu_data_t data = {};
-    const bool live = use_imu_ && M5.Imu.isEnabled();
-    if (live) {
+    const bool imu_present = M5.Imu.isEnabled();
+    if (imu_present) {
         M5.Imu.update();
         data = M5.Imu.getImuData();
     }
+    // Ground truth for the field log, independent of use_imu_: whatever the
+    // chip actually reports (zero if it is not there at all), in its own
+    // frame, before kImuToRoot. See net::Telemetry::accel_raw's own comment.
+    accel_raw[0] = data.accel.x;
+    accel_raw[1] = data.accel.y;
+    accel_raw[2] = data.accel.z;
+    gyro_raw[0] = data.gyro.x;
+    gyro_raw[1] = data.gyro.y;
+    gyro_raw[2] = data.gyro.z;
+
+    const bool live = use_imu_ && imu_present;
     const float mag = sqrtf(data.accel.x * data.accel.x +
                             data.accel.y * data.accel.y +
                             data.accel.z * data.accel.z);
@@ -1112,6 +1125,20 @@ void PolicyMode::loop() {
         // there is only the telemetry to keep up.
         if (now_ms - last_draw_ms_ > DRAW_INTERVAL_MS) {
             last_draw_ms_ = now_ms;
+            // A field log wants to know the actual joint angles while idle
+            // too -- e.g. to tell "sitting at home, servos free" apart from
+            // "a person is holding it in some arbitrary FREE pose" -- not
+            // just while a policy drives the hand. step()'s own read (see
+            // its own comment) only happens RUNNING/HOLDING, so this is the
+            // only place an idle/homing/fault/motion sample gets a fresh
+            // one; DRAW_INTERVAL_MS (250 ms) is plenty for a log of a
+            // robot sitting still and cheap enough not to matter here --
+            // there is no control deadline to protect in these states, only
+            // step()'s.
+            uint16_t pulses[POLICY_ACT_DIM];
+            if (link_.readServoPulsesFor(g_sorted_ids, pulses, g_servo_count)) {
+                memcpy(last_pulse_, pulses, g_servo_count * sizeof(*pulses));
+            }
             sendTelemetry();
         }
         return;

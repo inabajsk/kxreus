@@ -269,17 +269,24 @@ private:
     void buildObs(float* obs) const;
 
     /// Read the IMU into the two frames the observation wants: gravity in
-    /// root, angular velocity in the URDF base link frame.
+    /// root, angular velocity in the URDF base link frame. ALSO returns the
+    /// chip's raw reading (accel_raw/gyro_raw, its own frame, BEFORE
+    /// kImuToRoot), unconditionally -- independent of use_imu_, and read
+    /// even when the control-facing outputs below fall back to the fixed
+    /// stance value, so a field log always has ground truth to check or
+    /// re-derive this robot's mounting rotation from later.
     ///
-    /// Honours `use_imu_`. Holding the attitude at the policy's own stance
-    /// instead is not a fallback but a comparison: the wheeled policy was
-    /// first driven from a host that had no IMU at all, so it saw a perfect
-    /// constant gravity and a zero angular velocity, and it worked. Feeding
-    /// the real thing adds a bias of about 10 deg AND closes a loop that did
-    /// not exist before -- the hand shakes, the gyro sees it, the policy
-    /// answers. Being able to switch at runtime is what separates those two
-    /// changes, which were made at the same time.
-    void readAttitude(float* gravity_root, float* ang_vel_gyro) const;
+    /// gravity_root/ang_vel_gyro honour `use_imu_`. Holding the attitude at
+    /// the policy's own stance instead is not a fallback but a comparison:
+    /// the wheeled policy was first driven from a host that had no IMU at
+    /// all, so it saw a perfect constant gravity and a zero angular
+    /// velocity, and it worked. Feeding the real thing adds a bias of about
+    /// 10 deg AND closes a loop that did not exist before -- the hand
+    /// shakes, the gyro sees it, the policy answers. Being able to switch at
+    /// runtime is what separates those two changes, which were made at the
+    /// same time.
+    void readAttitude(float* gravity_root, float* ang_vel_gyro,
+                      float* accel_raw, float* gyro_raw) const;
     bool step();
     void freeServos();
 
@@ -321,17 +328,24 @@ private:
     /// because buildObs() is const. See sendTelemetry()'s own comment for
     /// the states where a fresh read is used instead.
     mutable float last_gravity_root_[3] = {0.0f, 0.0f, -1.0f};
+    /// Same caching, same reason, for readAttitude()'s raw (pre-kImuToRoot)
+    /// output -- see net::Telemetry::accel_raw's own comment for why this
+    /// is logged at all.
+    mutable float last_accel_raw_[3] = {0.0f, 0.0f, 0.0f};
+    mutable float last_gyro_raw_[3] = {0.0f, 0.0f, 0.0f};
 
     float joint_pos_[POLICY_ACT_DIM] = {0.0f};
     float joint_vel_[POLICY_ACT_DIM] = {0.0f};
     float last_action_[POLICY_ACT_DIM] = {0.0f};
     float last_target_[POLICY_ACT_DIM] = {0.0f};
     /// The pulse last read back for each REAL servo (sorted/servo order,
-    /// same as g_sorted_ids -- NOT joint order, unlike the members above),
-    /// cached from step()'s own read rather than read again: see
-    /// sendTelemetry()'s own comment for why this is fresh only while
-    /// RUNNING/HOLDING, the same reasoning last_gravity_root_ already
-    /// relies on.
+    /// same as g_sorted_ids -- NOT joint order, unlike the members above).
+    /// Refreshed by step()'s own read while RUNNING/HOLDING, and by a
+    /// throttled extra read from loop()'s idle/homing/fault/motion branch
+    /// otherwise (see that branch's own comment) -- so this is a live joint
+    /// angle regardless of state, not just while a policy is driving the
+    /// hand, which is what makes an idle field-log sample distinguishable
+    /// from an arbitrary hand-posed FREE one (compare against home).
     uint16_t last_pulse_[POLICY_ACT_DIM] = {0};
 
     // joint_vel is a finite difference over a fixed WINDOW OF TIME, not over
