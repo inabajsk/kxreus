@@ -1458,6 +1458,103 @@
 ;;(defun nanp (v) (member *nan* (coerce v cons)))
 (defun nanp (v) (some #'c-isnan (coerce v cons)))
 
+;; ---- GLUテッセレータを使った高速な穴あき面の三角形分割 ----
+;;
+;; jskeus純正のgeometry::face-to-triangle-aux/face-to-tessel-triangle/
+;; geo::face-to-triangle-make-simpleは、穴を1個ずつ外周にブリッジして
+;; 単純多角形にまとめてから耳切りする自前実装(2010年作成)で、穴が
+;; 多い面ではO(n^2)以上のコストがかかる(実機確認: 24個の穴を持つ面
+;; 1枚で91秒)。libGLU(jskeus本体に既にリンク済み)の掃引線テッセレータ
+;; を使うと同じ形状が数ミリ秒で得られる(実機確認: 同じ面で0.0036秒、
+;; 三角形数203個で完全一致・GLコンテキスト不要)。
+;;
+;; util.c(jskeus側、eus_tess_*)に、描画せずにテッセレーション結果を
+;; 溜め込んで読み出す版のコールバックを追加し、oglforeign.c.cの
+;; defoglforeignリストに登録している(jskeus側の変更、要:再ビルド)。
+(defvar *kxreus-glu-tess-obj* nil)
+
+(defun kxreus-glu-tess-setup ()
+  (unless *kxreus-glu-tess-obj*
+    (setq *kxreus-glu-tess-obj* (gl::gluNewTess))
+    (gl::gluTessCallbackl *kxreus-glu-tess-obj* 100100 ;; GLU_BEGIN
+			  (#'gl::eus_tess_begin_cb . entry) (#'gl::eus_tess_begin_cb . entry2))
+    (gl::gluTessCallbackl *kxreus-glu-tess-obj* 100101 ;; GLU_VERTEX
+			  (#'gl::eus_tess_vertex_cb . entry) (#'gl::eus_tess_vertex_cb . entry2))
+    (gl::gluTessCallbackl *kxreus-glu-tess-obj* 100102 ;; GLU_END
+			  (#'gl::eus_tess_end_cb . entry) (#'gl::eus_tess_end_cb . entry2))
+    (gl::gluTessCallbackl *kxreus-glu-tess-obj* 100103 ;; GLU_ERROR
+			  (#'gl::eus_tess_error_cb . entry) (#'gl::eus_tess_error_cb . entry2))))
+
+;; 面f(穴を持ってもよい)をGLUで三角形分割し、(#f(x0 y0 z0) #f(x1 y1 z1)
+;; #f(x2 y2 z2))という3頂点リストのリストを返す。GLUがエラーを報告したら
+;; nilを返す(呼び出し側でfaceオブジェクト方式へフォールバックする)。
+(defun kxreus-glu-triangulate-face (f)
+  (kxreus-glu-tess-setup)
+  (gl::eus_tess_reset)
+  (let* ((holes (send f :holes))
+	 (l-tessinfo
+	  (mapcar #'(lambda (p) (gl::alloctessinfo p 0 nil 0 nil))
+		  (cdr (send f :vertices)))))
+    (gl::gluTessBeginPolygon *kxreus-glu-tess-obj* 0)
+    (gl::gluTessBeginContour *kxreus-glu-tess-obj*)
+    (mapc #'(lambda (i) (gl::gluTessVertex *kxreus-glu-tess-obj* i i)) l-tessinfo)
+    (gl::gluTessEndContour *kxreus-glu-tess-obj*)
+    (dolist (hole holes)
+      (let ((h-l-tessinfo
+	     (mapcar #'(lambda (p) (gl::alloctessinfo p 0 nil 0 nil))
+		     (send hole :vertices))))
+	(gl::gluTessBeginContour *kxreus-glu-tess-obj*)
+	(gl::gluNextContour *kxreus-glu-tess-obj* 100122) ;; GLU_INTERIOR
+	(mapc #'(lambda (i) (gl::gluTessVertex *kxreus-glu-tess-obj* i i)) h-l-tessinfo)
+	(gl::gluTessEndContour *kxreus-glu-tess-obj*)
+	(nconc l-tessinfo h-l-tessinfo)))
+    (gl::gluTessEndPolygon *kxreus-glu-tess-obj*)
+    (mapc #'unix:free l-tessinfo))
+  (if (zerop (gl::eus_tess_get_error))
+      (let* ((nv (let ((total 0))
+		   (dotimes (b (gl::eus_tess_num_batches)) (incf total (gl::eus_tess_batch_count_at b)))
+		   total))
+	     (verts (make-array nv))
+	     (tmp (float-vector 0 0 0)))
+	(dotimes (i nv)
+	  (gl::eus_tess_get_vertexfv i tmp)
+	  (setf (aref verts i) (copy-seq tmp)))
+	(let (triangles)
+	  (dotimes (b (gl::eus_tess_num_batches))
+	    (let* ((mode (gl::eus_tess_batch_mode_at b))
+		   (start (gl::eus_tess_batch_start_at b))
+		   (count (gl::eus_tess_batch_count_at b)))
+	      (cond
+	       ((= mode 4) ;; GL_TRIANGLES
+		(do ((i 0 (+ i 3))) ((> (+ i 3) count))
+		  (push (list (aref verts (+ start i)) (aref verts (+ start i 1)) (aref verts (+ start i 2))) triangles)))
+	       ((= mode 6) ;; GL_TRIANGLE_FAN
+		(let ((v0 (aref verts start)))
+		  (do ((i 1 (1+ i))) ((>= (1+ i) count))
+		    (push (list v0 (aref verts (+ start i)) (aref verts (+ start i 1))) triangles))))
+	       ((= mode 5) ;; GL_TRIANGLE_STRIP
+		(do ((i 0 (1+ i))) ((>= (+ i 2) count))
+		  (if (evenp i)
+		      (push (list (aref verts (+ start i)) (aref verts (+ start i 1)) (aref verts (+ start i 2))) triangles)
+		    (push (list (aref verts (+ start i 1)) (aref verts (+ start i)) (aref verts (+ start i 2))) triangles))))
+	       (t (warn ";; kxreus-glu-triangulate-face: unknown primitive mode ~A~%" mode)))))
+	  (nreverse triangles)))
+    nil))
+
+(defun kxreus-triangle-to-face (v0 v1 v2)
+  (make-face-from-vertices (list (cons v0 nil) (cons v1 nil) (cons v2 nil))))
+
+;; geometry::face-to-triangle-auxの高速版ドロップイン置き換え。既に
+;; 三角形の面はそのまま(従来通り無処理)、それ以外はGLUでの三角形分割を
+;; 試し、GLUがエラーを返した場合だけ従来の自前実装にフォールバックする。
+(defun kxreus-triangulate-face-fast (f)
+  (if (= (length (send f :edges)) 3)
+      (list f)
+    (let ((tris (kxreus-glu-triangulate-face f)))
+      (if tris
+	  (mapcar #'(lambda (tr) (apply #'kxreus-triangle-to-face tr)) tris)
+	(geometry::face-to-triangle-aux f)))))
+
 (defun gl::make-glvertices-from-faceset (fs &key (material))
   "returns glvertices instance. fs is geomatry::faceset"
   (let (mat)
@@ -1478,7 +1575,7 @@
 
 (defun gl::make-glvertices-from-faces (flst &key (material))
   "returns glvertices instance. flst is list of geomatry::face"
-  (let ((flst1 (flatten (mapcar #'(lambda (f) (geometry::face-to-triangle-aux f))
+  (let ((flst1 (flatten (mapcar #'(lambda (f) (kxreus-triangulate-face-fast f))
 				flst))))
     ;;(format t ";;make-glverticies-from-faces flst=~A, flst1=~A~%" (length flst) (length flst1))
     (setq flst (remove-if #'(lambda (x) (zerop (send x :area))) flst1))

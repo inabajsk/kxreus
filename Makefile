@@ -152,3 +152,28 @@ build-eus:
 	(cd $(EUSDIR)/lisp;\
 	make -f Makefile.Linux.thread clean eus0 eus1 eus2 eusg eusx eus eusgl)
 
+#
+# jskeus, built from our own inabajsk forks instead of upstream euslisp/*.
+# Use this while a fix is only merged into our fork and not yet upstream
+# (e.g. a pending PR) -- it clones and builds jskeus/EusLisp from
+# inabajsk's branches instead of waiting for the PR to land.
+#
+JSKEUS_DIR ?= $(HOME)/jskeus
+JSKEUS_GIT_URL ?= git@github.com:inabajsk/jskeus
+JSKEUS_GIT_BRANCH ?= master
+EUS_GIT_URL ?= git@github.com:inabajsk/EusLisp
+EUS_GIT_BRANCH ?= glu-tess-collector
+
+jskeus:
+	if [ ! -d $(JSKEUS_DIR) ]; then \
+		git clone $(JSKEUS_GIT_URL) -b $(JSKEUS_GIT_BRANCH) $(JSKEUS_DIR); \
+	fi
+	$(MAKE) -C $(JSKEUS_DIR) GIT_EUSURL=$(EUS_GIT_URL) GIT_EUSBRANCH=$(EUS_GIT_BRANCH) all
+
+# kxreus's own .so files are built against a specific jskeus core; after
+# (re)building jskeus above, kxreus must be rebuilt from clean or it will
+# crash against the new core's ABI. This runs both steps in order.
+rebuild-with-jskeus: jskeus
+	make clean
+	make
+

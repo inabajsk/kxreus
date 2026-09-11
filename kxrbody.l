@@ -33,9 +33,24 @@
 (defvar *kxr-white-color* #f(0.7 0.7 0.7))
 (defvar *kxr-default-color* #f(0.3 0.3 0.3))
 
+;; kxrbody.l内の軸・スペーサー・ベアリング等の小さな円柱パーツは、
+;; jskeus make-cylinderの既定値(:segments 12)のまま作ると、glbodies/
+;; キャッシュ生成時のメッシュ(gl::make-glvertices-from-faceset、
+;; :generate-glverticesが呼ぶ)の三角形数を無駄に押し上げる(実機確認:
+;; 38リンクのフルボディロボットkxrl2himeno2で約68,500三角形/8.7MB)。
+;; jskeus本体のmake-cylinderの既定値そのものはkxreus以外にも影響する
+;; 共有ライブラリなので変更せず、kxrbody.l内のmake-cylinder呼び出しだけ
+;; この*kxr-cylinder-segments*を既定値として使うkxr-make-cylinderに
+;; 差し替える(明示的に:segmentsを指定している既存の呼び出しは、
+;; キーワード引数の左優先規則により従来通りその値が優先される)。
+(defvar *kxr-cylinder-segments* 6)
+(defun kxr-make-cylinder (radius height &rest args)
+  (apply #'make-cylinder radius height
+	 (append args (list :segments *kxr-cylinder-segments*))))
+
 (defun kxr-create-screw (m l &optional (h 1.0) (m2 (+ m 1.5)))
-  (let ((s (make-cylinder (/ m 2.0) (+ l 0.5)))
-	(h (make-cylinder (/ m2 2.0) h)))
+  (let ((s (kxr-make-cylinder (/ m 2.0) (+ l 0.5)))
+	(h (kxr-make-cylinder (/ m2 2.0) h)))
     (send s :locate #f(0 0 0.5))
     (body+ h s)))
 (defun kxr-screw-m2x4 () (kxr-create-screw 2 4))
@@ -212,8 +227,8 @@
 		    (float-vector 30 0 -10))
 	      (float-vector 0 0 50)))
 	 (offset (float-vector -10 0 -20))
-	 (h0 (make-cylinder 3.9 50 :segments 21))
-	 (h1 (make-cylinder 1.1 8))
+	 (h0 (kxr-make-cylinder 3.9 50 :segments 21))
+	 (h1 (kxr-make-cylinder 1.1 8))
 	 )
     (send c1 :rotate (deg2rad 29) :z :world)
     (send c1 :locate (float-vector 15 6 0) :world)
@@ -274,8 +289,8 @@
 	    (float-vector xl+ (- 2 yl/2) (- zl/2))
 	    (float-vector (- xl+ 2) (- yl/2) (- zl/2)))
 	   (float-vector 0 0 (* 2 zl/2))))
-	 (cyl1 (make-cylinder 6.25 28))
-	 (cyl2 (make-cylinder 3.0 33.5))
+	 (cyl1 (kxr-make-cylinder 6.25 28))
+	 (cyl2 (kxr-make-cylinder 3.0 33.5))
 	 (holes (list
 		 (list "uph0" #f(0    0 13.0) :z 6.5 8)
 		 (list "uph1" #f(0    -10.5 13.0) :-z 1 8)
@@ -342,7 +357,7 @@
 	    )
 	   (float-vector 0 (- thickness) 0)))
 	 (sbod bod)
-	 (cyl (make-cylinder 6.2 (+ thickness 5)))
+	 (cyl (kxr-make-cylinder 6.2 (+ thickness 5)))
 	 holes (c (make-cascoords)))
     (send cyl :rotate pi/2 :x :world)
     (send cyl :locate (float-vector -10.5 2 23) :world)
@@ -391,9 +406,9 @@
 	    (float-vector  0  -10 -10)
 	    )
 	   (float-vector 5 0 0)))
-	 (cyl2- (make-cylinder 8.5 20))
-	 (cyl (make-cylinder 5 8))
-	 (cyl- (make-cylinder 2 20))
+	 (cyl2- (kxr-make-cylinder 8.5 20))
+	 (cyl (kxr-make-cylinder 5 8))
+	 (cyl- (kxr-make-cylinder 2 20))
 	 (bod+ (make-cube 12 28 6))
 	 (holes (list
 		 (list "baseh0" #f(10 0 0) :x 2 8)
@@ -464,7 +479,7 @@
       (setq sbod b)
       ;;(let ((i 0) (cam))
       ;;    (while (< i (length diameters))
-      ;;        (setq cam (make-cylinder (elt diameters i) 0.5))
+      ;;        (setq cam (kxr-make-cylinder (elt diameters i) 0.5))
       ;;        (send cam :locate (float-vector (elt locates i) 0 25) :world)
       ;;        (send cam :set-color (float-vector 0.8 0.8 0.8))
       ;;        (setq b (body+ b cam))
@@ -474,8 +489,8 @@
       
       (let ((i 0) (cam+) (cam-))
 	(while (< i (length diameters))
-	  (setq cam+ (make-cylinder (elt diameters i) 2))
-	  (setq cam- (make-cylinder (- (elt diameters i) 2) 2))
+	  (setq cam+ (kxr-make-cylinder (elt diameters i) 2))
+	  (setq cam- (kxr-make-cylinder (- (elt diameters i) 2) 2))
 	  (send cam+ :locate (float-vector (elt locates i) 0 25) :world)
 	  (send cam- :locate (float-vector (elt locates i) 0 25) :world)
 	  (setq b (body+ b cam+))
@@ -526,7 +541,7 @@
 	   (float-vector 0 0 6)))
 	 (sbod bod)
 	 (cyl
-	  (make-cylinder 5.5 10)))
+	  (kxr-make-cylinder 5.5 10)))
     (send cyl :locate #f(0 28 -2))
     (setq bod (body- bod cyl))
     (kxr-make-kxr-body "dyp-chest-shoulder-arm" sbod bod nil)
@@ -570,8 +585,8 @@
 	    (float-vector  1.8 -12.3 (- zl/2))
 	    )
 	   (float-vector 0 0 (if half 13 26))))
-	 (cyl1 (make-cylinder 6.25 (if half 10 28)))
-	 (cyl2 (make-cylinder 3.0 (if half 10 33.5)))
+	 (cyl1 (kxr-make-cylinder 6.25 (if half 10 28)))
+	 (cyl2 (kxr-make-cylinder 3.0 (if half 10 33.5)))
 	 (holes (list
 		 (list "uph0" #f(0    0    19.0) :-z 1 8)
 		 (list "downh0" #f(0    0 -19.0) :z 1 8)
@@ -698,7 +713,7 @@
 	    )
 	   (float-vector 0 0 thickness)))
 	 (sbod bod)
-	 (cyl1 (make-cylinder 0.8 30))
+	 (cyl1 (kxr-make-cylinder 0.8 30))
 	 (holes (list
 		 (list "uph0" (float-vector   0.0   0.0  up-z) :-z 1 6)
 		 (list "uph1" (float-vector -10.5 -10.5  up-z) :-z 1 6)
@@ -721,11 +736,11 @@
     (send cyl1 :locate (float-vector -10.5 10.5 -15) :world)
     (setq bod (body- bod cyl1))
     (when center-hole
-      (setq cyl (make-cylinder 4 30))
+      (setq cyl (kxr-make-cylinder 4 30))
       (send cyl :locate (float-vector 0 0 -12) :world)
       (setq bod (body- bod cyl)))
     (when sensor-hole
-      (setq cyl (make-cylinder 2.1 30))
+      (setq cyl (kxr-make-cylinder 2.1 30))
       (cond
 	((eq sensor-hole :all)
 	 (dolist (x (list 7 -7))
@@ -763,10 +778,10 @@
 	    )
 	   (float-vector 0 0 (* z 2))))
 	 (sbod bod)
-	 (cylb (make-cylinder 4 6))
+	 (cylb (kxr-make-cylinder 4 6))
 	 (cub (make-cube 10 10 6))
-	 (cyl0 (make-cylinder 1.55 10))
-	 (cyl1 (make-cylinder 0.75 10))
+	 (cyl0 (kxr-make-cylinder 1.55 10))
+	 (cyl1 (kxr-make-cylinder 0.75 10))
 	 (holes (list
 		 (list "uph0" #f(  0.0   0.0  3.0) :-z 1 6)
 		 (list "uph1" #f(-10.5 -10.5  3.0) :-z 1 6)
@@ -811,8 +826,8 @@
   )
 
 (defun kxr-horn (&optional (height 3))
-  (let ((h (make-cylinder 8 (- height 1)))
-	(cyl9 (make-cylinder 4.5 (- height 1))))
+  (let ((h (kxr-make-cylinder 8 (- height 1)))
+	(cyl9 (kxr-make-cylinder 4.5 (- height 1))))
     (send cyl9 :translate #f(0 0 1))
     (setq h (body+ h cyl9))
     (setf (get h :height) height)
@@ -932,11 +947,11 @@
 	    (float-vector (- hl 2) (- hl) (- z))
 	    )
 	   (float-vector 0 0 (+ z 3))))
-	 (cylb (make-cylinder 4 len))
-	 (cylps (make-cylinder 2 6))
+	 (cylb (kxr-make-cylinder 4 len))
+	 (cylps (kxr-make-cylinder 2 6))
 	 ;;(cub (make-cube 10 16 6))
-	 (cyl0 (make-cylinder 1.55 10))
-	 (cyl1 (make-cylinder 0.75 10))
+	 (cyl0 (kxr-make-cylinder 1.55 10))
+	 (cyl1 (kxr-make-cylinder 0.75 10))
 	 (holes (list
 		 (list "uph1" (float-vector -10.5 -10.5  3.0) :-z 1 6)
 		 (list "uph2" (float-vector -10.5  10.5  3.0) :-z 1 6)
@@ -1022,10 +1037,10 @@
 	    )
 	   (float-vector 0 0 (+ z 3))))
 	 (sbod bod)
-	 (cylb (make-cylinder 4 6))
+	 (cylb (kxr-make-cylinder 4 6))
 	 (cub (make-cube 10 10 6))
-	 (cyl0 (make-cylinder 1.55 10))
-	 (cyl1 (make-cylinder 0.75 10))
+	 (cyl0 (kxr-make-cylinder 1.55 10))
+	 (cyl1 (kxr-make-cylinder 0.75 10))
 	 (holes (list
 		 (list "uph1" (float-vector -10.5 -10.5  3.0) :-z 1 6)
 		 (list "uph2" (float-vector -10.5  10.5  3.0) :-z 1 6)
@@ -1092,7 +1107,7 @@
 	    )
 	   (float-vector 0 0 height)))
 	 (sbod bod)
-	 (cyl (make-cylinder 14 (+ 8 height)))
+	 (cyl (kxr-make-cylinder 14 (+ 8 height)))
 	 (holes (list
 		 (list "uph1" (float-vector -34  -10.5 hh) :-z 1 2)
 		 (list "uph2" (float-vector -34   10.5 hh) :-z 1 2)
@@ -1146,9 +1161,9 @@
 	   (float-vector 0 0 8)))
 	 (sbod bod)
 	 (cyl
-	  (make-cylinder 14 40))
+	  (kxr-make-cylinder 14 40))
 	 (cyl0
-	  (make-cylinder 1.6 40))
+	  (kxr-make-cylinder 1.6 40))
 	 (cub0
 	  (make-cube 100 10 50))
 	 (holes (list
@@ -1234,9 +1249,9 @@
 	    )
 	   (float-vector 0 0 height)))
 	 (sbod bod)
-	 (cyl (make-cylinder 11 (* height 6)))
-	 (cyl0 (make-cylinder 1.6 (* height 6)))
-	 (cyl1 (make-cylinder 3 (* height 6)))
+	 (cyl (kxr-make-cylinder 11 (* height 6)))
+	 (cyl0 (kxr-make-cylinder 1.6 (* height 6)))
+	 (cyl1 (kxr-make-cylinder 3 (* height 6)))
 	 (holes (list
 		 (list "uph1" (float-vector -34  -10.5 0.0) :-z 1 2)
 		 (list "uph2" (float-vector -34   10.5 0.0) :-z 1 2)
@@ -1311,9 +1326,9 @@
 	   (float-vector 0 0 3)))
 	 (sbod bod)
 	 (cylc
-	  (make-cylinder 10 5))
+	  (kxr-make-cylinder 10 5))
 	 (cylh
-	  (make-cylinder 1.05 5))
+	  (kxr-make-cylinder 1.05 5))
 	 (c (make-cascoords :pos (float-vector (+ -33 -10.5)  0 3)))
 	 (holes
 	  (list
@@ -1369,7 +1384,7 @@
 	   (float-vector 0 0 3)))
 	 (sbod bod)
 	 (cylh
-	  (make-cylinder 1.05 5))
+	  (kxr-make-cylinder 1.05 5))
 	 holes)
     (dotimes (i 3)
       (push (list (format nil "l5up~A" i)
@@ -1400,12 +1415,12 @@
 
 (defun kxr-body-plate-spacer (&optional (name "body-plate-spacer"))
   (let* ((bod
-	  (make-cylinder 21 3 :segments 15))
+	  (kxr-make-cylinder 21 3 :segments 15))
 	 (sbod bod)
 	 (cyl0
-	  (make-cylinder 10 10 :segments 15))
+	  (kxr-make-cylinder 10 10 :segments 15))
 	 (cyl1
-	  (make-cylinder 17 10 :segments 15))
+	  (kxr-make-cylinder 17 10 :segments 15))
 	 (cut0
 	  (make-prism
 	   (list (float-vector -30 -30 -5)
@@ -1442,9 +1457,9 @@
 	    (float-vector -8 -2 -9))
 	   (float-vector 0 0 18)))
 	 (cyl0
-	  (make-cylinder 4 10))
+	  (kxr-make-cylinder 4 10))
 	 (cyl1
-	  (make-cylinder 4.2 22 :segments 7))
+	  (kxr-make-cylinder 4.2 22 :segments 7))
 	 (bod1
 	  (make-prism
 	   (list
@@ -1710,7 +1725,7 @@
   (require :eus2wrl)
   (let* (;;(bod0 (make-cube 78 44 10))
 	 ;;(bod1 (make-cube 70 36 28))
-	 ;;(c (make-cylinder 10 5))
+	 ;;(c (kxr-make-cylinder 10 5))
 	 (bs (wrl2eus "stls/M5Stickhead_wp_single_rev1.WRL" 1000.0))
 	 holes (j (make-cascoords))
 	 blist (i 0)
@@ -1789,7 +1804,7 @@
 	       bod-list)
 	   (float-vector 6.5 0 0)))
 	 (cyl0
-	  (make-cylinder 6.5 20 :segments 13))
+	  (kxr-make-cylinder 6.5 20 :segments 13))
 	 (holes
 	  (list
 	   (list "bottomh0" #f(0 0  0) :-x 1 6)
@@ -1855,11 +1870,11 @@
 	   (float-vector 5 0 0)))
 	 (sbod bod)
 	 (cyl0
-	  (make-cylinder 6.75 20 :segments 13))
+	  (kxr-make-cylinder 6.75 20 :segments 13))
 	 (cyl1
-	  (make-cylinder (/ 3.8 2) 10))
+	  (kxr-make-cylinder (/ 3.8 2) 10))
 	 (cyl2
-	  (make-cylinder (/ 2.1 2) 10))
+	  (kxr-make-cylinder (/ 2.1 2) 10))
 	 holes
 	 cbod)
     (setq bod (body- bod bod0))
@@ -1926,7 +1941,7 @@
 	   (float-vector 15 0 0)))
 	 (sbod bod)
 	 (cyl
-	  (make-cylinder 2 40))
+	  (kxr-make-cylinder 2 40))
 	 (holes
 	  (list (list "uph1" (float-vector 0 10.5 -2.5) :-x 1 13)
 		(list "uph2" (float-vector 0 -10.5 -2.5) :-x 1 13)
@@ -1959,7 +1974,7 @@
 	 (c1- (make-cube 17 17 30))
 	 (c2- (make-cube 26 32 18))
 	 (cyl
-	  (make-cylinder 2 40))
+	  (kxr-make-cylinder 2 40))
 	 (c (make-cascoords :pos #f(0 0 7)))
 	 (holes
 	  (list (list "uph1" (float-vector 0 10.5 -2.5) :-x 1 13)
@@ -2015,7 +2030,7 @@
 	   (float-vector 4 0 0)))
 	 (sbod bod)
 	 (cyl
-	  (make-cylinder 4 50))
+	  (kxr-make-cylinder 4 50))
 	 (holes
 	  (list
 	   (list "uph1" (float-vector (if a 4 -4) 0 0) (if a :-x :x) 4 3)
@@ -2032,8 +2047,8 @@
 			(name (format nil "kxr-arm-aux-~A-~A" depth thickness)) 
 			)
   (if (null len) (setq len 26))
-  (let* ((cyl0 (make-cylinder (if upper 1.55 3.55) 20))
-	 (cyl (make-cylinder (if upper 3.95 6) thickness)) ;; 4
+  (let* ((cyl0 (kxr-make-cylinder (if upper 1.55 3.55) 20))
+	 (cyl (kxr-make-cylinder (if upper 3.95 6) thickness)) ;; 4
 	 (bod0
 	  (make-prism
 	   (list
@@ -2108,15 +2123,15 @@
   (kxr-arm-aux 42 :name "flat-arm42" :upper nil :shrink 0 :radius 10.5 :depth 7 :thickness 5))
 
 (defun kxr-dyp-base (&optional (name "dyp-base"))
-  (let* ((bod (make-cylinder 19 8))
+  (let* ((bod (kxr-make-cylinder 19 8))
 	 holes)
     (kxr-make-kxr-body name bod bod holes)
     ))
 
 (defun kxr-arm-supporter-a (&optional (name "arm-supporter-a"))
-  (let* ((cyl (make-cylinder 13 3 :segments 13))
-	 (cyl0 (make-cylinder 6.3 20))
-	 (cyl1 (make-cylinder 8.25 10))
+  (let* ((cyl (kxr-make-cylinder 13 3 :segments 13))
+	 (cyl0 (kxr-make-cylinder 6.3 20))
+	 (cyl1 (kxr-make-cylinder 8.25 10))
 	 (bod
 	  (make-prism
 	   (list
@@ -2154,7 +2169,7 @@
     ))
 
 (defun kxr-arm-supporter-b (&optional (name "arm-supporter-b"))
-  (let* ((cyl0 (make-cylinder 8.25 20))
+  (let* ((cyl0 (kxr-make-cylinder 8.25 20))
 	 (bod0
 	  (make-prism
 	   (list
@@ -2410,9 +2425,9 @@
 	   (float-vector 0 30 0))
 	   )
 	 (sbod bod)
-	 (cyl0 (make-cylinder 1.8 60))
-	 (cyl (make-cylinder 8 3))
-	 (cyl1 (make-cylinder 6 7))
+	 (cyl0 (kxr-make-cylinder 1.8 60))
+	 (cyl (kxr-make-cylinder 8 3))
+	 (cyl1 (kxr-make-cylinder 6 7))
 	 (holes
 	  (list
 	   (list "outh1" (float-vector 0 -15 0) :y 1 2)
@@ -2470,10 +2485,10 @@
 	    )
 	   (float-vector 0 30 0)))
 	 (sbod bod)
-	 (cyl0 (make-cylinder 1.9 60))
-	 (cyl (make-cylinder 6 3.5))  ;; shift for raspi from (make-cylinder 6 3)
-	 (cyl1 (make-cylinder 3 3))
-	 (cyl2 (make-cylinder 1.5 60))
+	 (cyl0 (kxr-make-cylinder 1.9 60))
+	 (cyl (kxr-make-cylinder 6 3.5))  ;; shift for raspi from (kxr-make-cylinder 6 3)
+	 (cyl1 (kxr-make-cylinder 3 3))
+	 (cyl2 (kxr-make-cylinder 1.5 60))
 	 (holes
 	  (list
 	   (list "outh1" (float-vector 0 -15 0) :y 1 2)
@@ -2573,9 +2588,9 @@
   )
 
 (defun kxr-wheel (&optional (name "wheel"))
-  (let* ((cyl0 (make-cylinder 1.5 20))
-	 (cyl1 (make-cylinder 4.1 20))
-	 (cyl2 (make-cylinder 8.1 20))
+  (let* ((cyl0 (kxr-make-cylinder 1.5 20))
+	 (cyl1 (kxr-make-cylinder 4.1 20))
+	 (cyl2 (kxr-make-cylinder 8.1 20))
 	 (bod0
 	  (make-prism
 	   (list
@@ -2646,9 +2661,9 @@
   (kxr-wheel-aux 20 1 name))
 
 (defun kxr-wheel-aux (&optional (r 14) (hr 0.75) (name "wheel-aux"))
-  (let* ((cyl0 (make-cylinder 1.5 30))
-	 (cyl1 (make-cylinder 4.1 30))
-	 (cyl2 (make-cylinder 8.1 30))
+  (let* ((cyl0 (kxr-make-cylinder 1.5 30))
+	 (cyl1 (kxr-make-cylinder 4.1 30))
+	 (cyl2 (kxr-make-cylinder 8.1 30))
 	 (r2 (- r 2))
 	 (bod
 	  (make-solid-of-revolution
@@ -2715,9 +2730,9 @@
 
 (defun kxr-lock-ring (&optional (name "lock-ring"))
   (let* ((cyl0
-	  (make-cylinder 10 15))
+	  (kxr-make-cylinder 10 15))
 	 (bod
-	  (make-cylinder 17 6))
+	  (kxr-make-cylinder 17 6))
 	 (sbod bod)
 	 (holes
 	  (list
@@ -2730,8 +2745,8 @@
     ))
 
 (defun kxr-joint-frame-a (&optional (name "joint-frame-a"))
-  (let* ((cyl0 (make-cylinder 1.35 10))
-	 (cyl1 (make-cylinder 1.05 10))
+  (let* ((cyl0 (kxr-make-cylinder 1.35 10))
+	 (cyl1 (kxr-make-cylinder 1.05 10))
 	 (bod0
 	  (make-prism
 	   (list
@@ -2800,8 +2815,8 @@
     ))
 
 (defun kxr-joint-frame-b-a (&optional (name "joint-frame-b-a"))
-  (let* ((cyl0 (make-cylinder 1.35 10))
-	 (cyl1 (make-cylinder 1.05 10))
+  (let* ((cyl0 (kxr-make-cylinder 1.35 10))
+	 (cyl1 (kxr-make-cylinder 1.05 10))
 	 (bod0
 	  (make-prism
 	   (list
@@ -2876,8 +2891,8 @@
     ))
 
 (defun kxr-joint-frame-b-b (&optional (name "joint-frame-b-b"))
-  (let* ((cyl0 (make-cylinder 1.35 10))
-	 (cyl1 (make-cylinder 1.05 10))
+  (let* ((cyl0 (kxr-make-cylinder 1.35 10))
+	 (cyl1 (kxr-make-cylinder 1.05 10))
 	 (bod0
 	  (make-prism
 	   (list
