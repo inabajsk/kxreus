@@ -113,7 +113,7 @@ libs:
 	sudo install -m 0755 udevs/99-my-m5stack.rules /etc/udev/rules.d/
 	sudo udevadm control --reload-rules && sudo udevadm trigger
 #	sudo apt-get install -y ros-$(ROS_DISTRO)-roseus
-dir:
+dir: check-jskeus
 	mkdir -p $(ARCHDIR)
 	mkdir -p $(LIBDIR)
 	mkdir -p $(OBJDIR)
@@ -163,6 +163,15 @@ JSKEUS_GIT_URL ?= git@github.com:inabajsk/jskeus
 JSKEUS_GIT_BRANCH ?= master
 EUS_GIT_URL ?= git@github.com:inabajsk/EusLisp
 EUS_GIT_BRANCH ?= glu-tess-collector
+
+# run as a prerequisite of dir: (and so of every build) -- only actually
+# clones+builds jskeus when $(JSKEUS_DIR) doesn't exist yet, so a normal
+# build with jskeus already present pays just a directory check.
+check-jskeus:
+	@if [ ! -d $(JSKEUS_DIR) ]; then \
+		echo "$(JSKEUS_DIR) not found -- building jskeus from $(JSKEUS_GIT_URL) first"; \
+		$(MAKE) jskeus; \
+	fi
 
 jskeus:
 	if [ ! -d $(JSKEUS_DIR) ]; then \
