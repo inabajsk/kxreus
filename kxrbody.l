@@ -26,6 +26,7 @@
 
 (require :utils)
 (require :kxrboards)
+(require :kxr-body-minus-holes)
 
 (set-new-defun) ;; redefun defun
 
@@ -1327,14 +1328,17 @@
 	 (sbod bod)
 	 (cylc
 	  (kxr-make-cylinder 10 5))
-	 (cylh
-	  (kxr-make-cylinder 1.05 5))
 	 (c (make-cascoords :pos (float-vector (+ -33 -10.5)  0 3)))
 	 (holes
 	  (list
 	   (list "baseh0" (float-vector 0.0 0.0 0.0) :-z 1 2)
 	   ))
 	 )
+    ;; the center r=10 cutout reaches this plate's own front edge (x=0)
+    ;; and "baseh0" sits entirely inside it (a redundant no-op cut) --
+    ;; both violate kxr-body-minus-holes' interior/non-overlapping
+    ;; assumptions, so they're still cut the slow way; only the uniform
+    ;; small screw holes below go through the fast path.
     (send cylc :locate (float-vector -2 0 -1))
     (setq bod (body- bod cylc))
     (dotimes (i 5)
@@ -1358,10 +1362,17 @@
       (push (list (format nil "r3up~A" i)
 		  (float-vector (+ -33 (* i -10.5))  10.5 3) :-z
 		  2 3) holes))
-    (dolist (h holes)
-      (send cylh :locate (cadr h) :world)
-      (send cylh :translate (float-vector 0 0 -4) :world)
-      (setq bod (body- bod cylh)))
+    (let* ((fast-holes (remove-if #'(lambda (h) (equal (car h) "baseh0")) holes))
+	   (cutters (mapcar #'(lambda (h)
+				(let ((cyl (kxr-make-cylinder 1.05 5)))
+				  (send cyl :locate (cadr h) :world)
+				  (send cyl :translate (float-vector 0 0 -4) :world)
+				  cyl))
+			    fast-holes)))
+      (setq bod (kxr-body-minus-holes-safe
+		 bod (mapcar #'cadr fast-holes)
+		 (mapcar #'(lambda (h) 1.05) fast-holes)
+		 cutters)))
     (setq bod (kxr-make-kxr-body name sbod bod holes :color :white))
     (setf (get bod :joint-coord) c)
     (send bod :assoc c)
@@ -1383,8 +1394,6 @@
 	    )
 	   (float-vector 0 0 3)))
 	 (sbod bod)
-	 (cylh
-	  (kxr-make-cylinder 1.05 5))
 	 holes)
     (dotimes (i 3)
       (push (list (format nil "l5up~A" i)
@@ -1405,10 +1414,20 @@
       (push (list (format nil "r3up~A" i)
 		  (float-vector (+ 10.5 (* i -10.5))  10.5 3) :-z
 		  2 3) holes))
-    (dolist (h holes)
-      (send cylh :locate (cadr h) :world)
-      (send cylh :translate (float-vector 0 0 -4) :world)
-      (setq bod (body- bod cylh)))
+    ;; all 18 holes are simple, non-overlapping through-holes entirely
+    ;; interior to this plate's outline -- kxr-body-minus-holes-safe's
+    ;; fast path applies to the whole set (note: the actual cutter
+    ;; radius is 1.05, same as the original cylh; the "2" in each hole
+    ;; tuple is only a documentation/marker radius used by
+    ;; kxr-assoc-holes, unrelated to the real cutting geometry).
+    (let ((cutters (mapcar #'(lambda (h)
+				(let ((cyl (kxr-make-cylinder 1.05 5)))
+				  (send cyl :locate (cadr h) :world)
+				  (send cyl :translate (float-vector 0 0 -4) :world)
+				  cyl))
+			    holes)))
+      (setq bod (kxr-body-minus-holes-safe
+		 bod (mapcar #'cadr holes) (mapcar #'(lambda (h) 1.05) holes) cutters)))
     (setq bod (kxr-make-kxr-body name sbod bod holes :color :white))
     bod)
   )
