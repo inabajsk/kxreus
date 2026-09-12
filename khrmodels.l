@@ -6,6 +6,7 @@
 ;;(require :eus2wrl)
 ;;(require :read-wrl)
 (require :kxrmodels)
+(require :kxr-stl-cache)
 
 
 ;;; glvertices utility
@@ -108,7 +109,7 @@ flst is list of geomatry::face"
 				  (color nil)) ;; #f(0.2 0.2 0.2)))
   (let* (bs l stl-fname)
     (setq stl-fname (format nil "~A/stls/~A.stl" *rcb4eus-dir* link-name))
-    (setq bs (stl2eus stl-fname :scale 1000.0))
+    (setq bs (kxr-stl2eus-cached stl-fname :scale 1000.0))
     (setq l (kxr-link-create (list bs) :joint-coord joint-coord :color color))       
     l))
 
@@ -121,7 +122,7 @@ flst is list of geomatry::face"
 
 
 (defun khr-docking-pipe ()
-  (let* ((s (stl2eus (format nil "~A/stls/KHR_docking_pipe.STL" *rcb4eus-dir*)))
+  (let* ((s (kxr-stl2eus-cached (format nil "~A/stls/KHR_docking_pipe.STL" *rcb4eus-dir*)))
          (l (kxr-make-kxr-body "khr-docking-pipe" s s nil))
          )
     (send l :weight 175.0)

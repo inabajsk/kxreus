@@ -32,7 +32,7 @@ ifeq ($(ARCHDIR), Linux64)
 COMMONOBJS=utils eus2wrl rcb4sample tiny-xml nn cblaslib mnist\
 	armh7interface eus2mjcf ftdi ics uart humanmodel inertia kxrextentions\
 	rcb4asm rcb4file rcb4interface rcb4robots rcb4lisp rcb4machine\
-	kxranimate kxrdyna kxr-body-minus-holes kxrbody kxrbodyset kxrlinks kxrmodels kxrviewer kxr-stl-cache m5models \
+	kxranimate kxrdyna kxr-body-minus-holes kxr-stl-cache kxrbody kxrbodyset kxrlinks kxrmodels kxrviewer m5models \
 	kxrboards
 
 endif
@@ -40,7 +40,7 @@ ifeq ($(ARCHDIR), LinuxARM)
 COMMONOBJS=utils eus2wrl rcb4sample tiny-xml \
 	armh7interface eus2mjcf ftdi uart kxrextentions\
 	rcb4asm rcb4file rcb4interface rcb4robots rcb4lisp rcb4machine\
-	kxranimate kxrdyna kxr-body-minus-holes kxrbody kxrbodyset kxrlinks kxrmodels kxrviewer kxr-stl-cache m5models \
+	kxranimate kxrdyna kxr-body-minus-holes kxr-stl-cache kxrbody kxrbodyset kxrlinks kxrmodels kxrviewer m5models \
 	kxrboards eus2webots vrmlParser wbtNodeSpec vrmlNodeSpec
 endif
 

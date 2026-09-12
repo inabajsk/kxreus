@@ -1,6 +1,7 @@
 ;;;
 ;;; 2022.9.2
 ;;;
+(require :kxr-stl-cache)
 (provide :raspimodels)
 
 (defun usb-micro-b (pos)
@@ -9,7 +10,7 @@
     b)
   )
 (defun pisugar-board nil
-  (stl2eus "stls/pisugar2Board-light.STL" :scale 1))
+  (kxr-stl2eus-cached "stls/pisugar2Board-light.STL" :scale 1))
 (defun raspi-zero-2-w nil
   (let ((bod (make-fillet-cube 30 65 1.5 2))
 	(hole (make-cylinder 1.4 10))

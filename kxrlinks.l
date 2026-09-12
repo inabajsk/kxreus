@@ -10,6 +10,7 @@
 
 (require :kxrbody)
 (require :kxrbodyset)
+(require :kxr-stl-cache)
 
 (provide :kxrlinks)
 
@@ -251,9 +252,9 @@
 (defun kxr-mamoru-body-link-new (&key head torso base-b)
   (let* ((b0 (kxr-mamoru-torso-bodyset-new))
 	 (blist (send b0 :bodies))
-	 (s (stl2eus "stls/mamoru_down.stl" :scale 1000.0))
-	 (nf (stl2eus "stls/mamoru_neck_front.stl" :scale 1000.0))
-	 (nb (stl2eus "stls/mamoru_neck_backlong.stl" :scale 1000.0))
+	 (s (kxr-stl2eus-cached "stls/mamoru_down.stl" :scale 1000.0))
+	 (nf (kxr-stl2eus-cached "stls/mamoru_neck_front.stl" :scale 1000.0))
+	 (nb (kxr-stl2eus-cached "stls/mamoru_neck_backlong.stl" :scale 1000.0))
 	 l)
     (send nf :rotate pi/2 :z)
     (send nb :rotate pi/2 :z)
@@ -279,9 +280,9 @@
   (let* ((b0 (kxr-mamoru-torso-bodyset-new-2022 :m5stack nil))
 	 (display (make-cube 20 76 52))
      (blist (send b0 :bodies))
-     (s (stl2eus "stls/kxrmamoru2_down_for_eusmodel_low_meshlab2.stl" :scale 1.0))
-     (nf (stl2eus "stls/mamoru_neck_front.stl" :scale 1000.0))
-     (nb (stl2eus "stls/mamoru_neck_backlong.stl" :scale 1000.0))
+     (s (kxr-stl2eus-cached "stls/kxrmamoru2_down_for_eusmodel_low_meshlab2.stl" :scale 1.0))
+     (nf (kxr-stl2eus-cached "stls/mamoru_neck_front.stl" :scale 1000.0))
+     (nb (kxr-stl2eus-cached "stls/mamoru_neck_backlong.stl" :scale 1000.0))
      l)
     (send nf :rotate pi/2 :z)
     (send nb :rotate pi/2 :z)
@@ -1409,8 +1410,8 @@
          (ff2 (kxr-flat-frame))
          (f1 (kxr-joint-frame-a))
 	 (f2 (kxr-joint-frame-a))
-	 (ff (stl2eus "stls/mamoru_face_front.stl" :scale 1000.0))
-	 (fb (stl2eus "stls/mamoru_face_back.stl" :scale 1000.0))
+	 (ff (kxr-stl2eus-cached "stls/mamoru_face_front.stl" :scale 1000.0))
+	 (fb (kxr-stl2eus-cached "stls/mamoru_face_back.stl" :scale 1000.0))
 	 (c (make-cascoords)) pos-bottom blist)
 
     (send ff :rotate -pi/2 :z :world)
@@ -1505,7 +1506,7 @@
 	 (jf (kxr-joint-frame-a))
 	 (jb (kxr-joint-base))
 	 (b (if jetson (jetson-camera-bodyset) (m5stickv-bodyset)))
-	 (s (stl2eus "stls/mamoru_eye_right.stl" :scale 1000.0))
+	 (s (kxr-stl2eus-cached "stls/mamoru_eye_right.stl" :scale 1000.0))
 	 (c (make-cascoords)) pos-bottom blist l)
     (send s :rotate -pi/2 :y :world)
     (send s :rotate pi/2 :x :world)
@@ -1597,7 +1598,7 @@
 	 (jf (kxr-joint-frame-a))
 	 (jb (kxr-joint-base))
 	 (b (if jetson (jetson-camera-bodyset) (m5stickv-bodyset)))
-	 (s (stl2eus "stls/mamoru_eye_left.stl" :scale 1000.0))
+	 (s (kxr-stl2eus-cached "stls/mamoru_eye_left.stl" :scale 1000.0))
 	 (c (make-cascoords)) pos-bottom blist l)
 
     (send s :rotate -pi/2 :y :world)
@@ -1642,7 +1643,7 @@
     l))
 
 (defun kxr-mamoru-marm-shell-link (&key (l/r :lmarm))
-  (let* ((s (stl2eus "stls/mamoru_arm.stl" :scale 1000.0))
+  (let* ((s (kxr-stl2eus-cached "stls/mamoru_arm.stl" :scale 1000.0))
 	 blist l)
     (cond
       ((kxr-left-limb? l/r)
@@ -1656,7 +1657,7 @@
     l))
 
 (defun kxr-mamoru-marm-shell-link-2022 (&key (l/r :lmarm))
-  (let* ((s (stl2eus "stls/mamoru_arm.stl" :scale 1000.0))
+  (let* ((s (kxr-stl2eus-cached "stls/mamoru_arm.stl" :scale 1000.0))
 	 blist l)
     (cond
       ((kxr-left-limb? l/r)
@@ -1719,8 +1720,8 @@
 	 (blist (send b0 :bodies))
 	 ;;(s (stl2eus "stls/kxrmamoru2_down_for_eusmodel_low_meshlab2.stl" :scale 1.0))
 	 (s (make-fillet-cube x y z r :segments segments))
-	 (nf (stl2eus "stls/mamoru_neck_front.stl" :scale 1000.0))
-	 (nb (stl2eus "stls/mamoru_neck_backlong.stl" :scale 1000.0))
+	 (nf (kxr-stl2eus-cached "stls/mamoru_neck_front.stl" :scale 1000.0))
+	 (nb (kxr-stl2eus-cached "stls/mamoru_neck_backlong.stl" :scale 1000.0))
 	 l)
     (send nf :rotate pi/2 :z)
     (send nb :rotate pi/2 :z)
@@ -1749,7 +1750,7 @@
     l))
 
 (defun kashiwagi-head-link ()
-  (let ((s (stl2eus "stls/kashiwagi_head.STL" :scale 1.0))
+  (let ((s (kxr-stl2eus-cached "stls/kashiwagi_head.STL" :scale 1.0))
 	l (c (make-cascoords)))
     (send s :rotate pi/2 :x :world)
     (send s :rotate pi/2 :z :world)
@@ -1764,14 +1765,14 @@
   (let (hl l (c (make-cascoords)))
     (cond
      ((eq l/r :larm)
-      (setq hl (stl2eus "stls/kashiwagi_left_hand.STL" :scale 1.0))
+      (setq hl (kxr-stl2eus-cached "stls/kashiwagi_left_hand.STL" :scale 1.0))
       (send hl :rotate pi/2 :y :world)
       (send hl :rotate (deg2rad 30) :x :world)
       (send hl :worldcoords)
       (send hl :translate (v- #f(0 30 -30) (send hl :centroid)) :world)
       )
      (t
-      (setq hl (stl2eus "stls/kashiwagi_right_hand.STL" :scale 1.0))
+      (setq hl (kxr-stl2eus-cached "stls/kashiwagi_right_hand.STL" :scale 1.0))
       (send hl :rotate pi :x :world)
       (send hl :rotate pi/2 :y :world)
       (send hl :rotate (deg2rad -30) :x :world)
@@ -1802,7 +1803,7 @@
 	 blist
 	 ;;(s (stl2eus "stls/kxrmamoru2_down_for_eusmodel_low_meshlab2.stl" :scale 1.0))
 	 ;;(s (make-fillet-cube x y z r :segments segments))
-	 (s (stl2eus "stls/kashiwagi_body.STL" :scale 1.0))
+	 (s (kxr-stl2eus-cached "stls/kashiwagi_body.STL" :scale 1.0))
 	 l)
     (setq blist (send b0 :bodies))
     (send s :rotate pi/2 :x :world)

@@ -27,6 +27,7 @@
 (require :utils)
 (require :kxrboards)
 (require :kxr-body-minus-holes)
+(require :kxr-stl-cache)
 
 (set-new-defun) ;; redefun defun
 
@@ -1767,7 +1768,7 @@
 
 (defun kxr-auv-head (&optional (name "auv-head"))
   (let* (
-	 (b (stl2eus "stls/M5Stickhead_wp_single_rev1_model.STL" :scale 1.0))
+	 (b (kxr-stl2eus-cached "stls/M5Stickhead_wp_single_rev1_model.STL" :scale 1.0))
 	 (bs (kxr-make-kxr-body name b b nil))
 	 holes (j (make-cascoords))
 	 blist (i 0)
