@@ -90,6 +90,7 @@
 	       "kxranimate.l"
 	       "kxr-body-minus-holes.l"
 	       "kxrbody.l"
+	       "kxr-stl-cache.l"
 	       "m5models.l"
 	       "kxrboards.l"
 	       "kxrbodyset.l"
