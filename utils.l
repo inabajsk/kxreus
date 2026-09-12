@@ -348,6 +348,18 @@
   (unless (probe-file dirname) (unix::mkdir dirname))
   dirname)
 
+;; dump-structure to fname, but atomically: write to a per-process temp
+;; file first, then rename(2) over the real name. rename is atomic on
+;; POSIX filesystems, so a reader doing (probe-file fname) either sees
+;; the old complete file or the new complete file, never a half-written
+;; one -- needed once multiple robot-generation processes can run in
+;; parallel and race to populate the same glbodies/*.bod, *.gv, or
+;; stlcache/*.l cache entry for the first time.
+(defun rcb4eus-dump-structure-atomically (fname obj)
+  (let ((tmp (format nil "~A.tmp~A" fname (unix::getpid))))
+    (dump-structure tmp obj)
+    (unix:rename tmp fname)))
+
 (defun find-library (filename)
   (dolist (p (union *loader-current-directory* *load-path*
 		    :test #'string=))

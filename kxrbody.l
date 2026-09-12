@@ -152,7 +152,7 @@
 	  (format t ";; make-glvertices and dump gl::aglvertices into ~A~%" fname)
 	  (setq gl::aglvertices
 		(gl::make-glvertices-from-faceset bod :material mat))
-	  (dump-structure fname gl::aglvertices)
+	  (rcb4eus-dump-structure-atomically fname gl::aglvertices)
 	  ;;(send gl::aglvertices :transform cds)
 	  (send self :assoc gl::aglvertices)
 	  (setf (get gl::aglvertices :face-color) (get self :face-color))
@@ -3149,7 +3149,7 @@
 		  (setq r (with-open-file (f ,file-name :direction :input) (read f))))
 		 (t (format t ";; save body function ~A into ~A~%" ',fun-name ,file-name)
 		    (setq r (funcall ',forgbody))
-		    (dump-structure ,file-name r)
+		    (rcb4eus-dump-structure-atomically ,file-name r)
 		    ))
 	       r)))
     )
