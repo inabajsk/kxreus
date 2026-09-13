@@ -2603,9 +2603,20 @@
   (:com-restart nil (setq com-port (get self :com-port)))
   ;;
   (:com-open ;; bottom
+   ;; :udp-host (+ optional :udp-port, default 2000) opens a UDP connection
+   ;; instead of a local serial device -- for a robot-side bridge that
+   ;; relays raw RCB4 bytes over WiFi (e.g. a UDP byte-relay running on the
+   ;; robot's own AtomS3/M5Stack) rather than sitting on a /dev/ttyUSB* or
+   ;; FTDI chip this PC can see directly. udp-interface (uart.l) speaks the
+   ;; same :ready?/:read1/:read-data/:read-all/:write-data surface
+   ;; uart-interface does, so nothing downstream of com-port needs to know
+   ;; which transport it is talking to.
    (&rest args &key (index 0) slow (baud 1250000) (vid #x165c) (pid #x0008) (interface 0)
-	  (stop 0) (parity 2) (serial 0) (latency 1) &allow-other-keys)
-   (setq com-port (send* (instantiate uart-interface) :init args)))
+	  (stop 0) (parity 2) (serial 0) (latency 1) udp-host (udp-port 2000) &allow-other-keys)
+   (setq com-port
+	 (if udp-host
+	     (instance udp-interface :init :host udp-host :port udp-port)
+	   (send* (instantiate uart-interface) :init args))))
   (:rcb4-open
    (&rest args &key exec &allow-other-keys)
    (when (or (null com-port) exec) (send* self :com-open args))

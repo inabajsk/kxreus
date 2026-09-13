@@ -251,6 +251,99 @@
        i)))
   )
 
+;; A UDP stand-in for uart-interface, same public method surface
+;; (:ready?/:read1/:read-data/:read-all/:write-data) so rcb4-interface's
+;; com-port can hold either one without caring which -- see
+;; rcb4interface.l's :com-open, which builds this instead of a
+;; uart-interface when :udp-host is given.
+;;
+;; Verified empirically (this euslisp has no existing UDP-as-a-byte-stream
+;; precedent to copy -- teleop/*.l's own UDP usage is unix::sendto/recvfrom
+;; of PRINTED lisp forms, not raw RCB4 bytes):
+;;  - a `connect`ed UDP socket's fd behaves as a plain byte stream through
+;;    unix::write / unix::uread for WRITING and for reading a WHOLE
+;;    datagram in one call.
+;;  - it does NOT behave like a byte stream for PARTIAL reads: asking
+;;    unix::uread for fewer bytes than a pending datagram holds returns
+;;    only that many, and DISCARDS THE REST of that datagram (UDP preserves
+;;    message boundaries; unlike a serial port or TCP, a short read does
+;;    not leave the remainder queued for the next read). Reading a 3-byte
+;;    reply one byte at a time this way hangs forever on the 2nd byte --
+;;    it is gone, not delayed. So every read here does ONE unix::uread
+;;    per incoming datagram, sized to hold the whole thing, into rxbuf,
+;;    and :read1 serves single bytes out of THAT instead of the socket.
+;;  - unix::select-read-fd (already used by uart-read1-wip above) works on
+;;    such a socket fd too, but is only meaningful when rxbuf is already
+;;    drained (see :ready?) -- checked against a port with no listener at
+;;    all, which reports "readable" immediately (the kernel's own
+;;    ICMP-port-unreachable delivery, not a real reply) rather than
+;;    against a genuine same-datagram partial-read case, which is the one
+;;    this class must never do at all, not handle gracefully.
+(defclass udp-interface :super propertied-object
+  :slots (strm fd rxbuf rxpos rxlen))
+
+;; Bigger than any RCB4 frame this project's robots send (see kxrl2g's own
+;; 22-joint servo-vector command, the largest of the four) -- one
+;; recvfrom-sized read must never truncate a real datagram.
+(defvar *udp-interface-rxbuf-size* 512)
+
+(defmethod udp-interface
+  (:init
+   (&rest args &key host (port 2000) &allow-other-keys)
+   (let ((addr (make-socket-address :domain af_inet :host host :port port)))
+     (setq fd (unix::socket (send addr :domain) 2 0))
+     (unix::connect fd addr))
+   (setq rxbuf (instantiate string *udp-interface-rxbuf-size*))
+   (setq rxpos 0)
+   (setq rxlen 0)
+   self)
+  ;; True if a byte is available WITHOUT touching the socket (still-unread
+  ;; bytes left in the last datagram), else polls the fd for a new one.
+  ;; RCB4 is request/response, unlike UDP's usual "just keep sending" use
+  ;; elsewhere in this codebase (see teleop/*.l) -- a request or reply CAN
+  ;; be silently dropped with no error either side can see, so the
+  ;; fd-polling case is bounded by timeout-msec rather than blocking
+  ;; forever the way uart-interface's FTDI path (non-io-stream branch)
+  ;; does; a caller that wants the old "just wait" behavior can still pass
+  ;; a large timeout.
+  (:ready?
+   (&optional (timeout-msec 100))
+   (or (< rxpos rxlen)
+       (> (unix::select-read-fd fd (/ timeout-msec 1000.0)) 0)))
+  (:read1-timeout
+   (&optional (timeout-msec 1000))
+   (if (send self :ready? timeout-msec) (send self :read1) nil))
+  (:read-all
+   (&optional (timeout-msec 1000) &aux v ret)
+   (while (setq v (send self :read1-timeout timeout-msec))
+     (push v ret))
+   (reverse ret))
+  ;; Refills rxbuf with ONE WHOLE new datagram if the last one is used up
+  ;; (see the class comment for why this must never be a partial read),
+  ;; genuinely blocking on the socket if none has arrived yet -- used by
+  ;; :read-data below (mid-message; the length byte already said more
+  ;; bytes are coming) and by rcb4-interface code that calls it directly
+  ;; the same way it would on a serial com-port. Callers that need a
+  ;; bounded wait want :read1-timeout instead.
+  (:read1
+   (&aux n)
+   (when (>= rxpos rxlen)
+     (while (<= (setq n (unix::uread fd rxbuf *udp-interface-rxbuf-size*)) 0))
+     (setq rxlen n)
+     (setq rxpos 0))
+   (prog1 (elt rxbuf rxpos) (incf rxpos)))
+  (:read-data
+   (&aux n (i 0) buf)
+   (setq n (1- (send self :read1)))
+   (setq buf (instantiate string n))
+   (while (< i n)
+     (setf (elt buf i) (send self :read1))
+     (incf i))
+   buf)
+  (:write-data
+   (byte-array &optional (len (length byte-array)))
+   (unix::write fd byte-array len)))
+
 (defun uart-init (&optional (name "ftdi-AO007VJN") &key udev)
   (when udev (init-udev))
   (setq *fd* (uart-com-init name))
