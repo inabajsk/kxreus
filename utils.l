@@ -1567,6 +1567,42 @@
 	  (mapcar #'(lambda (tr) (apply #'kxreus-triangle-to-face tr)) tris)
 	(geometry::face-to-triangle-aux f)))))
 
+;; irteus/pqp.l's :make-pqpmodel (used by kxr-robot's :init-ending on
+;; every link, for collision-checking) triangulates every face via the
+;; same slow geometry::face-to-triangle-aux ear-clipping this file
+;; already replaced for rendering (gl::make-glvertices-from-faceset,
+;; above) -- but :make-pqpmodel is a separate, unrelated call site that
+;; was never patched, has no caching of its own (unlike the render
+;; path's glbodies/*.gv), and re-triangulates from scratch on every
+;; single robot build. This is an exact copy of pqp.l's own
+;; :make-pqpmodel with only that one call swapped for the fast
+;; GLU-backed drop-in replacement; redefining the method here (after
+;; pqp.l has already loaded) overrides jskeus core's version without
+;; needing to touch/rebuild jskeus itself.
+(defmethod cascaded-coords
+  (:make-pqpmodel
+   (&key (fat 0) ((:faces fs) (send self :faces)))
+   (let ((m (geometry::pqpmakemodel))
+	 vs v1 v2 v3 (id 0))
+     (setf (get self :pqpmodel) m)
+     (geometry::pqpbeginmodel m)
+     (dolist (f fs)
+       (dolist (poly (kxreus-triangulate-face-fast f))
+	 (setq vs (send poly :vertices)
+	       v1 (send self :inverse-transform-vector (first vs))
+	       v2 (send self :inverse-transform-vector (second vs))
+	       v3 (send self :inverse-transform-vector (third vs)))
+	 (when (not (= fat 0))
+	   (setq v1 (v+ v1 (scale fat (normalize-vector v1)))
+		 v2 (v+ v2 (scale fat (normalize-vector v2)))
+		 v3 (v+ v3 (scale fat (normalize-vector v3)))))
+	 (geometry::pqpaddtri m v1 v2 v3 id)
+	 (incf id)
+	 )
+       )
+     (geometry::pqpendmodel m)
+     m)))
+
 (defun gl::make-glvertices-from-faceset (fs &key (material))
   "returns glvertices instance. fs is geomatry::faceset"
   (let (mat)
