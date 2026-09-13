@@ -69,4 +69,15 @@ esac
 n=$(echo "$names" | grep -c .)
 echo ";; generating $n robot(s) with $jobs parallel worker(s)" >&2
 
-echo "$names" | xargs -P "$jobs" -I{} env ROBOT_NAME={} irteusgl kxr-generate-one.l
+# safety net: one broken/looping config (missing assets, a genuine
+# infinite loop, etc.) must not stall the whole batch indefinitely --
+# every worker gets killed after PER_ROBOT_TIMEOUT_SEC. That alone
+# isn't enough though: xargs treats a child killed by a signal (e.g. a
+# segfault from a config with missing STL assets) or exiting 255
+# specially and can abort the *entire remaining batch*, not just that
+# one item -- so each robot runs through kxr-generate-one-safe.sh,
+# which always exits 0 and logs failures to stderr instead, keeping
+# one bad robot from stopping the other several hundred.
+TIMEOUT_SEC=${PER_ROBOT_TIMEOUT_SEC:-600}
+
+echo "$names" | xargs -P "$jobs" -I{} ./kxr-generate-one-safe.sh {} "$TIMEOUT_SEC"

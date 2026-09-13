@@ -21,6 +21,9 @@
 (load (format nil "~A/rcb4robots.l" *rcb4eus-dir*))
 (require :kxranimate)
 
+(defun kxr-generate-one-now ()
+  (let ((tv (unix::gettimeofday))) (+ (car tv) (* 1e-6 (cadr tv)))))
+
 (let ((list-mode (unix::getenv "KXR_LIST_NAMES"))
       (name (unix::getenv "ROBOT_NAME")))
   (cond
@@ -29,7 +32,11 @@
        (format t "~A~%" n)))
     (name
      (format t ";; kxr-generate-one: ~A~%" name)
-     (kxr-make-robot name :model (if *ros-distro-null* nil 0) :viewer nil))
+     (let ((t0 (kxr-generate-one-now)))
+       (kxr-make-robot name :model (if *ros-distro-null* nil 0) :viewer nil)
+       ;; machine-parseable timing line, grep'd out of the mixed
+       ;; parallel-worker output afterwards to rank slow robots.
+       (format t "KXR_GENERATE_TIMING ~A ~A~%" name (- (kxr-generate-one-now) t0))))
     (t
      (format t "usage: set ROBOT_NAME=<name>, or KXR_LIST_NAMES=sample|all~%"))))
 (exit)
