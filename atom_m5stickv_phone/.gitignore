@@ -1,0 +1,5 @@
+# Trained checkpoints and field telemetry: data managed by
+# atom_common/tools/manage_policies.py and log_server.py, not source --
+# same convention as walking-kxr-rl/policies, which is untracked too.
+/policies/
+/field_logs/
