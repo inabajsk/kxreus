@@ -7,7 +7,8 @@
   (setq *parallel-threshold* 0.000001)
   ;;
   ;;   (setq wx 35 wy 26 wz 11.5 fr 3 seg 10) org
-  (setq wx 35 wy 26 wz 13 fr 3 seg 10)
+  ;;(setq wx 35 wy 26 wz 13 fr 3 seg 10)
+  (setq wx 35 wy 27 wz 13 fr 3 seg 10)
   (setq c0 (make-fillet-cube wx wy wz fr :segments seg))
   ;;
   ;; bottom 
@@ -21,16 +22,17 @@
   ;; bottom cable hole
   (setq c2- (make-cube 14 11 100))
   (send c2- :locate (float-vector
-		     (- (/ wx 2) 4)
+		     (- (/ wx 2) 3)
 		     0
 		     0) :world)
   (setq c0 (body- c0 c2-))
   ;;
   ;;
   ;; atom hole
-  (setq s3 (make-fillet-cube 24 24 6 2 :segments seg))
+  (setq s3x (- (/ wx 2) 17 4) aw 24.1)
+  (setq s3 (make-fillet-cube aw aw 6 2 :segments seg))
   (send s3 :locate (float-vector
-		    (setq s3x (- (/ wx 2) 18 4))
+		    s3x
 		    0
 		    (/ wz 2)) :world)
   (setq c0 (body- c0 s3))
@@ -61,6 +63,7 @@
 			  y
 			  (- (/ wz -2) 5)) :world)
       (setq c0 (body- c0 cyl-))))
+  ;;
   ;; bottom quad holes
   (dolist (x (list (- s3x 10.5) (+ s3x 10.5)))
     (dolist (y (list -10.5 10.5))
@@ -76,6 +79,7 @@
 		     (/ wx -2)
 		     0 (/ wz 2)) :world)
   (setq c0 (body- c0 c2-))
+  ;;
   ;; side cable hole
   (setq c2- (make-cube (+ 7 (- s3x) 4) 6 10))
   (dolist (y (list (/ wy -2) (/ wy 2)))
@@ -85,19 +89,19 @@
     (setq c0 (body- c0 c2-)))
   ;;
   ;; 4pin hole
-  (setq p4x 12)
-  (setq pin4- (make-cube p4x 2.6 100))
+  (setq p4x (* 2.54 5) pinw 2.9)
+  (setq pin4- (make-cube p4x pinw 100))
   (send pin4- :locate (float-vector
-		       (- (/ wx 2) 4 6 2.6 (/ p4x 2))
+		       (- (/ wx 2) 4 5 pinw (/ p4x 2))
 		       -7.5
 		       (- (/ wz -2) 5)) :world)
   (setq c0 (body- c0 pin4-))
   ;;
   ;; 5pin hole
-  (setq p5x 14.5)
-  (setq pin5- (make-cube p5x 2.6 100))
+  (setq p5x (* 2.54 6))
+  (setq pin5- (make-cube p5x pinw 100))
   (send pin5- :locate (float-vector
-		       (- (/ wx 2) 4 6 2.6 (/ p5x 2))
+		       (- (/ wx 2) 4 5 pinw (/ p5x 2))
 		       7.5
 		       (- (/ wz -2) 5)) :world)
   (setq c0 (body- c0 pin5-))
