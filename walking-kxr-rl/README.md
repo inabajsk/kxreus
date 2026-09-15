@@ -52,7 +52,15 @@ unitree_rl_mjlab を固定コミットで `kxr/.upstream/` に取得する。事
 > | `kxrl6` | **0.293 m/s**(六脚) | 0.284〜0.305 | 0.15〜0.18 | 0.35 |
 > | `kxrl2g` | **0.301 m/s** | 0.291〜0.314 | 0.04〜0.06 | 0.319 |
 > | `kxrl4d` | **0.268 m/s** | 0.257〜0.273 | 0.08〜0.13 | 0.289 |
-> | `kxrl4t` | **0.133 m/s** | 0.073〜0.158 | 0.24〜0.84 | 0.190 |
+> | `kxrl4t` | 0.117 m/s(1シード、下記注) | -- | 0.85 | 0.190 |
+>
+> `kxrl4t`の行は、この`walking-kxr-rl`自身の`tools/train_all.py`で最初から
+> 学習し直した`policies/kxrl4t_walk.pt`の実測(1497 iter、1シードのみ)。
+> このリポジトリが移植元のiory/walking-hand-rlから直接持ってきた元の
+> チェックポイント(6シード平均0.133 m/s、stance slip 0.24〜0.84 -- 表の
+> 数字はそちらのもの)は`policies/kxrl4t_walk_walking-hand-rl.pt`として
+> 参考用に残してある。まだそちらの品質(特にslip: 0.60前後まで下がる)には
+> 届いていないので、6シードでの再計測や追加学習の余地がある。
 >
 >
 > | ![kxrl2g](docs/media/kxrl2g_walk.gif) | ![kxrl6](docs/media/kxrl6_walk.gif) |
