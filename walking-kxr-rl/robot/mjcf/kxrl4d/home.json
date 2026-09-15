@@ -1,0 +1,35 @@
+{
+  "base_height": 0.147571,
+  "base_quat": [
+    0.999758,
+    -6e-06,
+    0.021998,
+    5.8e-05
+  ],
+  "joint_pos": {
+    "head-gripper-p": 1e-06,
+    "head-gripper2-p": -1e-06,
+    "head-neck-p": 0.001167,
+    "larm-elbow-p": -0.001883,
+    "larm-shoulder-p": -0.001657,
+    "larm-shoulder-r": 1e-05,
+    "larm-wrist-p": -0.002405,
+    "lleg-ankle-p": 0.34878,
+    "lleg-crotch-p": -0.000713,
+    "lleg-crotch-r": 2e-06,
+    "lleg-knee-p": -0.000821,
+    "rarm-elbow-p": -0.001862,
+    "rarm-shoulder-p": -0.001641,
+    "rarm-shoulder-r": 1e-05,
+    "rarm-wrist-p": -0.00238,
+    "rleg-ankle-p": 0.34878,
+    "rleg-crotch-p": -0.000713,
+    "rleg-crotch-r": 2e-06,
+    "rleg-knee-p": -0.000821
+  },
+  "residual_speed": 0.000356,
+  "settled_seconds": 2.0,
+  "stand_height": 0.151205,
+  "tilt_deg": 2.521,
+  "used_crouch_bias": true
+}
