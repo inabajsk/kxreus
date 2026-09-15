@@ -51,10 +51,15 @@ def build_env_and_policy(task, checkpoint, device):
   return env, wrapped, policy
 
 
-def make_cameras(base_height):
+def make_cameras(base_height, expected_travel=0.0):
   """Side view (contact/posture) + a WORLD-FIXED view (translation is
   unambiguous there -- a tracking camera makes a walking and a treadmilling
-  robot look identical)."""
+  robot look identical).
+
+  The fixed camera has to be framed on the DISTANCE, not on the robot: sized
+  off base height alone it gives kxrl4t a 0.6 m field of view for a 1.5 m walk
+  and the robot simply leaves the shot.
+  """
   side = mujoco.MjvCamera()
   side.type = mujoco.mjtCamera.mjCAMERA_FREE
   side.azimuth = 90.0
@@ -66,8 +71,8 @@ def make_cameras(base_height):
   fixed.type = mujoco.mjtCamera.mjCAMERA_FREE
   fixed.azimuth = 90.0
   fixed.elevation = -20.0
-  fixed.distance = max(1.0, 16.0 * base_height)
-  fixed.lookat[:] = [0.3, 0.0, base_height]
+  fixed.distance = max(1.0, 16.0 * base_height, 1.3 * expected_travel)
+  fixed.lookat[:] = [max(0.3, 0.5 * expected_travel), 0.0, base_height]
 
   top = mujoco.MjvCamera()
   top.type = mujoco.mjtCamera.mjCAMERA_FREE
@@ -103,10 +108,16 @@ def main():
 
   env, wrapped, policy = build_env_and_policy(task, args.checkpoint, args.device)
 
+  seconds_hint = args.seconds if args.seconds is not None else (
+    6.0 if args.mode == "getup" else 10.0)
+  command = env.command_manager.get_command("twist")
+  commanded_speed = 0.0 if command is None else abs(float(command[0, 0]))
+
   model = env.sim.mj_model
   data = mujoco.MjData(model)
   renderer = mujoco.Renderer(model, height=args.height, width=args.width)
-  cameras = make_cameras(base_height=home_height)
+  cameras = make_cameras(base_height=home_height,
+                         expected_travel=commanded_speed * seconds_hint)
   writers = {
     name: imageio.get_writer("{}_{}.mp4".format(out_prefix, name), fps=args.fps)
     for name in cameras

@@ -1,35 +1,169 @@
 {
-  "base_height": 0.147571,
+  "base_height": 0.150026,
   "base_quat": [
-    0.999758,
-    -6e-06,
-    0.021998,
-    5.8e-05
+    1.0,
+    -5e-06,
+    -0.00031,
+    9e-06
   ],
-  "joint_pos": {
-    "head-gripper-p": 1e-06,
-    "head-gripper2-p": -1e-06,
-    "head-neck-p": 0.001167,
-    "larm-elbow-p": -0.001883,
-    "larm-shoulder-p": -0.001657,
-    "larm-shoulder-r": 1e-05,
-    "larm-wrist-p": -0.002405,
-    "lleg-ankle-p": 0.34878,
-    "lleg-crotch-p": -0.000713,
-    "lleg-crotch-r": 2e-06,
-    "lleg-knee-p": -0.000821,
-    "rarm-elbow-p": -0.001862,
-    "rarm-shoulder-p": -0.001641,
-    "rarm-shoulder-r": 1e-05,
-    "rarm-wrist-p": -0.00238,
-    "rleg-ankle-p": 0.34878,
-    "rleg-crotch-p": -0.000713,
-    "rleg-crotch-r": 2e-06,
-    "rleg-knee-p": -0.000821
+  "foot_offsets": {
+    "larm": [
+      0.024,
+      0.0115,
+      -0.033
+    ],
+    "lleg": [
+      0.024,
+      0.0115,
+      -0.033
+    ],
+    "rarm": [
+      0.024,
+      0.0115,
+      -0.033
+    ],
+    "rleg": [
+      0.024,
+      0.0115,
+      -0.033
+    ]
   },
-  "residual_speed": 0.000356,
+  "gait_joints": {
+    "larm-elbow-p": {
+      "range_rad": 5.340708,
+      "span_x_m": 0.195634,
+      "span_z_m": 0.189646,
+      "stride_m": 0.099593
+    },
+    "larm-shoulder-p": {
+      "range_rad": 4.241142,
+      "span_x_m": 0.30118,
+      "span_z_m": 0.238916,
+      "stride_m": 0.123907
+    },
+    "larm-shoulder-r": {
+      "range_rad": 3.141594,
+      "span_x_m": 0.000578,
+      "span_z_m": 0.207926,
+      "stride_m": 3.9e-05
+    },
+    "larm-wrist-p": {
+      "range_rad": 2.82744,
+      "span_x_m": 0.069496,
+      "span_z_m": 0.059524,
+      "stride_m": 0.060176
+    },
+    "lleg-ankle-p": {
+      "range_rad": 2.82744,
+      "span_x_m": 0.069482,
+      "span_z_m": 0.059541,
+      "stride_m": 0.060174
+    },
+    "lleg-crotch-p": {
+      "range_rad": 4.241142,
+      "span_x_m": 0.301175,
+      "span_z_m": 0.238936,
+      "stride_m": 0.123904
+    },
+    "lleg-crotch-r": {
+      "range_rad": 3.141594,
+      "span_x_m": 0.000626,
+      "span_z_m": 0.207919,
+      "stride_m": 4.2e-05
+    },
+    "lleg-knee-p": {
+      "range_rad": 5.340708,
+      "span_x_m": 0.19563,
+      "span_z_m": 0.189654,
+      "stride_m": 0.099592
+    },
+    "rarm-elbow-p": {
+      "range_rad": 5.340708,
+      "span_x_m": 0.195634,
+      "span_z_m": 0.189645,
+      "stride_m": 0.099593
+    },
+    "rarm-shoulder-p": {
+      "range_rad": 4.241142,
+      "span_x_m": 0.301181,
+      "span_z_m": 0.238914,
+      "stride_m": 0.123907
+    },
+    "rarm-shoulder-r": {
+      "range_rad": 3.141594,
+      "span_x_m": 0.000574,
+      "span_z_m": 0.207927,
+      "stride_m": 3.9e-05
+    },
+    "rarm-wrist-p": {
+      "range_rad": 2.82744,
+      "span_x_m": 0.069497,
+      "span_z_m": 0.059523,
+      "stride_m": 0.060176
+    },
+    "rleg-ankle-p": {
+      "range_rad": 2.82744,
+      "span_x_m": 0.069483,
+      "span_z_m": 0.05954,
+      "stride_m": 0.060174
+    },
+    "rleg-crotch-p": {
+      "range_rad": 4.241142,
+      "span_x_m": 0.301175,
+      "span_z_m": 0.238935,
+      "stride_m": 0.123904
+    },
+    "rleg-crotch-r": {
+      "range_rad": 3.141594,
+      "span_x_m": 0.000623,
+      "span_z_m": 0.207919,
+      "stride_m": 4.2e-05
+    },
+    "rleg-knee-p": {
+      "range_rad": 5.340708,
+      "span_x_m": 0.19563,
+      "span_z_m": 0.189653,
+      "stride_m": 0.099592
+    }
+  },
+  "joint_pos": {
+    "head-gripper-p": 0.0,
+    "head-gripper2-p": -0.0,
+    "head-neck-p": 0.001921,
+    "larm-elbow-p": -0.002131,
+    "larm-shoulder-p": -0.002148,
+    "larm-shoulder-r": 4e-06,
+    "larm-wrist-p": 0.347442,
+    "lleg-ankle-p": 0.347219,
+    "lleg-crotch-p": -0.002378,
+    "lleg-crotch-r": 2e-06,
+    "lleg-knee-p": -0.00236,
+    "rarm-elbow-p": -0.002111,
+    "rarm-shoulder-p": -0.002128,
+    "rarm-shoulder-r": 0.0,
+    "rarm-wrist-p": 0.347462,
+    "rleg-ankle-p": 0.34723,
+    "rleg-crotch-p": -0.002366,
+    "rleg-crotch-r": 0.0,
+    "rleg-knee-p": -0.002348
+  },
+  "residual_speed": 4e-06,
   "settled_seconds": 2.0,
-  "stand_height": 0.151205,
-  "tilt_deg": 2.521,
-  "used_crouch_bias": true
+  "stance_band_m": 0.015003,
+  "stands": true,
+  "stride_span_m": 0.123907,
+  "support_limbs": [
+    "larm",
+    "lleg",
+    "rarm",
+    "rleg"
+  ],
+  "support_load_n": {
+    "larm": 2.7229,
+    "lleg": 2.9713,
+    "rarm": 2.6811,
+    "rleg": 2.9473
+  },
+  "tilt_deg": 0.036,
+  "torso_load_frac": 0.0
 }

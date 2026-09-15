@@ -6,11 +6,24 @@
     uv run check.py --gait kxrl4d policies/kxrl4d_walk.pt   # trained-policy travel
 
 Holds the measured home keyframe with the position PD (zero policy action) for
-a few seconds and checks it does not drift, tip over, or sink -- exactly what
-would happen if the home pose were not actually a stable equilibrium (a wrong
-default pose / actuator sign is the single most common way a training run
-wastes a day). Thresholds are FIXED; if a gate fails, fix the model, don't
-loosen the gate.
+a few seconds and checks it does not drift, tip over, sink, REST ON ITS TORSO,
+or hold itself up with one link driven THROUGH another -- exactly what would
+happen if the home pose were not actually a stable standing equilibrium the
+hardware could adopt (a wrong default pose / actuator sign is the single most
+common way a training run wastes a day). Thresholds are FIXED; if a gate
+fails, fix the model, don't loosen the gate.
+
+The torso gate is the one this file was missing. kxrl4t's shipped home settled
+dead level and dead still -- and passed -- while lying on its belly with 98% of
+its weight on the torso. Every walk episode then ended at step 1 on the
+torso-contact termination, at a mean reward that never moved off -3.94, for as
+many iterations as anyone cared to run. Standing means the limbs carry the
+load, so that is what gets measured.
+
+The self-penetration gate is the second one this file was missing. With
+self-collision off (deliberately -- see robot_cfg.py), the physics will hold a
+stance whose arm passes 15 mm through its own torso and never say a word; the
+first solved stance for kxrl6 did, and it looked fine on every other gate.
 """
 
 import argparse
@@ -27,11 +40,18 @@ sys.path.insert(0, HERE)
 
 import kxr_rl  # noqa: E402,F401
 from kxr_rl import robot_cfg  # noqa: E402
+from kxr_rl.geometry import baseline_overlaps, self_penetration  # noqa: E402
 from kxr_rl.robots import DEFAULT_ROBOTS  # noqa: E402
 
 MAX_DRIFT_M = 0.03
 MAX_TILT_DEG = 15.0
 MAX_HEIGHT_DROP_FRAC = 0.15
+# Weight the torso may carry at rest before the pose counts as lying down
+# rather than standing.
+MAX_TORSO_LOAD_FRAC = 0.05
+# Overlap the home pose may introduce between two links that the URDF does
+# not already overlap at the zero pose.
+MAX_SELF_PENETRATION_M = 0.001
 
 
 def zero_action_hold(name: str, seconds: float = 3.0) -> bool:
@@ -62,6 +82,10 @@ def zero_action_hold(name: str, seconds: float = 3.0) -> bool:
     data.qpos[model.jnt_qposadr[model.actuator_trnid[a, 0]]] for a in range(model.nu)
   ]
 
+  torso_body = mujoco.mj_name2id(
+    model, mujoco.mjtObj.mjOBJ_BODY, robot_cfg.load_robot_spec(name).torso_link)
+  weight = float(model.body_mass.sum()) * 9.81
+
   start_xy = data.qpos[0:2].copy()
   start_z = float(data.qpos[2])
   peak_torque_frac = 0.0
@@ -80,11 +104,26 @@ def zero_action_hold(name: str, seconds: float = 3.0) -> bool:
   w, x, y, z = data.qpos[3:7]
   tilt_deg = float(np.degrees(np.arccos(np.clip(1.0 - 2.0 * (x * x + y * y), -1.0, 1.0))))
 
+  torso_load = 0.0
+  force = np.zeros(6)
+  for i in range(data.ncon):
+    contact = data.contact[i]
+    if torso_body in (model.geom_bodyid[contact.geom1], model.geom_bodyid[contact.geom2]):
+      mujoco.mj_contactForce(model, data, i, force)
+      torso_load += abs(float(force[0]))
+  torso_frac = torso_load / weight
+  penetration, pair = self_penetration(model, data, baseline_overlaps(model))
+
   ok = (drift <= MAX_DRIFT_M and tilt_deg <= MAX_TILT_DEG
-        and drop_frac <= MAX_HEIGHT_DROP_FRAC)
-  print("  {}: drift={:.4f}m tilt={:.2f}deg height_drop={:.1%} peak_torque={:.0%} "
-        "-> {}".format(name, drift, tilt_deg, drop_frac, peak_torque_frac,
-                       "PASS" if ok else "FAIL"))
+        and drop_frac <= MAX_HEIGHT_DROP_FRAC
+        and torso_frac <= MAX_TORSO_LOAD_FRAC
+        and penetration <= MAX_SELF_PENETRATION_M)
+  print("  {}: drift={:.4f}m tilt={:.2f}deg height_drop={:.1%} torso_load={:.0%} "
+        "selfpen={:.1f}mm peak_torque={:.0%} -> {}".format(
+          name, drift, tilt_deg, drop_frac, torso_frac, 1000.0 * penetration,
+          peak_torque_frac, "PASS" if ok else "FAIL"))
+  if penetration > MAX_SELF_PENETRATION_M and pair:
+    print("      {} is driven {:.1f} mm into {}".format(pair[0], 1000.0 * penetration, pair[1]))
   return ok
 
 

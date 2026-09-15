@@ -1,0 +1,8 @@
+{
+  "v_max": 0.35,
+  "gait_weight": 1.5,
+  "why": {
+    "v_max": "The stride derivation (env_cfgs._SpeedScale) reads 0.348 m from a single yaw sweep of a limb lying nearly flat and claims 0.81 m/s for a body 8.6 cm tall. Trained on that band the policy stood still (0.0035 m/s). A tripod is statically stable, so the open-loop probe is a fair reference here: 0.112 m/s. 0.35 = stride capped at one limb length (0.7 * 0.151 / 0.3). Trained on it: 0.29 m/s.",
+    "gait_weight": "foot_gait rewards the MEAN clock match over support limbs, so with six limbs each one's stake is 0.5/6. At the stock 0.5 the policy never put its left arm down and walked on five limbs (larm duty 0.0% in all six eval seeds). At 1.5 all six limbs carry 27-54% duty and speed is unchanged (0.29 m/s)."
+  }
+}

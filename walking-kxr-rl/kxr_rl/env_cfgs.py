@@ -31,11 +31,11 @@ from . import _mdp as mdp
 from .robot_cfg import foot_site_name, get_robot_cfg, home_path
 from .robots import load_robot_spec
 
-# Per-leg-DOF-role posture looseness. Hips/knees need room to stride; ankle
+# Per-support-DOF-role posture looseness. Hips/knees need room to stride; ankle
 # roll (balance) and the mid-hip roll/yaw stay tighter. Anything not in this
-# table (arms, head, grippers, or an unusual DOF name) gets a loose default --
-# these joints do not affect locomotion directly, they just should not be
-# rigid statues.
+# table (a limb the robot does NOT stand on -- a free arm, the head, a gripper
+# -- or an unusual DOF name) gets a loose default: those joints do not affect
+# locomotion directly, they just should not be rigid statues.
 _ROLE_STD = {
   "hip_pitch": 0.5, "hip_roll": 0.2, "hip_yaw": 0.2,
   "knee": 0.5,
@@ -44,6 +44,15 @@ _ROLE_STD = {
 _DEFAULT_STD = 0.3
 
 GAIT_PERIOD = float(os.environ.get("KXR_GAIT_PERIOD", "0.6"))
+
+# Fraction of its mechanical stride a real gait actually uses -- no gait sweeps
+# a joint end to end. Calibrated against tools/openloop_gait.py on kxrl4t: a
+# 0.0814 m stride delivered once per 0.3 s stance predicts 0.190 m/s, and the
+# hand-written open-loop trot measured 0.195 m/s.
+STRIDE_UTILIZATION = 0.7
+# A support-limb joint counts as a gait joint -- one the posture term must let
+# swing -- if it carries this share of the stride, or lifts the tip clear.
+GAIT_JOINT_SHARE = 0.5
 
 _PRESETS: dict[str, dict[str, str]] = {
   "walk": {},
@@ -61,7 +70,12 @@ class _Opts:
 
   def raw(self, name: str, default: str = "") -> str:
     value = os.environ.get(name)
-    return self._values.get(name, default) if value is None else value
+    # An env var set to the empty string means "not set" -- otherwise
+    # `KXR_IMPRATIO= uv run ...` (the natural way to write "use the default"
+    # in a shell loop) reaches float("") and raises.
+    if value is None or not value.strip():
+      return self._values.get(name, default)
+    return value
 
   def flag(self, name: str) -> bool:
     return self.raw(name).strip().lower() not in ("", "0", "false", "no", "off")
@@ -70,26 +84,94 @@ class _Opts:
     return float(self.raw(name, str(default)))
 
 
-def _home_height(name: str) -> float:
+def _home(name: str) -> dict:
   with home_path(name).open() as f:
-    return float(json.load(f)["base_height"])
+    return json.load(f)
 
 
-def _stand_height(name: str) -> float:
-  """Robot-agnostic getup target: the tallest torso height reachable by
-  sweeping the robot's own hip/knee/ankle bias grid purely kinematically
-  (no gravity, no stability requirement) -- see
-  ``robot/measure_home.py:max_kinematic_height``. It is the same search
-  ``_home_height`` (``base_height``) runs to find a stable settled pose, just
-  scored by geometry instead of "does it stay upright", so it never needs
-  per-robot tuning: whichever leg axes raise THIS robot's torso are exactly
-  the axes ``measure()`` already knows to search. It runs taller than
-  ``_home_height`` for any robot whose settled resting pose needed a crouch
-  bias to stay stable (e.g. kxrl6) -- deliberately: passive PD holding a
-  fixed pose can't reach it, but an actively-balancing RL policy might, and
-  the reward should keep paying for trying rather than cap out at a crouch."""
-  with home_path(name).open() as f:
-    return float(json.load(f)["stand_height"])
+def _task_overrides(name: str) -> dict:
+  """Per-robot task settings that the measurement-based derivation gets wrong.
+
+  ``robot/mjcf/<name>/task.json``, written by hand and carrying its own
+  ``why``. This is deliberately NOT part of home.json (which holds measured
+  facts) and NOT an environment variable (which play.py would need every time):
+  a shipped policy has to replay under exactly the command it was trained on,
+  with nothing to remember. Env vars still win over this file, for experiments.
+
+  Only kxrl6 has one so far -- see the file for the two numbers and the
+  measurements behind each.
+  """
+  path = home_path(name).with_name("task.json")
+  if not path.exists():
+    return {}
+  with path.open() as f:
+    return json.load(f)
+
+
+class _SpeedScale:
+  """What "moving" means, in this robot's own units.
+
+  Every speed number in the stock recipe is sized for a 1 m/s humanoid: the
+  velocity-tracking kernel's std (0.5), and a family of ``command_threshold``
+  gates at 0.05-0.1 m/s that switch the gait rewards on only once the robot is
+  asked to move "fast enough". Scaling the command down to a 13 cm robot
+  without scaling those leaves a task that cannot be solved:
+
+  * tracking. ``exp(-||cmd - v||^2 / std^2)`` with std=0.5 and a 0.1 m/s
+    command pays a motionless robot ``exp(-0.01/0.25) = 0.99`` of the maximum.
+    Moving is worth 0.01 reward; the action-rate penalty for moving is worth
+    more. kxrl4t duly learned to march in place at 0.0014 m/s -- with mean
+    reward 63 and a full 1000-step episode, which is why this needs measuring
+    rather than reading off the training log.
+  * gates. kxrl4t's whole usable speed range tops out at 0.19 m/s, so
+    foot_clearance, foot_slip and soft_landing (threshold 0.1) barely switch
+    on, while ``stand_still`` -- which penalizes any deviation from the home
+    pose -- barely switches OFF.
+
+  So the scale comes from the robot: ``stride_span_m`` (measured by
+  measure_home.py: the furthest one support limb can carry its own tip
+  fore-aft) delivered once per stance phase gives the top speed it can
+  physically hold. The kernel width is half of that, in the legged-gym
+  proportion where standing still under a top-speed command scores
+  ``exp(-4)``. The commanded band never includes zero -- a target of "don't
+  move" is the standing-still basin the playbook warns about.
+
+  ``tools/openloop_gait.py`` checks the result against a hand-written gait:
+  the derived ceiling should land near what the morphology can actually do.
+
+  Robots whose home.json predates the stride measurement keep the previous
+  hard-coded ladder untouched.
+  """
+
+  def __init__(self, stride_span_m: float, gait_period: float,
+               v_max_override: float = 0.0) -> None:
+    # One stride is delivered per STANCE phase, which is half the gait cycle --
+    # dividing by the whole period undercounts the robot by 2x. (It did: the
+    # first cut of this put kxrl4t's ceiling at 0.067 m/s when an open-loop
+    # trot walks it at 0.194.)
+    self.v_max = STRIDE_UTILIZATION * stride_span_m / (0.5 * gait_period)
+    # $KXR_VMAX pins the top speed explicitly. The stride-based derivation is
+    # calibrated on kxrl4t; on kxrl6's six-limb stance, where every limb lies
+    # nearly flat, a single yaw sweep carries the contact point 0.35 m and the
+    # derivation claims 0.81 m/s for an 8.6 cm tall body -- seven times what
+    # an open-loop tripod actually manages. This is the knob for testing that.
+    if v_max_override > 0.0:
+      self.v_max = v_max_override
+    self.v_min = 0.5 * self.v_max
+    self.std = 0.5 * self.v_max
+    # The ANGULAR kernel is deliberately left at upstream's 0.7071, even though
+    # the same argument that rescales the linear one applies to it on paper: a
+    # kxrl4t drifting 0.16 rad/s (90 deg off heading over ten seconds, while
+    # commanded straight) scores exp(-0.05) = 0.95, so curving away is nearly
+    # free. Rescaling it by the same factor was tried and measured, and it made
+    # the robot much worse: heading held (drift 62 -> 17 deg peak) but mean
+    # speed fell 0.133 -> 0.027 m/s, with four of six seeds back to standing
+    # still. This robot turns as a SIDE EFFECT of walking -- its limbs load
+    # asymmetrically -- so pricing yaw error near the task reward just restores
+    # the standing-still basin from the other direction. Left as is.
+
+    # "Is it being asked to move?" -- true everywhere in the commanded band.
+    self.move_gate = 0.5 * self.v_min
 
 
 def kxr_env_cfg(
@@ -98,10 +180,19 @@ def kxr_env_cfg(
   """Velocity task configuration for one KXR robot. ``preset`` in {"walk","getup"}."""
   opt = _Opts(preset)
   robot = load_robot_spec(robot_name)
-  home_height = _home_height(robot_name)
-  leg_keys = sorted(robot.legs)
-  foot_links = [robot.legs[k].foot_link for k in leg_keys]
-  foot_sites = tuple(foot_site_name(k) for k in leg_keys)
+  home = _home(robot_name)
+  task = _task_overrides(robot_name)
+  home_height = float(home["base_height"])
+  stride_span = float(home.get("stride_span_m") or 0.0)
+  v_max_override = opt.num("KXR_VMAX", float(task.get("v_max", 0.0)))
+  speed = (_SpeedScale(stride_span, GAIT_PERIOD, v_max_override)
+           if stride_span > 0.0 else None)
+  # "Feet" = the tips of the limbs the measured home stance actually stands on.
+  # For most KXR bodies that is the two legs; kxrl4t stands on all four of its
+  # identical 2-DOF limbs, so all four are gait limbs (see robots.py).
+  support_keys = list(robot.support)
+  foot_links = list(robot.support_links)
+  foot_sites = tuple(foot_site_name(k) for k in support_keys)
 
   cfg = make_velocity_env_cfg()
   cfg.scene.entities = {"robot": get_robot_cfg(robot_name)}
@@ -151,6 +242,20 @@ def kxr_env_cfg(
   cfg.sim.mujoco.ccd_iterations = 50
   cfg.sim.contact_sensor_maxmatch = 64
 
+  # MuJoCo's default impratio=1 makes friction "soft" relative to the normal
+  # constraint: a foot starts sliding before Coulomb friction fully engages, so
+  # a policy that skates along on planted feet can be physically optimal and no
+  # amount of reward shaping will talk it out of that. Raising impratio with an
+  # elliptic cone is the standard fix. Off by default -- it changes contact
+  # physics for every robot, including the ones whose shipped policies were
+  # trained under the stock value -- so it is opt-in per run via $KXR_IMPRATIO.
+  # NOTE the nested path: cfg.sim.impratio is silently ignored, only
+  # cfg.sim.mujoco.impratio reaches the compiled model.
+  impratio = opt.num("KXR_IMPRATIO", 0.0)
+  if impratio > 0.0:
+    cfg.sim.mujoco.impratio = impratio
+    cfg.sim.mujoco.cone = "elliptic"
+
   cfg.viewer.body_name = robot.torso_link
   cfg.viewer.distance = max(0.5, 6.0 * home_height)
   cfg.viewer.elevation = -15.0
@@ -161,21 +266,34 @@ def kxr_env_cfg(
   # kernel's useful range concentrated rather than split across +/-.
   twist = cfg.commands["twist"]
   assert isinstance(twist, UniformVelocityCommandCfg)
-  twist.ranges.lin_vel_x = (0.0, 0.3)
   twist.ranges.lin_vel_y = (0.0, 0.0)
-  twist.ranges.ang_vel_z = (-0.3, 0.3)
   twist.heading_command = False
   twist.ranges.heading = None
-  twist.rel_standing_envs = 0.05
 
-  cfg.curriculum["command_vel"].params["velocity_stages"] = [
-    {"step": 0, "lin_vel_x": (0.0, 0.10), "lin_vel_y": (0.0, 0.0),
-     "ang_vel_z": (-0.1, 0.1)},
-    {"step": 800 * 24, "lin_vel_x": (0.0, 0.20), "lin_vel_y": (0.0, 0.0),
-     "ang_vel_z": (-0.2, 0.2)},
-    {"step": 1600 * 24, "lin_vel_x": (0.0, 0.30), "lin_vel_y": (0.0, 0.0),
-     "ang_vel_z": (-0.3, 0.3)},
-  ]
+  if speed is not None:
+    # Forward-only, never zero, inside what the morphology can hold. Turning is
+    # commanded off while straight-line walking is what is being learned: a
+    # yaw command the robot answers by pivoting looks like forward-speed noise
+    # to the tracking term.
+    twist.ranges.lin_vel_x = (speed.v_min, speed.v_max)
+    twist.ranges.ang_vel_z = (0.0, 0.0)
+    twist.rel_standing_envs = 0.0
+    cfg.rewards["track_linear_velocity"].params["std"] = speed.std
+    # The stock ladder walks the command from 0 up to a speed this robot has
+    # no way to reach; the band above is already inside its means.
+    cfg.curriculum.pop("command_vel", None)
+  else:
+    twist.ranges.lin_vel_x = (0.0, 0.3)
+    twist.ranges.ang_vel_z = (-0.3, 0.3)
+    twist.rel_standing_envs = 0.05
+    cfg.curriculum["command_vel"].params["velocity_stages"] = [
+      {"step": 0, "lin_vel_x": (0.0, 0.10), "lin_vel_y": (0.0, 0.0),
+       "ang_vel_z": (-0.1, 0.1)},
+      {"step": 800 * 24, "lin_vel_x": (0.0, 0.20), "lin_vel_y": (0.0, 0.0),
+       "ang_vel_z": (-0.2, 0.2)},
+      {"step": 1600 * 24, "lin_vel_x": (0.0, 0.30), "lin_vel_y": (0.0, 0.0),
+       "ang_vel_z": (-0.3, 0.3)},
+    ]
 
   cfg.events["reset_base"].params["pose_range"] = {
     "x": (-0.1, 0.1), "y": (-0.1, 0.1), "z": (0.0, 0.0), "yaw": (-3.14, 3.14),
@@ -203,25 +321,63 @@ def kxr_env_cfg(
   # Scale the swing-lift target to the robot's OWN standing height -- a robot
   # standing 0.03 m tall (kxrl4t) cannot lift its foot 0.10 m (upstream's flat
   # default, sized for a human-scale biped).
-  cfg.rewards["foot_clearance"].params["target_height"] = max(0.01, 0.25 * home_height)
+  clearance_target = max(0.01, 0.25 * home_height)
+  cfg.rewards["foot_clearance"].params["target_height"] = clearance_target
+  # $KXR_GAIT_WEIGHT overrides the gait-clock weight (upstream: 0.5). The
+  # clock's reward is the MEAN match over support limbs, so each limb's stake
+  # in it shrinks as limbs are added: 0.25 each for a biped, 0.08 for kxrl6's
+  # six. A six-limbed policy trained at 0.5 lifted one arm for good and walked
+  # on the other five -- dropping a limb cost it nothing the tracking term did
+  # not pay back. Explicit knob for now; the per-limb stake is what should be
+  # held constant, but changing the default retunes every trained robot.
+  gait_weight = opt.num("KXR_GAIT_WEIGHT", float(task.get("gait_weight", 0.0)))
+  if gait_weight > 0.0:
+    cfg.rewards["foot_gait"].weight = gait_weight
   cfg.rewards["foot_gait"].params.update({
     "period": GAIT_PERIOD,
-    "offset": [0.0, 0.5],  # antiphase: a biped's two legs alternate.
+    # Antiphase for two legs; a diagonal trot once there are four support
+    # limbs. Derived from where each limb attaches, not hard-coded per robot.
+    "offset": robot.gait_offsets(),
     "threshold": 0.55,
     "command_threshold": 0.05,
   })
 
-  posture_std = {}
-  for j, role in robot.leg_dof_names.items():
+  posture_std = {j: _DEFAULT_STD for j in robot.all_joints}
+  for j, role in robot.support_dof_names.items():
     posture_std[j] = _ROLE_STD.get(role, _DEFAULT_STD)
-  for limb in robot.upper.values():
-    for j in limb.joints:
-      posture_std[j] = _DEFAULT_STD
+
+  # A joint that DELIVERS the stride cannot also be pinned near the home pose.
+  # The role table above is written for a human-proportioned biped, where hip
+  # yaw is a balance DOF worth keeping tight (std 0.2). On kxrl4t hip yaw is
+  # the only propulsion DOF there is, and the gait that works sweeps it 0.9 rad
+  # -- which at std 0.2 scores exp(-20), i.e. the posture term prices the only
+  # available gait at the entire reward. So each support-limb joint that moves
+  # its own contact point (fore-aft for a stride, or up for clearance) is given
+  # a std as wide as the swing amplitude that stride needs, and the tighter
+  # role value is kept only for joints that do neither.
+  for joint, m in (home.get("gait_joints") or {}).items():
+    if joint not in posture_std:
+      continue
+    drives_stride = m["span_x_m"] >= GAIT_JOINT_SHARE * stride_span
+    lifts_clear = m["span_z_m"] >= clearance_target
+    if drives_stride or lifts_clear:
+      amplitude = 0.5 * STRIDE_UTILIZATION * m["range_rad"]
+      posture_std[joint] = max(posture_std[joint], amplitude)
   cfg.rewards["pose"].params["std_standing"] = dict(posture_std)
   cfg.rewards["pose"].params["std_walking"] = dict(posture_std)
   cfg.rewards["pose"].params["std_running"] = dict(posture_std)
   cfg.rewards["pose"].params["walking_threshold"] = 0.03
   cfg.rewards["pose"].params["running_threshold"] = 1.0
+
+  if speed is not None:
+    # Put every "is it moving?" gate below the commanded band, so the gait
+    # terms are live for the whole band and stand_still (which penalizes
+    # leaving the home pose) is not.
+    for term in ("foot_gait", "foot_clearance", "foot_slip", "soft_landing",
+                 "stand_still"):
+      cfg.rewards[term].params["command_threshold"] = speed.move_gate
+    cfg.rewards["pose"].params["walking_threshold"] = speed.move_gate
+    cfg.rewards["pose"].params["running_threshold"] = speed.v_max
 
   ##
   # Terminations
@@ -251,7 +407,7 @@ def kxr_env_cfg(
         cfg.rewards[term].weight = 0.0
     cfg.rewards["getup_hold"] = RewardTermCfg(
       func=mdp.getup_hold, weight=20.0,
-      params={"target_height": _stand_height(robot_name), "asset_cfg": SceneEntityCfg("robot")},
+      params={"target_height": home_height, "asset_cfg": SceneEntityCfg("robot")},
     )
     # The robot starts ON the floor; that termination would end every episode
     # at step 0.
@@ -288,7 +444,12 @@ def kxr_env_cfg(
     cfg.events["randomize_terrain"] = EventTermCfg(
       func=envs_mdp.randomize_terrain, mode="reset", params={})
     if not opt.flag("KXR_GETUP"):
-      twist.ranges.lin_vel_x = (0.2, 0.2)
+      # Hold the top of the band this robot was TRAINED on. A fixed 0.2 m/s
+      # (the old, unscaled value) asks kxrl4t for three times its mechanical
+      # top speed -- an out-of-distribution command, so the clip measures
+      # something the policy was never trained to do.
+      play_speed = speed.v_max if speed is not None else 0.2
+      twist.ranges.lin_vel_x = (play_speed, play_speed)
       twist.ranges.ang_vel_z = (0.0, 0.0)
     twist.debug_vis = False
     _z = cfg.events["reset_base"].params["pose_range"].get("z", (0.0, 0.0))

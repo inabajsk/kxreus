@@ -8,7 +8,8 @@ mkdir -p policies
 ROBOTS=(kxrl4d kxrl4t kxrl2g kxrl6)
 for robot in "${ROBOTS[@]}"; do
   for mode in walk getup; do
-    run_dir=$(ls -dt "logs/rsl_rl/${robot}_${mode}/"*"${robot}-${mode}"* 2>/dev/null | head -1 || true)
+    # Newest run directory for this task, whatever it was named.
+    run_dir=$(ls -dt "logs/rsl_rl/${robot}_${mode}/"*/ 2>/dev/null | head -1 || true)
     if [ -z "${run_dir}" ]; then
       echo "SKIP ${robot} ${mode}: no run directory found"
       continue

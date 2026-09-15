@@ -1,26 +1,112 @@
 {
-  "base_height": 0.026111,
+  "base_height": 0.038117,
   "base_quat": [
-    0.999356,
-    -0.000956,
-    0.035875,
-    -0.000213
+    1.0,
+    -1e-06,
+    9.2e-05,
+    0.0
   ],
+  "foot_offsets": {
+    "larm": [
+      0.0115,
+      0.0325,
+      -0.0135
+    ],
+    "lleg": [
+      0.0115,
+      0.0325,
+      -0.0135
+    ],
+    "rarm": [
+      0.0115,
+      -0.0325,
+      -0.0135
+    ],
+    "rleg": [
+      0.0115,
+      -0.0325,
+      -0.0135
+    ]
+  },
+  "gait_joints": {
+    "larm-shoulder-r": {
+      "range_rad": 3.455748,
+      "span_x_m": 1.3e-05,
+      "span_z_m": 0.069402,
+      "stride_m": 1e-06
+    },
+    "larm-shoulder-y": {
+      "range_rad": 3.455748,
+      "span_x_m": 0.08137,
+      "span_z_m": 1.5e-05,
+      "stride_m": 0.08137
+    },
+    "lleg-crotch-r": {
+      "range_rad": 3.455748,
+      "span_x_m": 1.3e-05,
+      "span_z_m": 0.069402,
+      "stride_m": 1e-06
+    },
+    "lleg-crotch-y": {
+      "range_rad": 3.455748,
+      "span_x_m": 0.081372,
+      "span_z_m": 1.5e-05,
+      "stride_m": 0.081372
+    },
+    "rarm-shoulder-r": {
+      "range_rad": 3.455748,
+      "span_x_m": 1.3e-05,
+      "span_z_m": 0.069402,
+      "stride_m": 1e-06
+    },
+    "rarm-shoulder-y": {
+      "range_rad": 3.455748,
+      "span_x_m": 0.08137,
+      "span_z_m": 1.5e-05,
+      "stride_m": 0.08137
+    },
+    "rleg-crotch-r": {
+      "range_rad": 3.455748,
+      "span_x_m": 1.3e-05,
+      "span_z_m": 0.069402,
+      "stride_m": 1e-06
+    },
+    "rleg-crotch-y": {
+      "range_rad": 3.455748,
+      "span_x_m": 0.081372,
+      "span_z_m": 1.5e-05,
+      "stride_m": 0.081372
+    }
+  },
   "joint_pos": {
-    "head-neck-p": 5e-06,
+    "head-neck-p": 0.0,
     "head-neck-y": 0.0,
-    "larm-shoulder-r": 0.0,
-    "larm-shoulder-y": -5e-05,
-    "lleg-crotch-r": -0.299943,
-    "lleg-crotch-y": -0.300004,
-    "rarm-shoulder-r": 0.0,
-    "rarm-shoulder-y": 3.3e-05,
-    "rleg-crotch-r": -0.299943,
-    "rleg-crotch-y": -0.300004
+    "larm-shoulder-r": -1.199776,
+    "larm-shoulder-y": 0.0,
+    "lleg-crotch-r": -1.199746,
+    "lleg-crotch-y": 0.0,
+    "rarm-shoulder-r": 1.199774,
+    "rarm-shoulder-y": -0.0,
+    "rleg-crotch-r": 1.199745,
+    "rleg-crotch-y": -0.0
   },
   "residual_speed": 0.0,
   "settled_seconds": 2.0,
-  "stand_height": 0.031429,
-  "tilt_deg": 4.113,
-  "used_crouch_bias": true
+  "stance_band_m": 0.005,
+  "stands": true,
+  "stride_span_m": 0.081372,
+  "support_limbs": [
+    "larm",
+    "lleg",
+    "rarm",
+    "rleg"
+  ],
+  "support_load_n": {
+    "larm": 1.7753,
+    "lleg": 1.3066,
+    "rarm": 1.7113,
+    "rleg": 1.2606
+  },
+  "tilt_deg": 0.011,
+  "torso_load_frac": 0.0
 }

@@ -23,7 +23,6 @@ from __future__ import annotations
 import json
 import os
 import re
-from pathlib import Path
 
 import mujoco
 
@@ -31,10 +30,15 @@ from mjlab.actuator import BuiltinPositionActuatorCfg
 from mjlab.entity import EntityArticulationInfoCfg, EntityCfg
 from mjlab.utils.spec_config import CollisionCfg
 
-from .robots import JOINT_EFFORT_NM, JOINT_VELOCITY_RAD_S, RobotSpec, load_robot_spec
-
-_REPO_ROOT = Path(os.environ.get("WALKING_KXR_ROOT", Path(__file__).resolve().parent.parent))
-MJCF_ROOT = _REPO_ROOT / "robot" / "mjcf"
+from .robots import (  # noqa: F401  (MJCF_ROOT/mjcf_path/home_path re-exported)
+  JOINT_EFFORT_NM,
+  JOINT_VELOCITY_RAD_S,
+  MJCF_ROOT,
+  RobotSpec,
+  home_path,
+  load_robot_spec,
+  mjcf_path,
+)
 
 # Bare plastic body sliding on a hard floor vs. a rubber-soled foot -- the same
 # grippy-foot / slippery-body split walking-hand-rl's hand uses between its
@@ -46,18 +50,19 @@ BODY_FRICTION = 0.6
 _KP = float(os.environ.get("KXR_KP", "25.0"))
 _KD = float(os.environ.get("KXR_KD", "1.0"))
 _ARMATURE = 0.005
+# How much of a joint's hard range the policy may actually command. Exported
+# so that anything measuring what the robot can REACH (measure_home.py's
+# stride) uses the same range the policy will have.
+SOFT_JOINT_POS_LIMIT_FACTOR = 0.9
 
 
-def mjcf_path(name: str) -> Path:
-  return MJCF_ROOT / name / "{}.xml".format(name)
+def foot_site_name(limb_key: str) -> str:
+  """Site name for a support limb's tip, e.g. ``"lleg"`` -> ``"lleg_foot"``.
 
-
-def home_path(name: str) -> Path:
-  return MJCF_ROOT / name / "home.json"
-
-
-def foot_site_name(leg_key: str) -> str:
-  return "{}_foot".format(leg_key)
+  Keyed by limb, not by "leg": on the KXR bodies that stand on their arms too,
+  an arm tip is a foot for every purpose these rewards care about.
+  """
+  return "{}_foot".format(limb_key)
 
 
 def get_spec(name: str) -> mujoco.MjSpec:
@@ -68,7 +73,7 @@ def get_spec(name: str) -> mujoco.MjSpec:
       "{} missing -- build it with `uv run robot/build_mjcf.py {}`".format(xml, name))
   spec = mujoco.MjSpec.from_file(str(xml))
   robot = load_robot_spec(name)
-  foot_links = set(robot.foot_links)
+  foot_links = set(robot.support_links)
 
   kept = 0
   for geom in spec.geoms:
@@ -85,12 +90,23 @@ def get_spec(name: str) -> mujoco.MjSpec:
     kept += 1
   assert kept > 0, "{}: no *_collision geoms found -- conversion produced none?".format(name)
 
-  # One site per foot (gait rewards read foot height/slip from here), placed at
-  # the foot link's own origin -- close enough to the sole for a height/slip
-  # reference; exact sole offset is not needed for these rewards' purpose.
-  for leg_key, limb in robot.legs.items():
+  # One site per SUPPORT limb tip -- the gait rewards read foot height and
+  # foot slip from here, so it has to sit on the part that touches the floor.
+  # measure_home.py measures that point (``foot_offsets``); a link origin is
+  # NOT it. kxrl4t's tip link has its origin at the roll joint, 3 cm inboard
+  # of the contact patch, and a site there cannot change height when the roll
+  # joint swings -- foot_clearance would then be scoring a point that never
+  # lifts. Falls back to the origin for a home.json measured before offsets
+  # were recorded.
+  offsets = {}
+  path = home_path(name)
+  if path.exists():
+    with path.open() as f:
+      offsets = json.load(f).get("foot_offsets") or {}
+  for limb_key, limb in robot.support.items():
     body = spec.body(limb.foot_link)
-    body.add_site(name=foot_site_name(leg_key), pos=[0.0, 0.0, 0.0])
+    body.add_site(name=foot_site_name(limb_key),
+                  pos=list(offsets.get(limb_key, (0.0, 0.0, 0.0))))
 
   # IMU + root angular momentum, mounted on the torso -- same convention as
   # walking-hand-rl (the stock actor observations read these sensor names).
@@ -117,7 +133,9 @@ def get_articulation(name: str) -> EntityArticulationInfoCfg:
     effort_limit=JOINT_EFFORT_NM,
     armature=_ARMATURE,
   )
-  return EntityArticulationInfoCfg(actuators=(actuator,), soft_joint_pos_limit_factor=0.9)
+  return EntityArticulationInfoCfg(
+    actuators=(actuator,),
+    soft_joint_pos_limit_factor=SOFT_JOINT_POS_LIMIT_FACTOR)
 
 
 def get_home_keyframe(name: str) -> EntityCfg.InitialStateCfg:
@@ -138,7 +156,7 @@ def get_home_keyframe(name: str) -> EntityCfg.InitialStateCfg:
 def get_collision_cfg(name: str) -> CollisionCfg:
   robot = load_robot_spec(name)
   foot_pattern = r"^({})_collision\d+$".format(
-    "|".join(re.escape(link) for link in robot.foot_links))
+    "|".join(re.escape(link) for link in robot.support_links))
   body_pattern = r".*_collision\d+$"
   return CollisionCfg(
     geom_names_expr=(body_pattern,),
