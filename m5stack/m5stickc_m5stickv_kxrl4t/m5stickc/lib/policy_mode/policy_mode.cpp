@@ -1013,6 +1013,21 @@ void PolicyMode::loop() {
         request = static_cast<Request>(0xFF);  // matches no case
     }
 
+    // A phone-requested actor switch (see net::requestActorSelect(), from
+    // the policy-upload page) is only ever applied here, on this task --
+    // core 1, the same one run() reads g_weights/g_biases from every
+    // control step -- and only while IDLE. Unlike net::takeM5StickVWrite()
+    // (safe to drain from draw()'s own core 0, since I2C never touches
+    // those arrays), select() rewrites exactly what run() is reading, so
+    // anywhere the gait is actually stepping is not safe. Any other state:
+    // the request is simply dropped rather than queued for later -- the
+    // same "changing policy is a deliberate act" reasoning select()'s own
+    // comment already gives, applied to "deliberate enough to stop first".
+    uint8_t select_actor = 0;
+    if (net::takeActorSelect(&select_actor) && state_ == State::IDLE) {
+        beginActor(select_actor);
+    }
+
     if (state_ != State::FAULT) {
         switch (request) {
             case Request::FREE:

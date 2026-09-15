@@ -1,6 +1,6 @@
 # kxrl4t — M5StickC + M5StickV RCB-4 bridge
 
-Two boards, one project:
+Three boards, one project:
 
 - `m5stickc/` — the RCB-4's COM adapter (PlatformIO/Arduino, ESP32). Relays
   the PC's RCB-4 protocol to the real RCB-4 over an inverted UART, answers
@@ -11,6 +11,13 @@ Two boards, one project:
   `object_detection_I2C_slave.py` as `boot.py`, doing AprilTag/object
   detection and answering the M5StickC as an I2C slave. See
   `m5stickv/README.md` for the register map and detection record layout.
+- `atom_echo_pc/` — an OPTIONAL PC-side ATOM Echo dongle. Lets
+  `kxreus/atominterface.l` reach the M5StickC over ESP-NOW instead of a
+  direct USB cable to it: the ATOM Echo sits on the PC's own USB port and
+  relays the same RCB-4 byte stream wirelessly. See its own README.md for
+  setup (MAC pairing) and `m5stickc/lib/espnow_link/` for the robot side.
+  The USB-cable and ATOM Echo paths both work at once (BridgeMode accepts
+  either), so this is purely additive.
 
 ## Wiring
 

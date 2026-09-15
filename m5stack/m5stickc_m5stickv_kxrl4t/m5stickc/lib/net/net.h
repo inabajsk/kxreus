@@ -275,6 +275,23 @@ void requestM5StickVWrite(uint8_t reg_addr, uint8_t value);
 /// is never applied twice.
 bool takeM5StickVWrite(uint8_t* reg_addr, uint8_t* value);
 
+/// The phone's policy page asking to run a different actor (compiled-in,
+/// or "uploaded" -- see policy::finishUpload()) -- from net.cpp's own
+/// /actor handler. Queued exactly like requestM5StickVWrite() above, but
+/// consumed on a different task: see takeActorSelect()'s own comment for
+/// why.
+void requestActorSelect(uint8_t index);
+
+/// Consumed by PolicyMode's own control-loop task (core 1), NOT its draw
+/// task, unlike takeM5StickVWrite(): policy::select() rewrites exactly
+/// the weight/bias pointers run() reads every control step, so it must
+/// run on run()'s own core, and only when nothing is calling run()
+/// concurrently -- PolicyMode::loop() only actually applies this while
+/// State::IDLE, dropping it otherwise (see that call site's own comment).
+/// True (and *index filled) if a request was waiting; clears it either
+/// way, so the same request is never applied twice.
+bool takeActorSelect(uint8_t* index);
+
 /// Take one waiting command frame, from UDP or from the page.
 ///
 /// @param frame  where to put it.
@@ -296,6 +313,17 @@ void send(const uint8_t* frame, size_t len);
 
 /// Whether a command has arrived over UDP recently enough to answer.
 bool hasPeer();
+
+/// Whether the phone's own control page is currently open and polling --
+/// true within a few polls of its last GET /c, false once it has closed
+/// the tab or lost its own network path here. /c is what the page's
+/// tick() sends ten times a second for as long as it is open, whether or
+/// not the operator's thumb is actually doing anything, so this is a
+/// direct "is a phone here" signal -- see BridgeMode's own PHONE lamp,
+/// which is the reason this exists (it needed a phone-liveness question
+/// to answer, the same way EspNowLink::isLinkUp() answers one for the
+/// PC-side ATOM Echo).
+bool phoneActive();
 
 /// Whether the control loop has published telemetry recently.
 ///

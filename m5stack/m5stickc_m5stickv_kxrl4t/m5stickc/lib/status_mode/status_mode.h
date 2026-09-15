@@ -51,10 +51,6 @@ private:
     /// comment for the wire format this parses.
     void drawAprilTag();
     void drawQr();
-    /// Read the text setup protocol. Nothing is being relayed in this mode,
-    /// so unlike BRIDGE there is no RCB-4 traffic to disambiguate against and
-    /// a line reader is the whole of it.
-    void readSetup();
 
     Rcb4Link& link_;
     uint32_t last_draw_ms_ = 0;
@@ -64,8 +60,6 @@ private:
     /// and "already drew the unset screen" are the same empty string, and the
     /// display silently kept whatever was on it.
     bool qr_dirty_ = true;
-    char setup_line_[96] = {0};
-    size_t setup_len_ = 0;
     /// What the QR was last drawn for, so a static screen is not redrawn five
     /// times a second -- rendering a QR is not free.
     String drawn_url_;

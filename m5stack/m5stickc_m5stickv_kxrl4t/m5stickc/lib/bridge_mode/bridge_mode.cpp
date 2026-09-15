@@ -1,8 +1,8 @@
 #include "bridge_mode.h"
 
 #include <M5Unified.h>
+#include <espnow_link.h>
 #include <net.h>
-#include <string.h>
 
 namespace {
 
@@ -21,23 +21,59 @@ void drawLamp(int y, const char* label, bool ok) {
     M5.Display.print(label);
 }
 
+/// Same shape as drawLamp(), but three states rather than two: a PC-side
+/// ATOM Echo (see EspNowLink) can be absent, linked but idle, or actively
+/// exchanging a frame right now, and only the first of those is really
+/// "not working" -- the other two both mean the link itself is fine.
+void drawEspNowLamp(int y, int state) {
+    uint16_t color;
+    const char* label;
+    switch (state) {
+        case 2:
+            color = TFT_CYAN;
+            label = "ECHO*";  // actively relaying a frame
+            break;
+        case 1:
+            color = TFT_GREEN;
+            label = "ECHO";  // linked, idle
+            break;
+        default:
+            color = TFT_RED;
+            label = "ECHO";  // not present
+            break;
+    }
+    M5.Display.fillRect(0, y, M5.Display.width(), 16, TFT_BLACK);
+    M5.Display.fillRoundRect(4, y + 2, 12, 12, 3, color);
+    M5.Display.setTextSize(1);
+    M5.Display.setCursor(22, y + 4);
+    M5.Display.print(label);
+}
+
 }  // namespace
 
 void BridgeMode::enter() {
     M5.Display.clear();
     M5.Display.setCursor(0, 0);
+    // The robot's own name, big, then the mode name small below it -- the
+    // same split PolicyMode/StatusMode already use. "ROBOT_NAME-CAM" used
+    // to be one size-2 line, which fit AtomS3's wider panel but not
+    // M5StickC's own 80 px width: at size 2 even "kxrl4t-CAM" (10 chars,
+    // ~120 px) ran off the edge, and the one word ("-CAM") that said BRIDGE
+    // mode's own RCB-4 UART leaves Port A free for the M5StickV was
+    // exactly the part cut off -- unreadable on the one build that most
+    // needed the mode name legible to tell BRIDGE apart from STATUS/POLICY
+    // at a glance.
     M5.Display.setTextSize(2);
-    // The robot's own name, with "-CAM" appended in place of a separate
-    // "BRIDGE"/mode-name line (see atom_phone's own copy of this comment
-    // for why the name alone, without the mode, is what belongs here) --
-    // "-CAM" is the one word that says, at a glance, that THIS firmware
-    // tree's RCB-4 UART sits on G5/G6 rather than the Grove connector's
-    // G1/G2 (see Rcb4Link::TX_PIN/RX_PIN's own comment), freeing G1/G2 for
-    // the M5StickV camera this build can talk to and atom_phone's cannot.
-    // ROBOT_NAME is a string literal (from a -D build flag), so this is
-    // ordinary adjacent-string-literal concatenation, done once at compile
-    // time -- not a runtime format call.
-    M5.Display.println(ROBOT_NAME "-CAM");
+    M5.Display.println(ROBOT_NAME);
+    M5.Display.setTextSize(1);
+    M5.Display.setTextColor(TFT_DARKGREY, TFT_BLACK);
+    M5.Display.println(name());
+    M5.Display.setTextColor(TFT_WHITE, TFT_BLACK);
+
+    // Only BRIDGE mode leaves the real RCB-4's own UART free for a host to
+    // drive directly -- see Rcb4Link::setPassthroughEnabled's own comment
+    // for why POLICY mode must not have this on.
+    link_.setPassthroughEnabled(true);
 
     // Ask the board once, while the host is not yet talking. A relay on its
     // own cannot tell a silent board from a quiet one -- with nothing wired to
@@ -51,17 +87,28 @@ void BridgeMode::enter() {
     drawLamp(BOARD_LAMP_Y, "RCB4", board_ok_);
     drawLamp(IMU_LAMP_Y, "IMU", imu_ok_);
     drawLamp(I2C_LAMP_Y, "I2C", i2c_ok_);
+    espnow_state_ = -1;  // force the ESP-NOW lamp's first paint too
+    phone_ok_ = net::phoneActive();
+    drawLamp(PHONE_LAMP_Y, "PHONE", phone_ok_);
 
     // What each gesture does, since there is no other label on any of them
     // -- the same reasoning PolicyMode::draw() already gives its own
-    // button legend. One gesture per line is what this size's width
-    // actually allows.
-    M5.Display.setTextSize(2);
-    M5.Display.setCursor(0, 64);
+    // button legend. Size 1, not 2: even the shortest of these three
+    // ("x3=wifi", 7 chars) is 84 px at size 2, past M5StickC's own 80 px
+    // width -- the same fit problem the title just above had.
+    M5.Display.setTextSize(1);
+    M5.Display.setCursor(0, 104);
     M5.Display.setTextColor(TFT_DARKGREY, TFT_BLACK);
     M5.Display.println("clk=info");
     M5.Display.println("long=mode");
     M5.Display.println("x3=wifi");
+}
+
+void BridgeMode::exit() {
+    // Leaving BRIDGE mode hands the real RCB-4's own UART to whatever the
+    // next mode does with it (POLICY drives it directly) -- see
+    // Rcb4Link::setPassthroughEnabled's own comment.
+    link_.setPassthroughEnabled(false);
 }
 
 void BridgeMode::onClick() {
@@ -92,89 +139,27 @@ void BridgeMode::onClick() {
     enter();
 }
 
-void BridgeMode::relay(uint8_t byte) {
-    switch (link_.feedFromHost(byte)) {
-        case Rcb4Link::Intercept::IMU: {
-            uint8_t frame[Rcb4Link::IMU_REPLY_SIZE];
-            Rcb4Link::buildImuReply(frame);
-            Serial.write(frame, sizeof(frame));
-            break;
-        }
-        case Rcb4Link::Intercept::M5STICKV: {
-            uint8_t frame[Rcb4Link::M5STICKV_REPLY_CAPACITY];
-            const size_t len = link_.buildM5StickVReply(frame);
-            Serial.write(frame, len);
-            break;
-        }
-        case Rcb4Link::Intercept::NONE:
-            break;
-    }
-}
-
-void BridgeMode::releaseSetup() {
-    const size_t held = setup_len_;
-    in_setup_ = false;
-    setup_len_ = 0;
-    for (size_t i = 0; i < held; i++) {
-        relay(static_cast<uint8_t>(setup_line_[i]));
-    }
-}
-
-bool BridgeMode::feedSetup(uint8_t byte) {
-    // The prefix that has to match before anything is treated as text. Four
-    // bytes: three of "net" and the character that says which command it is.
-    static const char* const kPrefix = "net";
-
-    if (!in_setup_) {
-        // Only at a frame boundary: mid-frame, every value is data.
-        if (byte != kPrefix[0] || link_.midFrame()) return false;
-        in_setup_ = true;
-        setup_len_ = 0;
-    } else if (setup_len_ < 3) {
-        if (byte != kPrefix[setup_len_]) {
-            // Not "net" after all. Give back what was held, then deal with
-            // this byte as an ordinary one.
-            releaseSetup();
-            relay(byte);
-            return true;
-        }
-    } else if (setup_len_ == 3) {
-        if (byte != '?' && byte != '!' && byte != ' ') {
-            releaseSetup();
-            relay(byte);
-            return true;
-        }
-    }
-
-    if (byte == '\n' || byte == '\r') {
-        setup_line_[setup_len_] = '\0';
-        in_setup_ = false;
-        const size_t len = setup_len_;
-        setup_len_ = 0;
-        if (len == 0) return true;
-
-        if (!net::handleSetupLine(setup_line_, Serial)) {
-            Serial.println("ERR expected: net <ssid>TAB<password>, net?, net!");
-        }
-        return true;
-    }
-    if (setup_len_ + 1 >= sizeof(setup_line_)) {
-        // Too long to be a setup line; it was never one.
-        releaseSetup();
-        relay(byte);
-        return true;
-    }
-    setup_line_[setup_len_++] = static_cast<char>(byte);
-    return true;
-}
-
 void BridgeMode::loop() {
-    while (Serial.available()) {
-        const uint8_t byte = static_cast<uint8_t>(Serial.read());
-        if (feedSetup(byte)) continue;
-        relay(byte);
+    // The byte relay itself (Serial and ESP-NOW alike) now runs
+    // unconditionally, from main.cpp, regardless of which mode is
+    // current -- see HostRelay. This mode's own loop() only owns its
+    // lamps and the RCB-4-alive probe below.
+
+    if (millis() - last_espnow_draw_ms_ > ESPNOW_LAMP_INTERVAL_MS) {
+        last_espnow_draw_ms_ = millis();
+        const int state = !EspNowLink::isLinkUp() ? 0
+                         : EspNowLink::isDataActive() ? 2
+                         : 1;
+        if (state != espnow_state_) {
+            espnow_state_ = state;
+            drawEspNowLamp(ESPNOW_LAMP_Y, espnow_state_);
+        }
+        const bool phone_now = net::phoneActive();
+        if (phone_now != phone_ok_) {
+            phone_ok_ = phone_now;
+            drawLamp(PHONE_LAMP_Y, "PHONE", phone_ok_);
+        }
     }
-    link_.pumpToHost();
 
     // Re-check the board, but only in a gap where the host is not talking:
     // probing sends a frame of our own, and injecting that into someone

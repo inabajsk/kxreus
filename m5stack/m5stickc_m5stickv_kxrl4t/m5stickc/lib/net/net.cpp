@@ -37,6 +37,13 @@ constexpr uint32_t RETRY_INTERVAL_MS = 10000;
 /// the dark when the operator's program exits.
 constexpr uint32_t PEER_TIMEOUT_MS = 5000;
 
+/// How long since the phone's last GET /c before phoneActive() gives up on
+/// it -- a few multiples of the page's own 100 ms poll, the same margin
+/// hasPeer()'s PEER_TIMEOUT_MS gives a 10 Hz UDP peer, just tighter since
+/// this is a status lamp meant to notice a closed tab quickly rather than
+/// tolerate a slow WAN link.
+constexpr uint32_t PHONE_TIMEOUT_MS = 500;
+
 Preferences prefs;
 WiFiUDP udp;
 WebServer server(80);
@@ -59,6 +66,21 @@ uint8_t g_servo_id_count = 0;
 bool g_m5v_write_pending = false;
 uint8_t g_m5v_write_reg = 0;
 uint8_t g_m5v_write_value = 0;
+
+/// The policy page's own "run this actor" button -- see
+/// requestActorSelect()/takeActorSelect()'s own comments for why this one
+/// is drained on a different task than g_m5v_write_pending above.
+bool g_actor_select_pending = false;
+uint8_t g_actor_select_index = 0;
+
+/// Whether the upload in progress right now (see the /policy handler) has
+/// gone well so far -- checked and updated at each of the three
+/// UPLOAD_FILE_START/WRITE/END callbacks, since WebServer's upload
+/// mechanism has no way to fail a chunk out of that callback other than
+/// remembering not to trust the rest of it. Read once more, at the very
+/// end, to decide the HTTP status the OUTER handler sends -- see
+/// handlePolicyUploadChunk()/handlePolicyUploadComplete().
+bool g_policy_upload_ok = false;
 
 /// The robot's own access point while nobody has told it which network to
 /// join here. Open (no password): this is a physical machine in a room, not
@@ -161,6 +183,14 @@ constexpr size_t COMMAND_SIZE = 9;
 uint8_t g_command[COMMAND_SIZE];
 bool g_command_pending = false;
 bool g_command_from_udp = false;
+
+/// Last time handleCommandRequest() saw a phone's own GET /c -- see
+/// phoneActive()'s own comment. A plain millis() timestamp, not guarded by
+/// g_shared: written only from the server task, read only from
+/// BridgeMode's own loop() (core 1), and a 32-bit-aligned word is one
+/// instruction either way on this chip, the same reasoning EspNowLink's
+/// own liveness timestamps already rely on.
+uint32_t g_last_phone_ms = 0;
 
 Status g_status = Status::UNCONFIGURED;
 String g_ssid;
@@ -302,6 +332,12 @@ void handleInfoRequest() {
 /// loop, and leaves the command in a slot for that loop to find. Neither side
 /// waits for the other.
 void handleCommandRequest() {
+    // See phoneActive()'s own comment: this is the one request the page's
+    // tick() sends unconditionally, ten times a second, for as long as it
+    // is open -- marked here regardless of whether the frame below turns
+    // out well formed, since even a malformed one still proves a phone is
+    // there asking.
+    g_last_phone_ms = millis();
     const String hex = server.hasArg("f") ? server.arg("f") : String();
     bool accepted = false;
     if (hex.length() == COMMAND_SIZE * 2) {
@@ -611,6 +647,69 @@ void handleM5vSetRequest() {
     server.send(200, "text/plain", "ok");
 }
 
+/// kWebPage's actor picker: "run this one" for whichever index /info's own
+/// "actors" array named -- see requestActorSelect()'s own comment for why
+/// this only hands the request off rather than calling policy::select()
+/// here. Answers at once regardless of whether PolicyMode is even IDLE
+/// right now to apply it (see takeActorSelect()'s own comment on why it
+/// might simply be dropped).
+void handleActorSelectRequest() {
+    if (!server.hasArg("index")) {
+        server.send(400, "text/plain", "index required");
+        return;
+    }
+    const long index = server.arg("index").toInt();
+    if (index < 0 || index > 255) {
+        server.send(400, "text/plain", "index must be 0-255");
+        return;
+    }
+    requestActorSelect(static_cast<uint8_t>(index));
+    server.send(200, "text/plain", "ok");
+}
+
+/// kWebPage's policy-upload form's one file field, streamed straight into
+/// policy.cpp's own upload buffer as it arrives -- see policy::
+/// beginUpload()'s own comment on the byte layout expected and why this
+/// has to stream rather than buffer the whole ~103 KiB body as a String
+/// first (which is what server.arg("plain") would do for a raw POST, on
+/// top of the ~103 KiB buffer policy.cpp itself is about to hold).
+///
+/// multipart/form-data (a plain HTML <input type=file> plus FormData) is
+/// what buys the streaming: WebServer only calls this callback, rather
+/// than buffering the body itself, for that content type. A raw
+/// application/octet-stream POST would have been simpler client-side, but
+/// would have cost exactly the double-buffering this avoids.
+void handlePolicyUploadChunk() {
+    HTTPUpload& upload = server.upload();
+    switch (upload.status) {
+        case UPLOAD_FILE_START:
+            g_policy_upload_ok = policy::beginUpload();
+            break;
+        case UPLOAD_FILE_WRITE:
+            if (g_policy_upload_ok) {
+                g_policy_upload_ok =
+                        policy::appendUpload(upload.buf, upload.currentSize);
+            }
+            break;
+        case UPLOAD_FILE_END:
+            if (g_policy_upload_ok) g_policy_upload_ok = policy::finishUpload();
+            break;
+        case UPLOAD_FILE_ABORTED:
+            g_policy_upload_ok = false;
+            break;
+    }
+}
+
+/// Runs once the upload above has fully arrived (or failed partway) --
+/// the one place this request actually answers, same split
+/// handlePolicyUploadChunk()'s own comment already explains WebServer's
+/// two-callback upload API needs.
+void handlePolicyUploadComplete() {
+    server.send(g_policy_upload_ok ? 200 : 400, "text/plain",
+               g_policy_upload_ok ? "ok" : "upload failed: wrong size, out "
+                                            "of RAM, or actor busy running");
+}
+
 /// The provisioning form's one POST, handled the same way handleCommandRequest
 /// is: read it, act, answer. Reached both from the robot's own setup AP (see
 /// beginProvisioning() and provisionSsid()) and, harmlessly, from a normal
@@ -703,6 +802,12 @@ void ensureServer() {
     server.on("/ap", HTTP_POST, handleUseOwnApRequest);
     server.on("/provision", HTTP_POST, handleProvisionRequest);
     server.on("/scan", handleScanRequest);
+    server.on("/actor", HTTP_POST, handleActorSelectRequest);
+    // See handlePolicyUploadChunk()'s own comment on the two-callback
+    // shape this needs: handlePolicyUploadComplete answers once
+    // handlePolicyUploadChunk has streamed (and applied) the whole body.
+    server.on("/policy", HTTP_POST, handlePolicyUploadComplete,
+              handlePolicyUploadChunk);
     // The M5StickV settings page: its own screen (kM5vPage), reachable from
     // kWebPage and back, and the one action it can take (see
     // handleM5vSetRequest's own comment).
@@ -1048,6 +1153,25 @@ bool takeM5StickVWrite(uint8_t* reg_addr, uint8_t* value) {
     return pending;
 }
 
+void requestActorSelect(uint8_t index) {
+    portENTER_CRITICAL(&g_shared);
+    g_actor_select_index = index;
+    g_actor_select_pending = true;
+    portEXIT_CRITICAL(&g_shared);
+}
+
+bool takeActorSelect(uint8_t* index) {
+    bool pending;
+    portENTER_CRITICAL(&g_shared);
+    pending = g_actor_select_pending;
+    if (pending) {
+        *index = g_actor_select_index;
+        g_actor_select_pending = false;
+    }
+    portEXIT_CRITICAL(&g_shared);
+    return pending;
+}
+
 bool policyLive() {
     uint32_t updated;
     portENTER_CRITICAL(&g_shared);
@@ -1131,6 +1255,10 @@ void send(const uint8_t* frame, size_t len) {
 
 bool hasPeer() {
     return g_peer_port != 0 && millis() - g_peer_seen_ms < PEER_TIMEOUT_MS;
+}
+
+bool phoneActive() {
+    return g_last_phone_ms != 0 && millis() - g_last_phone_ms < PHONE_TIMEOUT_MS;
 }
 
 }  // namespace net

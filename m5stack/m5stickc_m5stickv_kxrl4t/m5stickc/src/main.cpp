@@ -1,18 +1,23 @@
 // M5StickC as the RCB-4's COM adapter.
 //
 //   PC --USB(CP2104 UART0)-- StickC --inverted UART 1.25Mbps 8E1-- RCB-4 mini
+//   PC --USB-- ATOM Echo --ESP-NOW-- StickC (same protocol -- see EspNowLink)
 //
-// Bytes are relayed as they arrive. The exceptions are two of the RCB-4's
-// unused opcodes: 0x90, which this answers with its own IMU (the RCB-4 has
-// none, so this is the only way a host on the far side can read attitude),
-// and 0x91, an I2C bridge to an M5StickV wired to this board's Grove
-// connector. See lib/rcb4_link for both protocols.
+// Bytes are relayed as they arrive, from either host. The exceptions are two
+// of the RCB-4's unused opcodes: 0x90, which this answers with its own IMU
+// (the RCB-4 has none, so this is the only way a host on the far side can
+// read attitude), and 0x91, an I2C bridge to an M5StickV wired to this
+// board's Grove connector. Both are answered locally -- never forwarded to
+// the real RCB-4's own UART -- by HostRelay, which runs unconditionally,
+// regardless of which mode is current (see its own top comment for why that
+// is safe: neither opcode touches that wire).
 //
 // The button cycles three modes, and they are modes rather than options
-// because each one wants the RCB-4's UART to itself:
+// because each one wants the RCB-4's own UART to itself:
 //
-//   BRIDGE  the PC speaks RCB-4 and this carries bytes. The default.
-//   STATUS  relaying stops; shows what has been going through.
+//   BRIDGE  the PC (or a PC-side ATOM Echo) speaks RCB-4 and this carries
+//           ordinary commands to the real board too. The default.
+//   STATUS  ordinary passthrough stops; shows what has been going through.
 //   POLICY  this speaks RCB-4 and runs the trained actor itself, with the PC
 //           reduced to sending three numbers of velocity command. See
 //           lib/policy_mode.
@@ -25,13 +30,16 @@
 // to whatever mode is current, for a robot stuck with no other way for a
 // phone to reach it at all.
 //
-// Two of them driving the same wire would corrupt both, which is why STATUS
-// stops the relay rather than drawing over it, and why POLICY frees the
-// servos on the way out.
+// Two of them driving the real RCB-4's own UART would corrupt both, which is
+// why only BRIDGE mode leaves ordinary passthrough on
+// (Rcb4Link::setPassthroughEnabled(), flipped by BridgeMode's own
+// enter()/exit()) and why POLICY frees the servos on the way out.
 
 #include <Arduino.h>
 #include <M5Unified.h>
 #include <bridge_mode.h>
+#include <espnow_link.h>
+#include <host_relay.h>
 #include <mode.h>
 #include <net.h>
 #include <policy_mode.h>
@@ -128,6 +136,12 @@ void setup() {
     // Joins the lab AP if credentials were stored; returns at once either
     // way, because connecting takes seconds the setup cannot spend.
     net::begin();
+    // After net::begin(): ESP-NOW rides on whatever WiFi mode that just
+    // settled into (see espnow_link.h's own comment on the channel this
+    // assumes). Lets a PC-side ATOM Echo reach this robot's BridgeMode
+    // relay without a USB cable to this board -- see BridgeMode::loop()'s
+    // own EspNowLink::available()/read() branch.
+    EspNowLink::begin();
 
     M5.BtnA.setHoldThresh(BUTTON_GAP_MS);
     kModes[current_mode]->enter();
@@ -145,5 +159,12 @@ void loop() {
         }
     }
     net::poll();
+    EspNowLink::poll();
+    // Unconditional, regardless of current_mode -- see HostRelay's own top
+    // comment for why that is safe (the IMU/M5StickV opcodes it answers
+    // never touch the real RCB-4's own UART; ordinary passthrough is
+    // separately gated by Rcb4Link::setPassthroughEnabled, which only
+    // BridgeMode's own enter()/exit() turns on).
+    HostRelay::loop(rcb4_link);
     kModes[current_mode]->loop();
 }
