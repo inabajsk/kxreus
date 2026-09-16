@@ -44,6 +44,12 @@ struct Actor {
     float standing_fraction;
     const float* stance_gravity;
     const float* root_to_gyro;
+    // See kxreus/rcb4robotconfig.l's own per-servo direction annotation
+    // (next to each joint name there) -- hand-transcribed, same order as
+    // servo_ids. Multiplied into a joint's own clamped target angle right
+    // before the RCB-4 pulse conversion (see PolicyMode::
+    // writeJointTargets()).
+    const int8_t* servo_direction;
 };
 
 const float* const kWalkW[POLICY_KXRL2GWALK_LAYERS] = {
@@ -52,6 +58,15 @@ const float* const kWalkW[POLICY_KXRL2GWALK_LAYERS] = {
 const float* const kWalkB[POLICY_KXRL2GWALK_LAYERS] = {
         kPolicyBKxrl2Gwalk0, kPolicyBKxrl2Gwalk1, kPolicyBKxrl2Gwalk2,
         kPolicyBKxrl2Gwalk3};
+
+// See kxreus/rcb4robotconfig.l's own per-servo direction annotation (next
+// to each joint name there) -- hand-transcribed, same order as
+// kPolicyServoIdsKxrl2Gwalk. Multiplied into a joint's own clamped target
+// angle right before the RCB-4 pulse conversion (see PolicyMode::
+// writeJointTargets()).
+const int8_t kServoDirectionKxrl2Gwalk[22] = {
+    1, 1, -1, 1, 1, 1, 1, 1, -1, 1, -1, -1, 1, -1, 1, 1, 1, 1, -1, 1, -1, -1,
+};
 
 // kxrl2g (Kondo KXR-L2G, 22 DOF: 2 legs (5-DOF) + 2 arms (3-DOF + 2-gripper) + 2-DOF head)
 // four limbs standing on their tips) has no getup policy trained -- unlike
@@ -66,7 +81,8 @@ const Actor kActors[] = {
          POLICY_KXRL2GWALK_PHASE_STAND_THRESHOLD,
          POLICY_KXRL2GWALK_COMMAND_VX_MIN, POLICY_KXRL2GWALK_COMMAND_VX_MAX,
          POLICY_KXRL2GWALK_COMMAND_WZ_MAX, POLICY_KXRL2GWALK_STANDING_FRACTION,
-         kPolicyStanceGravityKxrl2Gwalk, kPolicyRootToGyroKxrl2Gwalk},
+         kPolicyStanceGravityKxrl2Gwalk, kPolicyRootToGyroKxrl2Gwalk,
+         kServoDirectionKxrl2Gwalk},
 };
 constexpr size_t kActorCount = sizeof(kActors) / sizeof(kActors[0]);
 
@@ -246,6 +262,7 @@ const float* homeRadOf(size_t index) {
 const float* jointLowRad() { return kActors[g_selected].joint_low; }
 const float* jointHighRad() { return kActors[g_selected].joint_high; }
 const uint8_t* servoIds() { return kActors[g_selected].servo_ids; }
+const int8_t* servoDirection() { return kActors[g_selected].servo_direction; }
 float actionScale() { return kActors[g_selected].action_scale; }
 float phasePeriodS() { return kActors[g_selected].phase_period_s; }
 float phaseStandThreshold() {

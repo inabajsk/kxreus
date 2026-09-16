@@ -44,6 +44,12 @@ struct Actor {
     float standing_fraction;
     const float* stance_gravity;
     const float* root_to_gyro;
+    // See kxreus/rcb4robotconfig.l's own per-servo direction annotation
+    // (next to each joint name there) -- hand-transcribed, same order as
+    // servo_ids. Multiplied into a joint's own clamped target angle right
+    // before the RCB-4 pulse conversion (see PolicyMode::
+    // writeJointTargets()).
+    const int8_t* servo_direction;
 };
 
 const float* const kWalkW[POLICY_KXRL6WALK_LAYERS] = {
@@ -52,6 +58,15 @@ const float* const kWalkW[POLICY_KXRL6WALK_LAYERS] = {
 const float* const kWalkB[POLICY_KXRL6WALK_LAYERS] = {
         kPolicyBKxrl6Walk0, kPolicyBKxrl6Walk1, kPolicyBKxrl6Walk2,
         kPolicyBKxrl6Walk3};
+
+// See kxreus/rcb4robotconfig.l's own per-servo direction annotation (next
+// to each joint name there) -- hand-transcribed, same order as
+// kPolicyServoIdsKxrl6Walk. Multiplied into a joint's own clamped target
+// angle right before the RCB-4 pulse conversion (see PolicyMode::
+// writeJointTargets()).
+const int8_t kServoDirectionKxrl6Walk[18] = {
+    -1, -1, 1, -1, 1, -1, -1, 1, -1, -1, -1, 1, -1, 1, -1, -1, -1, 1,
+};
 
 // kxrl6 (Kondo KXR-L6, 18 DOF: 6 limbs x 3-DOF each)
 // four limbs standing on their tips) has no getup policy trained -- unlike
@@ -66,7 +81,8 @@ const Actor kActors[] = {
          POLICY_KXRL6WALK_PHASE_STAND_THRESHOLD,
          POLICY_KXRL6WALK_COMMAND_VX_MIN, POLICY_KXRL6WALK_COMMAND_VX_MAX,
          POLICY_KXRL6WALK_COMMAND_WZ_MAX, POLICY_KXRL6WALK_STANDING_FRACTION,
-         kPolicyStanceGravityKxrl6Walk, kPolicyRootToGyroKxrl6Walk},
+         kPolicyStanceGravityKxrl6Walk, kPolicyRootToGyroKxrl6Walk,
+         kServoDirectionKxrl6Walk},
 };
 constexpr size_t kActorCount = sizeof(kActors) / sizeof(kActors[0]);
 
@@ -214,6 +230,7 @@ const float* homeRadOf(size_t index) {
 const float* jointLowRad() { return kActors[g_selected].joint_low; }
 const float* jointHighRad() { return kActors[g_selected].joint_high; }
 const uint8_t* servoIds() { return kActors[g_selected].servo_ids; }
+const int8_t* servoDirection() { return kActors[g_selected].servo_direction; }
 float actionScale() { return kActors[g_selected].action_scale; }
 float phasePeriodS() { return kActors[g_selected].phase_period_s; }
 float phaseStandThreshold() {

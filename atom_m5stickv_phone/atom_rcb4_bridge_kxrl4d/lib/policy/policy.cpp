@@ -46,6 +46,12 @@ struct Actor {
     float standing_fraction;
     const float* stance_gravity;
     const float* root_to_gyro;
+    // See kxreus/rcb4robotconfig.l's own per-servo direction annotation
+    // (next to each joint name there) -- hand-transcribed, same order as
+    // servo_ids. Multiplied into a joint's own clamped target angle right
+    // before the RCB-4 pulse conversion (see PolicyMode::
+    // writeJointTargets()).
+    const int8_t* servo_direction;
 };
 
 const float* const kWalkW[POLICY_KXRL4DWALK_LAYERS] = {
@@ -61,6 +67,19 @@ const float* const kGetupB[POLICY_KXRL4DGETUP_LAYERS] = {
         kPolicyBKxrl4Dgetup0, kPolicyBKxrl4Dgetup1, kPolicyBKxrl4Dgetup2,
         kPolicyBKxrl4Dgetup3};
 
+// See kxreus/rcb4robotconfig.l's own per-servo direction annotation (next
+// to each joint name there) -- hand-transcribed, same order as
+// kPolicyServoIdsKxrl4Dwalk/kPolicyServoIdsKxrl4Dgetup (identical order
+// for both actors). Multiplied into a joint's own clamped target angle
+// right before the RCB-4 pulse conversion (see PolicyMode::
+// writeJointTargets()).
+const int8_t kServoDirectionKxrl4Dwalk[19] = {
+    1, 1, 1, 1, -1, 1, 1, -1, 1, -1, -1, -1, 1, 1, 1, 1, -1, -1, -1,
+};
+const int8_t kServoDirectionKxrl4Dgetup[19] = {
+    1, 1, 1, 1, -1, 1, 1, -1, 1, -1, -1, -1, 1, 1, 1, 1, -1, -1, -1,
+};
+
 // kxrl4d (Kondo KXR-L4D, 19 DOF: 2 legs + 2 arms + 3-DOF head) replaces the
 // walking hand's 6-actor crawl/omni/walk/legs/rise/sit set on this build --
 // the two robots do not share a joint count, so they cannot be compiled in
@@ -75,7 +94,8 @@ const Actor kActors[] = {
          POLICY_KXRL4DWALK_PHASE_STAND_THRESHOLD,
          POLICY_KXRL4DWALK_COMMAND_VX_MIN, POLICY_KXRL4DWALK_COMMAND_VX_MAX,
          POLICY_KXRL4DWALK_COMMAND_WZ_MAX, POLICY_KXRL4DWALK_STANDING_FRACTION,
-         kPolicyStanceGravityKxrl4Dwalk, kPolicyRootToGyroKxrl4Dwalk},
+         kPolicyStanceGravityKxrl4Dwalk, kPolicyRootToGyroKxrl4Dwalk,
+         kServoDirectionKxrl4Dwalk},
         {"getup", kPolicyObsMeanKxrl4Dgetup, kPolicyObsInvStdKxrl4Dgetup,
          kGetupW, kGetupB, kPolicyLayerInKxrl4Dgetup,
          kPolicyLayerOutKxrl4Dgetup, POLICY_KXRL4DGETUP_LAYERS,
@@ -86,7 +106,8 @@ const Actor kActors[] = {
          POLICY_KXRL4DGETUP_COMMAND_VX_MIN, POLICY_KXRL4DGETUP_COMMAND_VX_MAX,
          POLICY_KXRL4DGETUP_COMMAND_WZ_MAX,
          POLICY_KXRL4DGETUP_STANDING_FRACTION,
-         kPolicyStanceGravityKxrl4Dgetup, kPolicyRootToGyroKxrl4Dgetup},
+         kPolicyStanceGravityKxrl4Dgetup, kPolicyRootToGyroKxrl4Dgetup,
+         kServoDirectionKxrl4Dgetup},
 };
 constexpr size_t kActorCount = sizeof(kActors) / sizeof(kActors[0]);
 
@@ -240,6 +261,7 @@ const float* homeRadOf(size_t index) {
 const float* jointLowRad() { return kActors[g_selected].joint_low; }
 const float* jointHighRad() { return kActors[g_selected].joint_high; }
 const uint8_t* servoIds() { return kActors[g_selected].servo_ids; }
+const int8_t* servoDirection() { return kActors[g_selected].servo_direction; }
 float actionScale() { return kActors[g_selected].action_scale; }
 float phasePeriodS() { return kActors[g_selected].phase_period_s; }
 float phaseStandThreshold() {

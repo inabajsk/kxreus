@@ -101,6 +101,17 @@ const float* homeRadOf(size_t index);
 const float* jointLowRad();
 const float* jointHighRad();
 const uint8_t* servoIds();
+/// The board's own positive-rotation sign for each servo, in the same
+/// per-joint order servoIds() is (see kxreus/rcb4robotconfig.l's own
+/// per-servo direction annotation, next to each robot's joint name --
+/// this mirrors it exactly, hand-transcribed rather than routed through
+/// the ONNX export pipeline since it never changes with retraining).
+/// +1 or -1: multiply a joint's own clamped target angle by this,
+/// immediately before the RCB-4 pulse conversion (see PolicyMode::
+/// writeJointTargets()), never earlier -- clamping against
+/// jointLowRad()/jointHighRad() happens in the policy's own (undirected)
+/// convention.
+const int8_t* servoDirection();
 float actionScale();
 float phasePeriodS();
 float phaseStandThreshold();
