@@ -308,6 +308,9 @@ const char kWebPage[] PROGMEM = R"HTML(<!doctype html>
   #policyFile { flex:0 0 auto; padding:10px 10px; background:#2b2f36;
                 font-size:13px; max-width:120px; }
   #policyGo { flex:0 0 auto; padding:10px 14px; background:#5a3d0e; }
+  #downloadSel { flex:1 1 auto; font-size:14px; padding:0 10px; border-radius:8px;
+                 border:1px solid #444; background:#1b1b1b; color:#eee; }
+  #downloadGo { flex:0 0 auto; padding:10px 14px; background:#0e4a5a; }
   #policyStatus { padding:0 14px 8px; max-width:460px; margin:0 auto; width:100%;
                   box-sizing:border-box; flex:0 0 auto; font-size:11px;
                   color:#678; font-variant-numeric:tabular-nums; }
@@ -378,6 +381,10 @@ const char kWebPage[] PROGMEM = R"HTML(<!doctype html>
 <div class="policysec">
   <input id="policyFile" type="file" accept=".bin">
   <button id="policyGo">upload</button>
+</div>
+<div class="policysec">
+  <select id="downloadSel"><option>(loading list…)</option></select>
+  <button id="downloadGo">fetch</button>
 </div>
 <div id="policyStatus">policy: --</div>
 <div class="logsec">
@@ -614,22 +621,23 @@ document.getElementById('actorGo').addEventListener('click', async () => {
   }
 });
 
-// "upload": a raw weights+biases file for THIS SAME actor's own network
-// shape (see policy::beginUpload()'s own comment on the exact layout
-// tools/export_policy.py must produce it in) -- not a different gait,
-// just a different trained checkpoint of the one already running, to
-// compare against. XMLHttpRequest instead of fetch() purely for
-// upload.onprogress -- ~103 KiB over a phone's own Wi-Fi is seconds, not
-// instant, and progress is what says "still going" instead of "hung".
-document.getElementById('policyGo').addEventListener('click', () => {
-  const input = document.getElementById('policyFile');
+// Shared by the file-picker upload below and the "downloadable policies"
+// section right after it: POST /policy (multipart, streamed by net.cpp
+// straight into policy::beginUpload()/appendUpload()/finishUpload()) is
+// the one path that has actually proven reliable on real hardware. An
+// earlier version of the download section instead had THIS DEVICE fetch
+// the file itself, directly, over its own second HTTPS connection --
+// reproduced on real hardware: that connection failing on its own
+// ("connection refused") then left the HTTPS server answering nothing
+// at all until the device was rebooted by hand, evidently unable to
+// hold this server's own TLS state open at the same time as a second,
+// unrelated one. Routing every source (a local file, or a blob this
+// page fetched itself from elsewhere) through this SAME upload call
+// keeps the robot's own HTTPS server completely out of it either way.
+function uploadPolicyBlob(blob, doneMessage) {
   const status = document.getElementById('policyStatus');
-  if (!input.files.length) {
-    status.textContent = 'policy: pick a file first';
-    return;
-  }
   const form = new FormData();
-  form.append('file', input.files[0]);
+  form.append('file', blob, 'policy.bin');
   const xhr = new XMLHttpRequest();
   xhr.open('POST', '/policy');
   xhr.upload.onprogress = (e) => {
@@ -640,7 +648,7 @@ document.getElementById('policyGo').addEventListener('click', () => {
   };
   xhr.onload = async () => {
     if (xhr.status === 200) {
-      status.textContent = 'policy: uploaded -- pick "uploaded" above and run';
+      status.textContent = doneMessage;
       try {
         const r = await fetch('/info', {cache: 'no-store'});
         ACTORS = (await r.json()).actors;
@@ -652,6 +660,73 @@ document.getElementById('policyGo').addEventListener('click', () => {
   };
   xhr.onerror = () => { status.textContent = 'policy: network error'; };
   xhr.send(form);
+}
+
+// "upload": a raw weights+biases file for THIS SAME actor's own network
+// shape (see policy::beginUpload()'s own comment on the exact layout
+// tools/export_policy.py must produce it in) -- not a different gait,
+// just a different trained checkpoint of the one already running, to
+// compare against.
+document.getElementById('policyGo').addEventListener('click', () => {
+  const input = document.getElementById('policyFile');
+  if (!input.files.length) {
+    document.getElementById('policyStatus').textContent = 'policy: pick a file first';
+    return;
+  }
+  uploadPolicyBlob(input.files[0], 'policy: uploaded -- pick "uploaded" above and run');
+});
+
+// Ready-made, already-quantized policies to compare against -- no PC,
+// just this phone. Both the manifest and the ~103 KiB policy body are
+// fetched by the PHONE's OWN browser (this repo is public; any browser
+// reaches raw.githubusercontent.com, on whatever network the phone
+// itself is on, regardless of which one the robot joined), then handed
+// to uploadPolicyBlob() above -- the same call the file picker uses --
+// so the robot's own HTTPS server is never involved. See
+// uploadPolicyBlob()'s own comment for why not: an earlier version had
+// the ROBOT fetch this itself, which broke its HTTPS server on real
+// hardware.
+const DOWNLOAD_BASE =
+    'https://raw.githubusercontent.com/inabajsk/kxreus/master/' +
+    'm5stack/m5stickc_m5stickv_kxrl4t/downloadable_policies/';
+let DOWNLOADS = [];
+
+async function loadDownloadList() {
+  const sel = document.getElementById('downloadSel');
+  try {
+    const r = await fetch(DOWNLOAD_BASE + 'manifest.json', {cache: 'no-store'});
+    DOWNLOADS = await r.json();
+    sel.innerHTML = '';
+    for (const d of DOWNLOADS) {
+      const opt = document.createElement('option');
+      opt.value = d.file;
+      opt.textContent = d.name;
+      sel.appendChild(opt);
+    }
+  } catch (e) {
+    sel.innerHTML = '<option>(list unavailable -- check this phone\'s own internet)</option>';
+  }
+}
+loadDownloadList();
+
+document.getElementById('downloadGo').addEventListener('click', async () => {
+  const sel = document.getElementById('downloadSel');
+  const status = document.getElementById('policyStatus');
+  const entry = DOWNLOADS.find((d) => d.file === sel.value);
+  if (!entry) return;
+  status.textContent = `policy: 「${entry.name}」をこの端末に取得中…`;
+  try {
+    const r = await fetch(DOWNLOAD_BASE + entry.file, {cache: 'no-store'});
+    if (!r.ok) {
+      status.textContent = `policy: 取得失敗 (GitHub側, ${r.status})`;
+      return;
+    }
+    const blob = await r.blob();
+    status.textContent = `policy: 「${entry.name}」をロボットに転送中…`;
+    uploadPolicyBlob(blob, `policy: 「${entry.name}」転送完了 -- 上で"uploaded"を選んで実行`);
+  } catch (e) {
+    status.textContent = 'policy: network error (この端末側)';
+  }
 });
 
 // Records this robot's own telemetry (attitude chief among it -- see
@@ -950,22 +1025,79 @@ document.getElementById('motionGo').addEventListener('click', () => {
   // "5番").
   const NUMBER_RE = /([0-9]+)\s*番/;
 
-  function runMotion(text) {
+  // This robot's own motion names (see tools/motions_from_h4p.py /
+  // policy.cpp's own kMotions[]) are kanji, but a spoken command does not
+  // reliably transcribe as the same kanji -- a compound the recognizer
+  // is unsure of often comes back as its reading instead, in hiragana or
+  // katakana. Hand-authored per name (the list is short and fixed, not
+  // worth pulling in a real kanji-to-reading engine for): update this if
+  // that table ever changes. Matched as a plain substring, same leniency
+  // NUMBER_RE already gives filler words ("前進して" still finds "前進").
+  const MOTION_READINGS = {
+    '一定歩行前（3回)': 'いっていほこうまえ',
+    '一定歩行後（3回）': 'いっていほこうあと',
+    '左旋回（３回）': 'ひだりせんかい',
+    '右旋回（3回）': 'みぎせんかい',
+    '前進': 'ぜんしん',
+    '後進': 'こうしん',
+    '左移動': 'ひだりいどう',
+    '右移動': 'みぎいどう',
+    '旋回左': 'せんかいひだり',
+    '旋回右': 'せんかいみぎ',
+    'ゆっくり歩行前': 'ゆっくりほこうまえ',
+    'ゆっくり歩行後': 'ゆっくりほこうあと',
+    '手を振る': 'てをふる',
+    'バタバタする': 'ばたばたする',
+    '首を振る': 'くびをふる',
+    'ホームポジション': 'ほーむぽじしょん',
+    '電圧低下': 'でんあつていか',
+  };
+
+  // Katakana -> hiragana (U+30A1-U+30F6 sit exactly 0x60 above their
+  // hiragana counterparts), so a recognizer that rendered a reading in
+  // katakana still matches MOTION_READINGS' own hiragana.
+  function toHiragana(s) {
+    return s.replace(/[ァ-ヶ]/g,
+        (c) => String.fromCharCode(c.charCodeAt(0) - 0x60));
+  }
+
+  // "<N>番" first (unambiguous when present), then the motion's own kanji
+  // name as a plain substring either way (recognized text inside the
+  // name, or the name inside a longer recognized sentence), then its
+  // reading the same way. First match wins; MOTIONS is short enough that
+  // which of several partial matches "wins" has never needed a tie-break.
+  function findMotion(text) {
     const m = text.match(NUMBER_RE);
-    if (!m) {
-      status.textContent = `認識: 「${text}」(「<数字>番」の形が見つかりません)`;
-      return;
+    if (m) {
+      const num = parseInt(m[1], 10);
+      const known = MOTIONS.find(([n]) => n === num);
+      if (known) return known;
     }
-    const num = parseInt(m[1], 10);
-    const known = MOTIONS.find(([n]) => n === num);
+    for (const known of MOTIONS) {
+      const name = known[1];
+      if (text.includes(name) || name.includes(text)) return known;
+    }
+    const reading = toHiragana(text);
+    for (const known of MOTIONS) {
+      const target = MOTION_READINGS[known[1]];
+      if (target && (reading.includes(target) || target.includes(reading))) {
+        return known;
+      }
+    }
+    return null;
+  }
+
+  function runMotion(text) {
+    const known = findMotion(text);
     if (!known) {
-      status.textContent = `認識: 「${text}」-> ${num}番(この動作番号は登録されていません)`;
+      status.textContent = `認識: 「${text}」(該当する動作が見つかりません)`;
       return;
     }
+    const [num, name] = known;
     motionNumber = num;
     mode = 5;
     dragging = null; kx = 0; ky = 0; draw();
-    status.textContent = `認識: 「${text}」-> ${num}番「${known[1]}」を実行`;
+    status.textContent = `認識: 「${text}」-> ${num}番「${name}」を実行`;
     status.className = '';
   }
 

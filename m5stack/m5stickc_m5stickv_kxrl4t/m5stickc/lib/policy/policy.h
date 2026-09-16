@@ -190,8 +190,8 @@ size_t uploadExpectedBytes();
 
 /// Start (or restart) receiving an upload. Any previous one still in
 /// progress is discarded; an earlier COMPLETED upload (already installed
-/// as an actor) is left alone -- its buffer stays live -- until this one
-/// also finishes successfully.
+/// as an actor) is left alone -- reused in place -- until this one also
+/// finishes successfully.
 ///
 /// Byte layout, little-endian, uploadExpectedBytes() total:
 ///   mean[obsDim()]         (float32)
@@ -221,11 +221,17 @@ size_t uploadExpectedBytes();
 /// and they feed the very first subtraction/multiply every observation
 /// goes through, where a bad scale would cost more than it saves.
 ///
-/// @return false if there is not enough free heap right now to even try --
-///         uploadExpectedBytes() is a little over 100 KiB, and Wi-Fi/BT
-///         alone can leave less than that free (see policy.cpp's own
-///         comment). The caller (net.cpp) turns this straight into an
-///         HTTP error rather than accepting bytes it cannot keep.
+/// @return false if this device could not even try: begin()'s own early
+///         malloc of the ~103 KiB buffer this writes into failed (see its
+///         own comment on why that happens once, at boot, rather than
+///         fresh on every call -- a fragmented heap can refuse a single
+///         allocation this size even with plenty of TOTAL free heap left,
+///         which used to make this call fail unpredictably depending on
+///         how long the device had been running), or the "uploaded" actor
+///         -- the very buffer this would overwrite -- is the one
+///         currently selected and running. The caller (net.cpp) turns
+///         this straight into an HTTP error rather than accepting bytes
+///         it cannot keep.
 bool beginUpload();
 
 /// Append received bytes to the upload in progress.

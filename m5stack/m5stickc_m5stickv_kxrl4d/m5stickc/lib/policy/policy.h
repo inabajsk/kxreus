@@ -171,4 +171,85 @@ size_t actDim();
 ///                once multiplied by POLICY_ACTION_SCALE.
 void run(const float* obs, float* action);
 
+// ---------------------------------------------------------------------
+// Runtime policy upload -- see net.cpp's own /policy POST endpoint, which
+// is what actually calls these, from the phone page's own upload form.
+// Lets a different TRAINED CHECKPOINT of this same actor (mean/inv_std/
+// weights/biases only) be tried without reflashing, to compare gaits --
+// NOT a way to load a differently-shaped network: layer sizes, servo_ids,
+// action_scale, joint limits, home pose and every other constant stay
+// whatever the compiled-in "walk" actor already has. One upload lives at
+// a time (uploading again replaces it); the compiled-in actor(s) are
+// never touched.
+// ---------------------------------------------------------------------
+
+/// Exact byte count one upload's body must be -- see beginUpload()'s own
+/// comment for the layout this must match. A wrong-sized upload is
+/// rejected outright rather than guessed at.
+size_t uploadExpectedBytes();
+
+/// Start (or restart) receiving an upload. Any previous one still in
+/// progress is discarded; an earlier COMPLETED upload (already installed
+/// as an actor) is left alone -- reused in place -- until this one also
+/// finishes successfully.
+///
+/// Byte layout, little-endian, uploadExpectedBytes() total:
+///   mean[obsDim()]         (float32)
+///   inv_std[obsDim()]      (float32)
+///   weight_scale[layers()] (float32, one per layer)
+///   bias_scale[layers()]   (float32, one per layer)
+///   then per layer (layers(), compiled-in "walk" actor's own shapes):
+///     weight[layer_out * layer_in] (int16, row major out x in),
+///     bias[layer_out] (int16)
+/// All four scale floats sit together up front, rather than each pair
+/// beside its own layer's int16 data, purely so every float in the whole
+/// payload lands on a 4-byte boundary without either side (this firmware
+/// or tools/export_policy_upload.py) having to pad a layer whose element
+/// count happens to be odd.
+///
+/// Weights and biases are fixed-point, not float32: a trained network's
+/// own values fit comfortably in 16 bits of range (see this project's
+/// own tools/export_policy_upload.py, which picks each layer's two scales
+/// as max(abs(weight))/32767 and max(abs(bias))/32767 and quantizes
+/// round(value / scale) into that range) and halving every weight/bias
+/// from 4 bytes to 2 is what makes one whole extra copy of a network
+/// this size affordable to hold in RAM at all, on a chip already sharing
+/// its ~320 KiB with Wi-Fi/BT (see policy.cpp's own comment on run()'s
+/// quantized path, which reads these directly -- nothing is ever
+/// expanded back into a second, float32-sized buffer). mean/inv_std stay
+/// float32: noise next to the weights+biases below, and they feed the
+/// very first subtraction/multiply every observation goes through, where
+/// a bad scale would cost more than it saves.
+///
+/// @return false if this device could not even try: begin()'s own early
+///         malloc of the upload buffer this writes into failed (see its
+///         own comment on why that happens once, at boot, rather than
+///         fresh on every call -- a fragmented heap can refuse a single
+///         allocation this size even with plenty of TOTAL free heap left,
+///         which used to make this call fail unpredictably depending on
+///         how long the device had been running), or the "uploaded" actor
+///         -- the very buffer this would overwrite -- is the one
+///         currently selected and running. The caller (net.cpp) turns
+///         this straight into an HTTP error rather than accepting bytes
+///         it cannot keep.
+bool beginUpload();
+
+/// Append received bytes to the upload in progress.
+/// @return false (aborting the upload) if this would exceed
+///         uploadExpectedBytes() -- more bytes than expected is a protocol
+///         mismatch, not something to silently truncate.
+bool appendUpload(const uint8_t* data, size_t len);
+
+/// Bytes received so far in the upload currently in progress (0 once one
+/// finishes or is abandoned) -- for a progress display.
+size_t uploadBytesReceived();
+
+/// Finish the upload: must have received exactly uploadExpectedBytes().
+/// On success, installs it as one more selectable actor, named
+/// "uploaded" (see count()/name()/select()) -- WITHOUT selecting it: the
+/// same deliberate act selecting any other actor already is (see
+/// PolicyMode's own beginActor()).
+/// @return true if installed.
+bool finishUpload();
+
 }  // namespace policy

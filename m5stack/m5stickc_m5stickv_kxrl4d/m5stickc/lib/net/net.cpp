@@ -42,6 +42,12 @@ WiFiUDP udp;
 WebServer server(80);
 bool g_http_open = false;
 
+/// Set inside handlePolicyUploadChunk() as the upload streams in, read
+/// back by handlePolicyUploadComplete() to answer once it is fully done
+/// -- see handlePolicyUploadChunk()'s own comment on the two-callback
+/// shape this needs.
+bool g_policy_upload_ok = false;
+
 /// Set once by setServoIds(), from PolicyMode::enter() (core 1) right after
 /// buildServoOrder(), and only ever read afterwards, by handleInfoRequest()
 /// on the server task (core 0). No critical section around either side:
@@ -591,6 +597,49 @@ void handleScanRequest() {
     delete[] local;
 }
 
+/// kWebPage's policy-upload form's one file field, streamed straight into
+/// policy.cpp's own upload buffer as it arrives -- see policy::
+/// beginUpload()'s own comment on the byte layout expected and why this
+/// has to stream rather than buffer the whole body as a String first
+/// (which is what server.arg("plain") would do for a raw POST, on top of
+/// the upload buffer policy.cpp itself is about to hold).
+///
+/// multipart/form-data (a plain HTML <input type=file> plus FormData) is
+/// what buys the streaming: WebServer only calls this callback, rather
+/// than buffering the body itself, for that content type. A raw
+/// application/octet-stream POST would have been simpler client-side, but
+/// would have cost exactly the double-buffering this avoids.
+void handlePolicyUploadChunk() {
+    HTTPUpload& upload = server.upload();
+    switch (upload.status) {
+        case UPLOAD_FILE_START:
+            g_policy_upload_ok = policy::beginUpload();
+            break;
+        case UPLOAD_FILE_WRITE:
+            if (g_policy_upload_ok) {
+                g_policy_upload_ok =
+                        policy::appendUpload(upload.buf, upload.currentSize);
+            }
+            break;
+        case UPLOAD_FILE_END:
+            if (g_policy_upload_ok) g_policy_upload_ok = policy::finishUpload();
+            break;
+        case UPLOAD_FILE_ABORTED:
+            g_policy_upload_ok = false;
+            break;
+    }
+}
+
+/// Runs once the upload above has fully arrived (or failed partway) --
+/// the one place this request actually answers, same split
+/// handlePolicyUploadChunk()'s own comment already explains WebServer's
+/// two-callback upload API needs.
+void handlePolicyUploadComplete() {
+    server.send(g_policy_upload_ok ? 200 : 400, "text/plain",
+               g_policy_upload_ok ? "ok" : "upload failed: wrong size, out "
+                                            "of RAM, or actor busy running");
+}
+
 /// kM5vPage's one write action: flip a bit (or set a whole byte) in one of
 /// the M5StickV's registers. Handed off rather than performed here -- see
 /// requestM5StickVWrite()'s own comment -- so this always answers at once
@@ -699,6 +748,11 @@ void ensureServer() {
     });
     server.on("/c", handleCommandRequest);
     server.on("/info", handleInfoRequest);
+    // Two-callback shape (see handlePolicyUploadChunk()'s own comment):
+    // handlePolicyUploadComplete answers once handlePolicyUploadChunk has
+    // streamed (and applied) the whole body.
+    server.on("/policy", HTTP_POST, handlePolicyUploadComplete,
+              handlePolicyUploadChunk);
     server.on("/save", HTTP_POST, handleSaveRequest);
     server.on("/ap", HTTP_POST, handleUseOwnApRequest);
     server.on("/provision", HTTP_POST, handleProvisionRequest);

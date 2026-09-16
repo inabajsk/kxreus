@@ -277,6 +277,17 @@ const char kWebPage[] PROGMEM = R"HTML(<!doctype html>
   #m5vStatus { font-size:11px; color:#678; font-variant-numeric:tabular-nums;
                word-break:break-all; flex:1 1 auto; min-width:0; }
   #m5vLink { flex:0 0 auto; font-size:11px; color:#7ab8ff; text-decoration:none; }
+  .policysec { display:flex; gap:8px; padding:0 14px 8px; max-width:460px;
+               margin:0 auto; width:100%; box-sizing:border-box; flex:0 0 auto; }
+  #policyFile { flex:0 0 auto; padding:10px 10px; background:#2b2f36;
+                font-size:13px; max-width:120px; }
+  #policyGo { flex:0 0 auto; padding:10px 14px; background:#5a3d0e; }
+  #downloadSel { flex:1 1 auto; font-size:14px; padding:0 10px; border-radius:8px;
+                 border:1px solid #444; background:#1b1b1b; color:#eee; }
+  #downloadGo { flex:0 0 auto; padding:10px 14px; background:#0e4a5a; }
+  #policyStatus { padding:0 14px 8px; max-width:460px; margin:0 auto; width:100%;
+                  box-sizing:border-box; flex:0 0 auto; font-size:11px;
+                  color:#678; font-variant-numeric:tabular-nums; }
   .logsec { padding:0 14px 14px; max-width:460px; margin:0 auto; width:100%;
             box-sizing:border-box; flex:0 0 auto; }
   #logStatus { font-size:11px; color:#678; margin-bottom:6px;
@@ -328,6 +339,15 @@ const char kWebPage[] PROGMEM = R"HTML(<!doctype html>
   <div id="m5vStatus">M5StickV: --</div>
   <a id="m5vLink" href="/m5v">settings &rarr;</a>
 </div>
+<div class="policysec">
+  <input id="policyFile" type="file" accept=".bin">
+  <button id="policyGo">upload</button>
+</div>
+<div class="policysec">
+  <select id="downloadSel"><option>(loading list…)</option></select>
+  <button id="downloadGo">fetch</button>
+</div>
+<div id="policyStatus">policy: --</div>
 <div class="logsec">
   <div id="logStatus">log: --</div>
   <div class="logrow">
@@ -769,6 +789,110 @@ document.getElementById('motionGo').addEventListener('click', () => {
   motionNumber = +motionSel.value;
   mode = 5;
   dragging = null; kx = 0; ky = 0; draw();
+});
+
+// Shared by both the local-file "upload" button and the GitHub "fetch"
+// button below: either way the bytes end up POSTed to this device's own
+// /policy (see policy::beginUpload()'s own comment on the wire format),
+// which is the ONLY path that ever touches this device's upload buffer.
+// A downloaded policy is never fetched by this device itself -- an
+// earlier attempt at that (on a sibling tree, m5stickc_m5stickv_kxrl4t)
+// found that a device running its own HTTPS server cannot also make a
+// second, separate outbound HTTPS connection reliably: that connection
+// failing on its own ("connection refused") then left the HTTPS server
+// answering nothing at all until the device was rebooted by hand.
+// Routing every source (a local file, or a blob this page fetched itself
+// from elsewhere) through this SAME upload call keeps this device out of
+// that path entirely.
+function uploadPolicyBlob(blob, doneMessage) {
+  const status = document.getElementById('policyStatus');
+  const form = new FormData();
+  form.append('file', blob, 'policy.bin');
+  const xhr = new XMLHttpRequest();
+  xhr.open('POST', '/policy');
+  xhr.upload.onprogress = (e) => {
+    if (e.lengthComputable) {
+      status.textContent =
+          `policy: uploading ${Math.round(100 * e.loaded / e.total)}%`;
+    }
+  };
+  xhr.onload = async () => {
+    if (xhr.status === 200) {
+      status.textContent = doneMessage;
+      try {
+        const r = await fetch('/info', {cache: 'no-store'});
+        ACTORS = (await r.json()).actors;
+      } catch (e) { /* ACTORS just keeps its old contents */ }
+    } else {
+      status.textContent = `policy: failed (${xhr.responseText || xhr.status})`;
+    }
+  };
+  xhr.onerror = () => { status.textContent = 'policy: network error'; };
+  xhr.send(form);
+}
+
+// "upload": a raw weights+biases file for THIS SAME actor's own network
+// shape (see policy::beginUpload()'s own comment on the exact layout
+// tools/export_policy.py must produce it in) -- not a different gait,
+// just a different trained checkpoint of the one already running, to
+// compare against.
+document.getElementById('policyGo').addEventListener('click', () => {
+  const input = document.getElementById('policyFile');
+  if (!input.files.length) {
+    document.getElementById('policyStatus').textContent = 'policy: pick a file first';
+    return;
+  }
+  uploadPolicyBlob(input.files[0], 'policy: uploaded -- see this robot\'s own actor-switching (button/sequence) for how to run it');
+});
+
+// Ready-made, already-quantized policies to compare against -- no PC,
+// just this phone. Both the manifest and the policy body are fetched by
+// the PHONE's OWN browser (this repo is public; any browser reaches
+// raw.githubusercontent.com, on whatever network the phone itself is on,
+// regardless of which one the robot joined), then handed to
+// uploadPolicyBlob() above -- the same call the file picker uses -- so
+// this device's own HTTPS server (if any) is never involved.
+const DOWNLOAD_BASE =
+    'https://raw.githubusercontent.com/inabajsk/kxreus/master/' +
+    'm5stack/m5stickc_m5unitv_kxrl4d/downloadable_policies/';
+let DOWNLOADS = [];
+
+async function loadDownloadList() {
+  const sel = document.getElementById('downloadSel');
+  try {
+    const r = await fetch(DOWNLOAD_BASE + 'manifest.json', {cache: 'no-store'});
+    DOWNLOADS = await r.json();
+    sel.innerHTML = '';
+    for (const d of DOWNLOADS) {
+      const opt = document.createElement('option');
+      opt.value = d.file;
+      opt.textContent = d.name;
+      sel.appendChild(opt);
+    }
+  } catch (e) {
+    sel.innerHTML = '<option>(list unavailable -- check this phone\'s own internet)</option>';
+  }
+}
+loadDownloadList();
+
+document.getElementById('downloadGo').addEventListener('click', async () => {
+  const sel = document.getElementById('downloadSel');
+  const status = document.getElementById('policyStatus');
+  const entry = DOWNLOADS.find((d) => d.file === sel.value);
+  if (!entry) return;
+  status.textContent = `policy: 「${entry.name}」をこの端末に取得中…`;
+  try {
+    const r = await fetch(DOWNLOAD_BASE + entry.file, {cache: 'no-store'});
+    if (!r.ok) {
+      status.textContent = `policy: 取得失敗 (GitHub側, ${r.status})`;
+      return;
+    }
+    const blob = await r.blob();
+    status.textContent = `policy: 「${entry.name}」をロボットに転送中…`;
+    uploadPolicyBlob(blob, `policy: 「${entry.name}」転送完了 -- 上で"uploaded"を選んで実行`);
+  } catch (e) {
+    status.textContent = 'policy: network error (この端末側)';
+  }
 });
 
 // Pinned to the viewport (see #estop's CSS) and needs no coordinates from

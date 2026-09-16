@@ -114,28 +114,31 @@ size_t g_selected = 0;
 // The "uploaded" actor -- see policy.h's own beginUpload()/appendUpload()/
 // finishUpload() comments. Unlike kActors[] above, whose weights are
 // `.rodata` that costs nothing to keep around, this one exists only
-// because a phone POSTed it, so its data has to live somewhere: one
-// malloc'd ~103 KiB buffer (kUploadTotalBytes below), freed only when a
-// LATER upload successfully replaces it.
-// ---------------------------------------------------------------------
-
-// mean+inv_std stay float32; weight_scale/bias_scale are one float32 pair
-// per layer; every weight and bias itself is int16 -- see policy.h's own
-// beginUpload() comment on why. POLICY_KXRL4TWALK_WEIGHT_FLOATS already
-// counts weights+biases together (see tools/export_policy.py's own
-// generation line), so it doubles as "how many int16s", just at half the
-// bytes each.
+// because a phone (or, via net.cpp's own handlePolicyFetchRequest(), this
+// device itself) fetched it, so its data has to live somewhere: one
+// ~103 KiB buffer (kUploadTotalBytes below).
+//
+// Allocated ONCE, in begin() -- called at boot, before Wi-Fi/BT/ESP-NOW
+// have made a single allocation of their own -- and never freed, rather
+// than malloc'd fresh on every beginUpload(). That used to fail on real
+// hardware with plenty of free heap overall (measured: 168 KiB free,
+// comfortably past the old threshold) but no single ~103 KiB run left in
+// it after this device's own HTTPS server, ESP-NOW, and Wi-Fi stack had
+// each taken their own turn allocating and freeing smaller pieces --
+// classic fragmentation, and it only gets worse the longer the device
+// runs. Grabbing the one large block this feature will ever need before
+// anything else gets a chance to fragment the heap sidesteps the problem
+// entirely, at the cost of committing the RAM whether or not an upload
+// ever actually happens.
 constexpr size_t kUploadTotalBytes =
         2 * POLICY_KXRL4TWALK_OBS_DIM * sizeof(float) +
         POLICY_KXRL4TWALK_LAYERS * 2 * sizeof(float) +
         POLICY_KXRL4TWALK_WEIGHT_FLOATS * sizeof(int16_t);
 
-uint8_t* g_upload_pending = nullptr;    // mid-upload, not yet installed
+uint8_t* g_upload_buf = nullptr;  // null only if the early malloc failed
 size_t g_upload_received = 0;
 bool g_upload_active = false;
 
-uint8_t* g_upload_installed = nullptr;  // the current "uploaded" actor's own
-                                         // data, once one exists
 const int16_t* g_uploaded_weights[POLICY_MAX_LAYERS];
 const int16_t* g_uploaded_biases[POLICY_MAX_LAYERS];
 float g_uploaded_weight_scale[POLICY_MAX_LAYERS];
@@ -333,7 +336,15 @@ bool select(size_t index) {
     return true;
 }
 
-bool begin() { return select(g_selected); }
+bool begin() {
+    // Before select() copies anything into g_ram, and long before
+    // net::begin()/EspNowLink::begin() -- see kUploadTotalBytes' own
+    // comment on why the timing matters, not just the size.
+    if (g_upload_buf == nullptr) {
+        g_upload_buf = static_cast<uint8_t*>(malloc(kUploadTotalBytes));
+    }
+    return select(g_selected);
+}
 
 size_t layers() { return actorAt(g_selected).layers; }
 
@@ -440,25 +451,18 @@ void run(const float* obs, float* action) {
 size_t uploadExpectedBytes() { return kUploadTotalBytes; }
 
 bool beginUpload() {
-    // Discard THIS call's own leftover, if a previous begin/append never
-    // reached finishUpload() -- never g_upload_installed, which some other
-    // code may be running right now (see finishUpload()'s own guard).
-    if (g_upload_pending != nullptr) {
-        free(g_upload_pending);
-        g_upload_pending = nullptr;
-    }
     g_upload_active = false;
     g_upload_received = 0;
 
-    // ~103 KiB is a lot to ask for once Wi-Fi/BT/lwIP have already taken
-    // their own share of a 320 KiB chip -- fail here, loudly, rather than
-    // let a partial malloc succeed and crash later. The extra 16 KiB is
-    // headroom for whatever else is running right now, not least the HTTP
-    // request handler this very call is answering.
-    if (ESP.getFreeHeap() < kUploadTotalBytes + 16384) return false;
-
-    g_upload_pending = static_cast<uint8_t*>(malloc(kUploadTotalBytes));
-    if (g_upload_pending == nullptr) return false;
+    // Either the early malloc in begin() failed (see kUploadTotalBytes'
+    // own comment -- this device genuinely does not have ~103 KiB to
+    // spare right now) or the buffer this would write into is the one
+    // run() is reading from on every control step right now (the
+    // uploaded actor is the one currently selected). Either way, a
+    // caller sees this the same way an out-of-RAM failure already looks:
+    // select a different (compiled-in) actor first, then retry.
+    if (g_upload_buf == nullptr) return false;
+    if (g_uploaded_ready && g_selected == kActorCount) return false;
 
     g_upload_active = true;
     return true;
@@ -471,13 +475,11 @@ bool appendUpload(const uint8_t* data, size_t len) {
         // disagree about what is being sent (wrong file, stale build) --
         // abort outright rather than accept a truncated, silently-wrong
         // mix of old and new data.
-        free(g_upload_pending);
-        g_upload_pending = nullptr;
         g_upload_active = false;
         g_upload_received = 0;
         return false;
     }
-    memcpy(g_upload_pending + g_upload_received, data, len);
+    memcpy(g_upload_buf + g_upload_received, data, len);
     g_upload_received += len;
     return true;
 }
@@ -486,32 +488,11 @@ size_t uploadBytesReceived() { return g_upload_active ? g_upload_received : 0; }
 
 bool finishUpload() {
     if (!g_upload_active || g_upload_received != kUploadTotalBytes) {
-        if (g_upload_pending != nullptr) {
-            free(g_upload_pending);
-            g_upload_pending = nullptr;
-        }
         g_upload_active = false;
         g_upload_received = 0;
         return false;
     }
     g_upload_active = false;
-
-    // Refuse to swap the "uploaded" actor's buffer out while it is the one
-    // actually selected right now -- run() would be reading it on the very
-    // next control step, and free() below would hand that read back freed
-    // memory. Select a different actor first, then retry the upload; the
-    // same "select() before you touch what is not selected" rule
-    // select()/count() already ask of every actor.
-    if (g_uploaded_ready && g_selected == kActorCount) {
-        free(g_upload_pending);
-        g_upload_pending = nullptr;
-        g_upload_received = 0;
-        return false;
-    }
-
-    if (g_upload_installed != nullptr) free(g_upload_installed);
-    g_upload_installed = g_upload_pending;
-    g_upload_pending = nullptr;
     g_upload_received = 0;
 
     // Same per-layer shapes as the compiled-in "walk" actor -- an upload is
@@ -520,11 +501,11 @@ bool finishUpload() {
     const Actor& shape = kActors[0];
 
     // The whole float region -- mean, inv_std, then every layer's two
-    // scales -- sits first and is 4-byte aligned from g_upload_installed
+    // scales -- sits first and is 4-byte aligned from g_upload_buf
     // (malloc's own return address) onward, so it is safe to read
     // straight through as one float array (see policy.h's own comment on
     // why the scales were moved up here rather than beside their layers).
-    const float* floats = reinterpret_cast<const float*>(g_upload_installed);
+    const float* floats = reinterpret_cast<const float*>(g_upload_buf);
     const float* mean = floats;
     const float* inv_std = floats + POLICY_KXRL4TWALK_OBS_DIM;
     const float* wscale = inv_std + POLICY_KXRL4TWALK_OBS_DIM;

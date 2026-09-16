@@ -611,6 +611,51 @@ void handleM5vSetRequest() {
     server.send(200, "text/plain", "ok");
 }
 
+/// kWebPage's policy-upload form's one file field, streamed straight into
+/// policy.cpp's own upload buffer as it arrives -- see policy::
+/// beginUpload()'s own comment on the byte layout expected and why this
+/// has to stream rather than buffer the whole body as a String first
+/// (which is what server.arg("plain") would do for a raw POST, on top of
+/// the upload buffer policy.cpp itself is about to hold).
+///
+/// multipart/form-data (a plain HTML <input type=file> plus FormData) is
+/// what buys the streaming: WebServer only calls this callback, rather
+/// than buffering the body itself, for that content type. A raw
+/// application/octet-stream POST would have been simpler client-side, but
+/// would have cost exactly the double-buffering this avoids.
+bool g_policy_upload_ok = false;
+
+void handlePolicyUploadChunk() {
+    HTTPUpload& upload = server.upload();
+    switch (upload.status) {
+        case UPLOAD_FILE_START:
+            g_policy_upload_ok = policy::beginUpload();
+            break;
+        case UPLOAD_FILE_WRITE:
+            if (g_policy_upload_ok) {
+                g_policy_upload_ok =
+                        policy::appendUpload(upload.buf, upload.currentSize);
+            }
+            break;
+        case UPLOAD_FILE_END:
+            if (g_policy_upload_ok) g_policy_upload_ok = policy::finishUpload();
+            break;
+        case UPLOAD_FILE_ABORTED:
+            g_policy_upload_ok = false;
+            break;
+    }
+}
+
+/// Runs once the upload above has fully arrived (or failed partway) --
+/// the one place this request actually answers, same split
+/// handlePolicyUploadChunk()'s own comment already explains WebServer's
+/// two-callback upload API needs.
+void handlePolicyUploadComplete() {
+    server.send(g_policy_upload_ok ? 200 : 400, "text/plain",
+               g_policy_upload_ok ? "ok" : "upload failed: wrong size, out "
+                                            "of RAM, or actor busy running");
+}
+
 /// The provisioning form's one POST, handled the same way handleCommandRequest
 /// is: read it, act, answer. Reached both from the robot's own setup AP (see
 /// beginProvisioning() and provisionSsid()) and, harmlessly, from a normal
@@ -708,6 +753,11 @@ void ensureServer() {
     // handleM5vSetRequest's own comment).
     server.on("/m5v", []() { server.send_P(200, "text/html", kM5vPage); });
     server.on("/m5vset", HTTP_POST, handleM5vSetRequest);
+    // See handlePolicyUploadChunk()'s own comment on the two-callback
+    // shape this needs: handlePolicyUploadComplete answers once
+    // handlePolicyUploadChunk has streamed (and applied) the whole body.
+    server.on("/policy", HTTP_POST, handlePolicyUploadComplete,
+              handlePolicyUploadChunk);
     // A phone probes some fixed URL of its own choosing to decide whether a
     // network needs signing into (Android: connectivitycheck.gstatic.com,
     // iOS: captive.apple.com, ...). Answering all of them with a redirect to

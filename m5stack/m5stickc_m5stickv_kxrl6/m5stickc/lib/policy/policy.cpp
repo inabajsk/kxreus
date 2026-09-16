@@ -1,7 +1,10 @@
 #include "policy.h"
 
 #include <math.h>
+#include <stdlib.h>
 #include <string.h>
+
+#include <Arduino.h>  // ESP.getFreeHeap(), for beginUpload()'s own budget check
 
 #if defined(POLICY_RAM_IN_PSRAM)
 #include <esp32-hal-psram.h>
@@ -49,6 +52,20 @@ struct Actor {
     const float* stance_gravity;
     const float* root_to_gyro;
     const int8_t* servo_direction;
+
+    // Only ever set for the "uploaded" actor (see finishUpload()) -- every
+    // compiled-in actor below passes false/nullptr explicitly (this struct
+    // stays a plain aggregate, no default member initializers, since this
+    // toolchain's default C++ standard predates aggregates being allowed
+    // to have those). weights/biases above are unused when this is true;
+    // qweights/qbiases (same per-layer shape) are used instead, each entry
+    // read back as `raw * scale[layer]` -- see policy.h's own
+    // beginUpload() comment for why fixed-point at all.
+    bool quantized;
+    const int16_t* const* qweights;
+    const int16_t* const* qbiases;
+    const float* weight_scale;  // one per layer
+    const float* bias_scale;    // one per layer
 };
 
 const float* const kWalkW[POLICY_KXRL6WALK_LAYERS] = {
@@ -79,9 +96,61 @@ const Actor kActors[] = {
          POLICY_KXRL6WALK_PHASE_STAND_THRESHOLD,
          POLICY_KXRL6WALK_COMMAND_VX_MIN, POLICY_KXRL6WALK_COMMAND_VX_MAX,
          POLICY_KXRL6WALK_COMMAND_WZ_MAX, POLICY_KXRL6WALK_STANDING_FRACTION,
-         kPolicyStanceGravityKxrl6Walk, kPolicyRootToGyroKxrl6Walk, kServoDirectionKxrl6Walk},
+         kPolicyStanceGravityKxrl6Walk, kPolicyRootToGyroKxrl6Walk, kServoDirectionKxrl6Walk,
+         /*quantized=*/false, nullptr, nullptr, nullptr, nullptr},
 };
 constexpr size_t kActorCount = sizeof(kActors) / sizeof(kActors[0]);
+
+size_t g_selected = 0;
+
+// ---------------------------------------------------------------------
+// The "uploaded" actor -- see policy.h's own beginUpload()/appendUpload()/
+// finishUpload() comments. Unlike kActors[] above, whose weights are
+// `.rodata` that costs nothing to keep around, this one exists only
+// because a phone fetched it, so its data has to live somewhere: one
+// buffer (kUploadTotalBytes below).
+//
+// Allocated ONCE, in begin() -- called at boot, before Wi-Fi/BT/ESP-NOW
+// have made a single allocation of their own -- and never freed, rather
+// than malloc'd fresh on every beginUpload(). See kxrl4t's own copy of
+// this file for the full writeup of the real-hardware heap-fragmentation
+// failure this sidesteps: grabbing the one large block this feature will
+// ever need before anything else gets a chance to fragment the heap,
+// at the cost of committing the RAM whether or not an upload ever
+// actually happens.
+constexpr size_t kUploadTotalBytes =
+        2 * POLICY_KXRL6WALK_OBS_DIM * sizeof(float) +
+        POLICY_KXRL6WALK_LAYERS * 2 * sizeof(float) +
+        POLICY_KXRL6WALK_WEIGHT_FLOATS * sizeof(int16_t);
+
+uint8_t* g_upload_buf = nullptr;  // null only if the early malloc failed
+size_t g_upload_received = 0;
+bool g_upload_active = false;
+
+const int16_t* g_uploaded_weights[POLICY_MAX_LAYERS];
+const int16_t* g_uploaded_biases[POLICY_MAX_LAYERS];
+float g_uploaded_weight_scale[POLICY_MAX_LAYERS];
+float g_uploaded_bias_scale[POLICY_MAX_LAYERS];
+Actor g_uploaded_actor;                 // valid only once g_uploaded_ready
+bool g_uploaded_ready = false;
+
+/// Actors, compiled-in and uploaded, indexed as one contiguous range --
+/// count()'s own extra slot when g_uploaded_ready is what makes index
+/// kActorCount valid. Every *Of() accessor and select() itself goes
+/// through this rather than kActors[] directly, so neither has to know
+/// which kind of actor it was handed.
+const Actor& actorAt(size_t index) {
+    return index < kActorCount ? kActors[index] : g_uploaded_actor;
+}
+
+/// index if it is currently valid, else whatever is selected -- the same
+/// fallback homeRadOf()/commandVxMinOf() et al. already gave a
+/// too-large index before the uploaded actor existed, just now also
+/// covering "the uploaded actor that finishUpload() has not run yet".
+size_t effectiveIndex(size_t index) {
+    return index < kActorCount + (g_uploaded_ready ? 1 : 0) ? index
+                                                             : g_selected;
+}
 
 // Extracted from this robot's own Heart to Heart project by
 // tools/motions_from_h4p.py -- see that script for how, and its own comment
@@ -115,12 +184,21 @@ const policy::Motion kMotions[] = {
 constexpr size_t kMotionCount = sizeof(kMotions) / sizeof(kMotions[0]);
 const policy::Motion kNoMotion = {0xFF, "none"};
 
-size_t g_selected = 0;
-
 // What run() actually reads. Points into flash until select() moves it.
 const float* g_weights[POLICY_MAX_LAYERS];
 const float* g_biases[POLICY_MAX_LAYERS];
 bool g_in_ram = false;
+
+// What run() reads instead, for a quantized (see Actor::quantized) actor
+// -- currently only ever the "uploaded" one. Kept fully separate from
+// g_weights/g_biases above rather than reusing POLICY_WEIGHTS_IN_RAM's
+// own g_ram cache: that cache is an OPTIONAL speed-up over flash a
+// compiled-in actor can always fall back from, while this is the
+// uploaded actor's only copy of its own data, period.
+const int16_t* g_qweights[POLICY_MAX_LAYERS];
+const int16_t* g_qbiases[POLICY_MAX_LAYERS];
+float g_weight_scale[POLICY_MAX_LAYERS];
+float g_bias_scale[POLICY_MAX_LAYERS];
 
 #ifdef POLICY_WEIGHTS_IN_RAM
 #ifndef POLICY_RAM_WEIGHT_BYTES
@@ -147,18 +225,40 @@ inline float elu(float x) { return x > 0.0f ? x : expm1f(x); }
 
 namespace policy {
 
-size_t count() { return kActorCount; }
+size_t count() { return kActorCount + (g_uploaded_ready ? 1 : 0); }
 
 const char* name(size_t index) {
-    return index < kActorCount ? kActors[index].name : "";
+    if (index < kActorCount) return kActors[index].name;
+    return index == kActorCount && g_uploaded_ready ? g_uploaded_actor.name
+                                                      : "";
 }
 
 size_t selected() { return g_selected; }
 
 bool select(size_t index) {
-    if (index >= kActorCount) return false;
+    if (index >= count()) return false;
     g_selected = index;
-    const Actor& a = kActors[index];
+    const Actor& a = actorAt(index);
+
+    if (a.quantized) {
+        // The "uploaded" actor's own data already lives in RAM -- the
+        // upload buffer itself, malloc'd whole in finishUpload() -- so
+        // there is no flash-vs-RAM choice for the block below to make,
+        // and nothing to do with g_weights/g_biases: run() reads
+        // g_qweights/g_qbiases instead whenever a.quantized is set.
+        for (size_t i = 0; i < a.layers; i++) {
+            g_qweights[i] = a.qweights[i];
+            g_qbiases[i] = a.qbiases[i];
+            g_weight_scale[i] = a.weight_scale[i];
+            g_bias_scale[i] = a.bias_scale[i];
+        }
+        g_in_ram = true;
+#ifdef POLICY_WEIGHTS_IN_RAM
+        g_layers_in_ram = a.layers;
+#endif
+        return true;
+    }
+
     for (size_t i = 0; i < a.layers; i++) {
         g_weights[i] = a.weights[i];
         g_biases[i] = a.biases[i];
@@ -221,9 +321,17 @@ bool select(size_t index) {
     return true;
 }
 
-bool begin() { return select(g_selected); }
+bool begin() {
+    // Before select() copies anything into g_ram, and long before
+    // net::begin()/EspNowLink::begin() -- see kUploadTotalBytes' own
+    // comment on why the timing matters, not just the size.
+    if (g_upload_buf == nullptr) {
+        g_upload_buf = static_cast<uint8_t*>(malloc(kUploadTotalBytes));
+    }
+    return select(g_selected);
+}
 
-size_t layers() { return kActors[g_selected].layers; }
+size_t layers() { return actorAt(g_selected).layers; }
 
 size_t layersInRam() {
 #ifdef POLICY_WEIGHTS_IN_RAM
@@ -243,39 +351,39 @@ const Motion& motion(size_t index) {
 size_t obsDim() { return POLICY_KXRL6WALK_OBS_DIM; }
 size_t actDim() { return POLICY_KXRL6WALK_ACT_DIM; }
 
-const float* homeRad() { return kActors[g_selected].home_rad; }
+const float* homeRad() { return actorAt(g_selected).home_rad; }
 
 const float* homeRadOf(size_t index) {
-    return kActors[index < kActorCount ? index : g_selected].home_rad;
+    return actorAt(effectiveIndex(index)).home_rad;
 }
-const float* jointLowRad() { return kActors[g_selected].joint_low; }
-const float* jointHighRad() { return kActors[g_selected].joint_high; }
-const uint8_t* servoIds() { return kActors[g_selected].servo_ids; }
-const int8_t* servoDirection() { return kActors[g_selected].servo_direction; }
-float actionScale() { return kActors[g_selected].action_scale; }
-float phasePeriodS() { return kActors[g_selected].phase_period_s; }
+const float* jointLowRad() { return actorAt(g_selected).joint_low; }
+const float* jointHighRad() { return actorAt(g_selected).joint_high; }
+const uint8_t* servoIds() { return actorAt(g_selected).servo_ids; }
+const int8_t* servoDirection() { return actorAt(g_selected).servo_direction; }
+float actionScale() { return actorAt(g_selected).action_scale; }
+float phasePeriodS() { return actorAt(g_selected).phase_period_s; }
 float phaseStandThreshold() {
-    return kActors[g_selected].phase_stand_threshold;
+    return actorAt(g_selected).phase_stand_threshold;
 }
-float commandVxMin() { return kActors[g_selected].command_vx_min; }
-float commandVxMax() { return kActors[g_selected].command_vx_max; }
-float commandWzMax() { return kActors[g_selected].command_wz_max; }
+float commandVxMin() { return actorAt(g_selected).command_vx_min; }
+float commandVxMax() { return actorAt(g_selected).command_vx_max; }
+float commandWzMax() { return actorAt(g_selected).command_wz_max; }
 
 float commandVxMinOf(size_t index) {
-    return kActors[index < kActorCount ? index : g_selected].command_vx_min;
+    return actorAt(effectiveIndex(index)).command_vx_min;
 }
 float commandVxMaxOf(size_t index) {
-    return kActors[index < kActorCount ? index : g_selected].command_vx_max;
+    return actorAt(effectiveIndex(index)).command_vx_max;
 }
 float commandWzMaxOf(size_t index) {
-    return kActors[index < kActorCount ? index : g_selected].command_wz_max;
+    return actorAt(effectiveIndex(index)).command_wz_max;
 }
-float standingFraction() { return kActors[g_selected].standing_fraction; }
-const float* stanceGravity() { return kActors[g_selected].stance_gravity; }
-const float* rootToGyro() { return kActors[g_selected].root_to_gyro; }
+float standingFraction() { return actorAt(g_selected).standing_fraction; }
+const float* stanceGravity() { return actorAt(g_selected).stance_gravity; }
+const float* rootToGyro() { return actorAt(g_selected).root_to_gyro; }
 
 void run(const float* obs, float* action) {
-    const Actor& a = kActors[g_selected];
+    const Actor& a = actorAt(g_selected);
     for (size_t i = 0; i < POLICY_KXRL6WALK_OBS_DIM; i++) {
         g_a[i] = (obs[i] - a.mean[i]) * a.inv_std[i];
     }
@@ -285,22 +393,144 @@ void run(const float* obs, float* action) {
     for (size_t layer = 0; layer < a.layers; layer++) {
         const size_t n_in = a.layer_in[layer];
         const size_t n_out = a.layer_out[layer];
-        const float* w = g_weights[layer];
-        const float* bias = g_biases[layer];
         const bool last = layer + 1 == a.layers;
-        // The weight matrix is row major as (out x in), so each output is one
-        // contiguous sweep -- which is what keeps the flash cache useful.
-        for (size_t o = 0; o < n_out; o++) {
-            const float* row = w + o * n_in;
-            float sum = bias[o];
-            for (size_t i = 0; i < n_in; i++) sum += row[i] * in[i];
-            out[o] = last ? sum : elu(sum);
+        if (a.quantized) {
+            // The uploaded actor's own weights/biases (see policy.h's own
+            // beginUpload() comment): int16 fixed-point, one scale per
+            // layer for each of the two. Dequantized right here, one
+            // element at a time, rather than ever expanding a whole
+            // layer back into a second float32 buffer -- that buffer is
+            // exactly the RAM this format exists to avoid holding twice.
+            const int16_t* w = g_qweights[layer];
+            const int16_t* bias = g_qbiases[layer];
+            const float wscale = g_weight_scale[layer];
+            const float bscale = g_bias_scale[layer];
+            for (size_t o = 0; o < n_out; o++) {
+                const int16_t* row = w + o * n_in;
+                float sum = bias[o] * bscale;
+                for (size_t i = 0; i < n_in; i++) {
+                    sum += row[i] * wscale * in[i];
+                }
+                out[o] = last ? sum : elu(sum);
+            }
+        } else {
+            const float* w = g_weights[layer];
+            const float* bias = g_biases[layer];
+            // The weight matrix is row major as (out x in), so each
+            // output is one contiguous sweep -- which is what keeps the
+            // flash cache useful.
+            for (size_t o = 0; o < n_out; o++) {
+                const float* row = w + o * n_in;
+                float sum = bias[o];
+                for (size_t i = 0; i < n_in; i++) sum += row[i] * in[i];
+                out[o] = last ? sum : elu(sum);
+            }
         }
         in = out;
         out = (out == g_b) ? g_a : g_b;
     }
 
     for (size_t i = 0; i < POLICY_KXRL6WALK_ACT_DIM; i++) action[i] = in[i];
+}
+
+size_t uploadExpectedBytes() { return kUploadTotalBytes; }
+
+bool beginUpload() {
+    g_upload_active = false;
+    g_upload_received = 0;
+
+    // Either the early malloc in begin() failed (see kUploadTotalBytes'
+    // own comment -- this device genuinely does not have enough RAM to
+    // spare right now) or the buffer this would write into is the one
+    // run() is reading from on every control step right now (the
+    // uploaded actor is the one currently selected). Either way, a
+    // caller sees this the same way an out-of-RAM failure already looks:
+    // select a different (compiled-in) actor first, then retry.
+    if (g_upload_buf == nullptr) return false;
+    if (g_uploaded_ready && g_selected == kActorCount) return false;
+
+    g_upload_active = true;
+    return true;
+}
+
+bool appendUpload(const uint8_t* data, size_t len) {
+    if (!g_upload_active) return false;
+    if (g_upload_received + len > kUploadTotalBytes) {
+        // More bytes than the layout calls for: caller and firmware
+        // disagree about what is being sent (wrong file, stale build) --
+        // abort outright rather than accept a truncated, silently-wrong
+        // mix of old and new data.
+        g_upload_active = false;
+        g_upload_received = 0;
+        return false;
+    }
+    memcpy(g_upload_buf + g_upload_received, data, len);
+    g_upload_received += len;
+    return true;
+}
+
+size_t uploadBytesReceived() { return g_upload_active ? g_upload_received : 0; }
+
+bool finishUpload() {
+    if (!g_upload_active || g_upload_received != kUploadTotalBytes) {
+        g_upload_active = false;
+        g_upload_received = 0;
+        return false;
+    }
+    g_upload_active = false;
+    g_upload_received = 0;
+
+    // Same per-layer shapes as the compiled-in "walk" actor -- an upload is
+    // a different trained checkpoint of it, not a different network (see
+    // policy.h's own comment on beginUpload()).
+    const Actor& shape = kActors[0];
+
+    // The whole float region -- mean, inv_std, then every layer's two
+    // scales -- sits first and is 4-byte aligned from g_upload_buf
+    // (malloc's own return address) onward, so it is safe to read
+    // straight through as one float array (see policy.h's own comment on
+    // why the scales were moved up here rather than beside their layers).
+    const float* floats = reinterpret_cast<const float*>(g_upload_buf);
+    const float* mean = floats;
+    const float* inv_std = floats + POLICY_KXRL6WALK_OBS_DIM;
+    const float* wscale = inv_std + POLICY_KXRL6WALK_OBS_DIM;
+    const float* bscale = wscale + shape.layers;
+    for (size_t i = 0; i < shape.layers; i++) {
+        g_uploaded_weight_scale[i] = wscale[i];
+        g_uploaded_bias_scale[i] = bscale[i];
+    }
+
+    // The int16 region starts right after (a multiple of 4 bytes in, so
+    // also 2-byte aligned) and is weight/bias per layer, back to back, in
+    // layer order.
+    const int16_t* ints =
+            reinterpret_cast<const int16_t*>(bscale + shape.layers);
+    size_t at = 0;
+    for (size_t i = 0; i < shape.layers; i++) {
+        const size_t n_in = shape.layer_in[i];
+        const size_t n_out = shape.layer_out[i];
+        g_uploaded_weights[i] = ints + at;
+        at += n_in * n_out;
+        g_uploaded_biases[i] = ints + at;
+        at += n_out;
+    }
+
+    g_uploaded_actor = Actor{
+            "uploaded",        mean,
+            inv_std,           nullptr,
+            nullptr,           shape.layer_in,
+            shape.layer_out,   shape.layers,
+            shape.home_rad,    shape.joint_low,
+            shape.joint_high,  shape.servo_ids,
+            shape.action_scale, shape.phase_period_s,
+            shape.phase_stand_threshold, shape.command_vx_min,
+            shape.command_vx_max, shape.command_wz_max,
+            shape.standing_fraction, shape.stance_gravity,
+            shape.root_to_gyro, shape.servo_direction,
+            /*quantized=*/true, g_uploaded_weights, g_uploaded_biases,
+            g_uploaded_weight_scale, g_uploaded_bias_scale};
+    g_uploaded_ready = true;
+    return true;
 }
 
 }  // namespace policy

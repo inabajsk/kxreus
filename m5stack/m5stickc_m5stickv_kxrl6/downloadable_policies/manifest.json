@@ -1,0 +1,7 @@
+[
+  {
+    "name": "iory/walking-hand-rl reference",
+    "file": "kxrl6_walk_walking-hand-rl.bin",
+    "note": "Imported from iory/walking-hand-rl's own kxr/policies/kxrl6_walk.pt. walking-kxr-rl's own kxrl6 training is not included here yet -- only 4 iterations logged so far (essentially untrained), not worth publishing."
+  }
+]

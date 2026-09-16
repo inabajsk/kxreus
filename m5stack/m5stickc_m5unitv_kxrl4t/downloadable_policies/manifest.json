@@ -1,0 +1,12 @@
+[
+  {
+    "name": "walking-kxr-rl (own training)",
+    "file": "kxrl4t_walk_own.bin",
+    "note": "Trained by walking-kxr-rl itself (tools/train_all.py, 1497 iterations on the fixed home pose). ~0.117 m/s, some residual slip -- see walking-kxr-rl/README.md's own measured table."
+  },
+  {
+    "name": "iory/walking-hand-rl reference",
+    "file": "kxrl4t_walk_walking-hand-rl.bin",
+    "note": "Imported from iory/walking-hand-rl's own kxr/policies/kxrl4t_walk.pt. ~0.133 m/s, 6-seed measured -- the reference this whole home-pose fix was validated against."
+  }
+]

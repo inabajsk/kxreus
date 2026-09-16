@@ -42,6 +42,10 @@ WiFiUDP udp;
 WebServer server(80);
 bool g_http_open = false;
 
+/// Set across handlePolicyUploadChunk()'s three UPLOAD_FILE_* calls, read
+/// once by handlePolicyUploadComplete() -- see that pair's own comment.
+bool g_policy_upload_ok = false;
+
 /// Set once by setServoIds(), from PolicyMode::enter() (core 1) right after
 /// buildServoOrder(), and only ever read afterwards, by handleInfoRequest()
 /// on the server task (core 0). No critical section around either side:
@@ -560,6 +564,47 @@ void runWifiScan() {
     portEXIT_CRITICAL(&g_shared);
 }
 
+/// kWebPage's policy-upload form's one file field, streamed straight into
+/// policy.cpp's own upload buffer as it arrives -- see policy::
+/// beginUpload()'s own comment on the byte layout expected and why this
+/// has to stream rather than buffer the whole body as a String first
+/// (which is what server.arg("plain") would do for a raw POST, on top of
+/// the upload buffer policy.cpp itself is about to hold).
+///
+/// multipart/form-data (a plain HTML <input type=file> plus FormData) is
+/// what buys the streaming: WebServer only calls this callback, rather
+/// than buffering the body itself, for that content type.
+void handlePolicyUploadChunk() {
+    HTTPUpload& upload = server.upload();
+    switch (upload.status) {
+        case UPLOAD_FILE_START:
+            g_policy_upload_ok = policy::beginUpload();
+            break;
+        case UPLOAD_FILE_WRITE:
+            if (g_policy_upload_ok) {
+                g_policy_upload_ok =
+                        policy::appendUpload(upload.buf, upload.currentSize);
+            }
+            break;
+        case UPLOAD_FILE_END:
+            if (g_policy_upload_ok) g_policy_upload_ok = policy::finishUpload();
+            break;
+        case UPLOAD_FILE_ABORTED:
+            g_policy_upload_ok = false;
+            break;
+    }
+}
+
+/// Runs once the upload above has fully arrived (or failed partway) --
+/// the one place this request actually answers, same split
+/// handlePolicyUploadChunk()'s own comment already explains WebServer's
+/// two-callback upload API needs.
+void handlePolicyUploadComplete() {
+    server.send(g_policy_upload_ok ? 200 : 400, "text/plain",
+               g_policy_upload_ok ? "ok" : "upload failed: wrong size, out "
+                                            "of RAM, or actor busy running");
+}
+
 /// kProvisionPage's SSID picker asks for this instead of a name to remember
 /// and retype. Spins in place waiting for poll() (core 1) to actually run
 /// the scan (see g_scan_pending) rather than answering "started" and making
@@ -699,6 +744,11 @@ void ensureServer() {
     });
     server.on("/c", handleCommandRequest);
     server.on("/info", handleInfoRequest);
+    // See handlePolicyUploadChunk()'s own comment on the two-callback
+    // shape this needs: handlePolicyUploadComplete answers once
+    // handlePolicyUploadChunk has streamed (and applied) the whole body.
+    server.on("/policy", HTTP_POST, handlePolicyUploadComplete,
+              handlePolicyUploadChunk);
     server.on("/save", HTTP_POST, handleSaveRequest);
     server.on("/ap", HTTP_POST, handleUseOwnApRequest);
     server.on("/provision", HTTP_POST, handleProvisionRequest);

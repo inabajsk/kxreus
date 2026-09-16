@@ -325,6 +325,29 @@ bool hasPeer();
 /// PC-side ATOM Echo).
 bool phoneActive();
 
+/// GET /info's own body -- shared by the plain WebServer (net.cpp's own
+/// handleInfoRequest()) and the HTTPS server (lib/https_server), which
+/// both serve the same phone page and so must answer this the same way.
+String buildInfoJson();
+
+/// Large enough for GET /c's own reply (see buildCommandJson()) at its
+/// biggest: the fixed fields plus two POLICY_ACT_DIM-long arrays (pulse,
+/// target) and the M5StickV detection bytes -- sized here, once, so both
+/// servers that call it agree on how big a buffer to give it.
+constexpr size_t COMMAND_JSON_MAX =
+        420 + POLICY_ACT_DIM * 24 + Rcb4Link::M5STICKV_MAX_READ * 4;
+
+/// GET /c's own body: applies `hex` (COMMAND_SIZE*2 hex chars, or nullptr
+/// for none -- the page's own periodic poll often has nothing new to
+/// send) as a command frame exactly the way the USB/UDP paths do, then
+/// reports telemetry. Also marks this instant as "a phone asked" (see
+/// phoneActive()) regardless of whether `hex` parsed -- even a malformed
+/// frame still proves a phone is there. Writes into `out` (at least
+/// COMMAND_JSON_MAX bytes) rather than returning a String: called from
+/// PsychicHttp's own response-building path in lib/https_server, which
+/// wants a plain buffer, not one more copy through String.
+void buildCommandJson(const char* hex, char* out, size_t out_cap);
+
 /// Whether the control loop has published telemetry recently.
 ///
 /// False means nothing is reading commands -- the AtomS3 is not in POLICY
