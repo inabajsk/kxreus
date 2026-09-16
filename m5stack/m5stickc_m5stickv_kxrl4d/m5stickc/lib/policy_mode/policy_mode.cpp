@@ -235,9 +235,17 @@ float PolicyMode::measureHomeError() {
     }
     float worst = 0.0f;
     for (size_t i = 0; i < g_servo_count; i++) {
+        const size_t joint = g_sorted_to_joint[i];
+        // Inverse of writeJointTargets()'s own direction multiply -- see
+        // policy::servoDirection()'s own comment. +-1 is self-inverse, so
+        // the same multiply that goes into a pulse undoes one coming back
+        // out, converting the real servo's own rotation sense back into
+        // the policy's undirected convention before comparing against
+        // homeRad(), which is already in that convention.
         const float rad = (pulses[i] - Rcb4Link::PULSE_NEUTRAL) /
-                          Rcb4Link::DEG_TO_PULSE * kDegToRad;
-        worst = fmaxf(worst, fabsf(rad - policy::homeRad()[g_sorted_to_joint[i]]));
+                          Rcb4Link::DEG_TO_PULSE * kDegToRad *
+                          policy::servoDirection()[joint];
+        worst = fmaxf(worst, fabsf(rad - policy::homeRad()[joint]));
     }
     return worst;
 }
@@ -246,7 +254,13 @@ bool PolicyMode::sendHome() {
     uint16_t out[POLICY_ACT_DIM];
     for (size_t i = 0; i < g_servo_count; i++) {
         const size_t joint = g_sorted_to_joint[i];
-        const float pulse = policy::homeRad()[joint] * kRadToDeg *
+        // See writeJointTargets()'s own comment -- this bypasses that
+        // function (there is no policy action to clamp on the way to a
+        // fixed home pose), so the same direction multiply has to be
+        // applied here too, not just once centrally.
+        const float directed =
+                policy::homeRad()[joint] * policy::servoDirection()[joint];
+        const float pulse = directed * kRadToDeg *
                                     Rcb4Link::DEG_TO_PULSE +
                             Rcb4Link::PULSE_NEUTRAL;
         out[i] = static_cast<uint16_t>(clampf(pulse, 3500.0f, 11500.0f));
@@ -711,9 +725,18 @@ bool PolicyMode::step() {
     // the home value pinUnwiredJoints() set -- there is nothing to read them
     // from.
     for (size_t i = 0; i < g_servo_count; i++) {
+        const size_t joint = g_sorted_to_joint[i];
+        // Inverse of writeJointTargets()'s own direction multiply -- see
+        // policy::servoDirection()'s own comment. Without this, every
+        // downstream use of joint_pos_ (the policy's own joint-position
+        // observation at buildObs(), joint_vel_'s finite difference of
+        // it, and every home-error/ramp comparison against homeRad())
+        // would see the real servo's own rotation sense rather than the
+        // policy's undirected training convention -- wrong-signed for
+        // every joint with servoDirection() == -1.
         const float deg = (pulses[i] - Rcb4Link::PULSE_NEUTRAL) /
                           Rcb4Link::DEG_TO_PULSE;
-        joint_pos_[g_sorted_to_joint[i]] = deg * kDegToRad;
+        joint_pos_[joint] = deg * kDegToRad * policy::servoDirection()[joint];
     }
 
     // joint_vel over the fixed window, differenced against the oldest sample
@@ -848,9 +871,15 @@ void PolicyMode::beginRamp(const float* target, float seconds) {
     uint16_t pulses[POLICY_ACT_DIM];
     if (link_.readServoPulsesFor(g_sorted_ids, pulses, g_servo_count)) {
         for (size_t i = 0; i < g_servo_count; i++) {
+            const size_t joint = g_sorted_to_joint[i];
+            // Inverse of writeJointTargets()'s own direction multiply --
+            // see policy::servoDirection()'s own comment. Without this, a
+            // ramp (RISE/SIT among them) starts from the real servo's own
+            // rotation sense rather than the policy's undirected
+            // convention that ramp_to_ (from homeRadOf()) is already in.
             const float deg = (pulses[i] - Rcb4Link::PULSE_NEUTRAL) /
                               Rcb4Link::DEG_TO_PULSE;
-            ramp_from_[g_sorted_to_joint[i]] = deg * kDegToRad;
+            ramp_from_[joint] = deg * kDegToRad * policy::servoDirection()[joint];
         }
     } else {
         memcpy(ramp_from_, last_target_, sizeof(ramp_from_));
