@@ -48,6 +48,7 @@ struct Actor {
     float standing_fraction;
     const float* stance_gravity;
     const float* root_to_gyro;
+    const int8_t* servo_direction;
 };
 
 const float* const kWalkW[POLICY_KXRL4TWALK_LAYERS] = {
@@ -60,6 +61,15 @@ const float* const kWalkB[POLICY_KXRL4TWALK_LAYERS] = {
 // kxrl4t (Kondo KXR-L4T, 10 DOF: 2-DOF legs + 2-DOF arms + 2-DOF head, all
 // four limbs standing on their tips) has no getup policy trained -- unlike
 // kxrl4d, this build carries exactly one actor.
+// See kxreus/rcb4robotconfig.l's own per-servo direction
+// annotation (next to each joint name there) -- hand-transcribed,
+// same order as kPolicyServoIdsKxrl4Twalk. Multiplied into a joint's
+// own clamped target angle right before the RCB-4 pulse
+// conversion (see PolicyMode::writeJointTargets()).
+const int8_t kServoDirectionKxrl4Twalk[10] = {
+    1, 1, -1, 1, -1, 1, -1, -1, -1, -1,
+};
+
 const Actor kActors[] = {
         {"walk", kPolicyObsMeanKxrl4Twalk, kPolicyObsInvStdKxrl4Twalk, kWalkW,
          kWalkB, kPolicyLayerInKxrl4Twalk, kPolicyLayerOutKxrl4Twalk,
@@ -70,7 +80,7 @@ const Actor kActors[] = {
          POLICY_KXRL4TWALK_PHASE_STAND_THRESHOLD,
          POLICY_KXRL4TWALK_COMMAND_VX_MIN, POLICY_KXRL4TWALK_COMMAND_VX_MAX,
          POLICY_KXRL4TWALK_COMMAND_WZ_MAX, POLICY_KXRL4TWALK_STANDING_FRACTION,
-         kPolicyStanceGravityKxrl4Twalk, kPolicyRootToGyroKxrl4Twalk},
+         kPolicyStanceGravityKxrl4Twalk, kPolicyRootToGyroKxrl4Twalk, kServoDirectionKxrl4Twalk},
 };
 constexpr size_t kActorCount = sizeof(kActors) / sizeof(kActors[0]);
 
@@ -245,6 +255,7 @@ const float* homeRadOf(size_t index) {
 const float* jointLowRad() { return kActors[g_selected].joint_low; }
 const float* jointHighRad() { return kActors[g_selected].joint_high; }
 const uint8_t* servoIds() { return kActors[g_selected].servo_ids; }
+const int8_t* servoDirection() { return kActors[g_selected].servo_direction; }
 float actionScale() { return kActors[g_selected].action_scale; }
 float phasePeriodS() { return kActors[g_selected].phase_period_s; }
 float phaseStandThreshold() {

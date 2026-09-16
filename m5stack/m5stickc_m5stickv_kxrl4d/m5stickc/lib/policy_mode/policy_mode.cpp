@@ -801,7 +801,14 @@ bool PolicyMode::writeJointTargets(const float* target) {
         const size_t joint = g_sorted_to_joint[i];
         const float clipped = clampf(target[joint], policy::jointLowRad()[joint],
                                      policy::jointHighRad()[joint]);
-        const float pulse = clipped * kRadToDeg * Rcb4Link::DEG_TO_PULSE +
+        // kxreus/rcb4robotconfig.l's own per-servo direction (see
+        // policy::servoDirection()'s own comment) -- applied here, after
+        // clamping in the policy's own (undirected) joint convention, and
+        // nowhere earlier: a mechanically mirrored servo needs its
+        // rotation SENSE flipped for the same logical angle, not the
+        // angle itself renumbered.
+        const float directed = clipped * policy::servoDirection()[joint];
+        const float pulse = directed * kRadToDeg * Rcb4Link::DEG_TO_PULSE +
                             Rcb4Link::PULSE_NEUTRAL;
         out[i] = static_cast<uint16_t>(clampf(pulse, 3500.0f, 11500.0f));
     }

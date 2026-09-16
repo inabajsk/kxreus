@@ -51,6 +51,12 @@ struct Actor {
     float standing_fraction;
     const float* stance_gravity;
     const float* root_to_gyro;
+    // See kxreus/rcb4robotconfig.l's own per-servo direction annotation
+    // (next to each joint name there) -- hand-transcribed, same order as
+    // servo_ids. Multiplied into a joint's own clamped target angle right
+    // before the RCB-4 pulse conversion (see PolicyMode::
+    // writeJointTargets()).
+    const int8_t* servo_direction;
 
     // Only ever set for the "uploaded" actor (see finishUpload()) -- every
     // compiled-in actor below passes false/nullptr explicitly (this struct
@@ -74,6 +80,15 @@ const float* const kWalkB[POLICY_KXRL4TWALK_LAYERS] = {
         kPolicyBKxrl4Twalk0, kPolicyBKxrl4Twalk1, kPolicyBKxrl4Twalk2,
         kPolicyBKxrl4Twalk3};
 
+// See kxreus/rcb4robotconfig.l's own per-servo direction annotation (next
+// to each joint name there) -- hand-transcribed, same order as
+// kPolicyServoIdsKxrl4Twalk. Multiplied into a joint's own clamped target
+// angle right before the RCB-4 pulse conversion (see PolicyMode::
+// writeJointTargets()).
+const int8_t kServoDirectionKxrl4Twalk[10] = {
+    1, 1, -1, 1, -1, 1, -1, -1, -1, -1,
+};
+
 // kxrl4t (Kondo KXR-L4T, 10 DOF: 2-DOF legs + 2-DOF arms + 2-DOF head, all
 // four limbs standing on their tips) has no getup policy trained -- unlike
 // kxrl4d, this build carries exactly one actor.
@@ -88,6 +103,7 @@ const Actor kActors[] = {
          POLICY_KXRL4TWALK_COMMAND_VX_MIN, POLICY_KXRL4TWALK_COMMAND_VX_MAX,
          POLICY_KXRL4TWALK_COMMAND_WZ_MAX, POLICY_KXRL4TWALK_STANDING_FRACTION,
          kPolicyStanceGravityKxrl4Twalk, kPolicyRootToGyroKxrl4Twalk,
+         kServoDirectionKxrl4Twalk,
          /*quantized=*/false, nullptr, nullptr, nullptr, nullptr},
 };
 constexpr size_t kActorCount = sizeof(kActors) / sizeof(kActors[0]);
@@ -347,6 +363,7 @@ const float* homeRadOf(size_t index) {
 const float* jointLowRad() { return actorAt(g_selected).joint_low; }
 const float* jointHighRad() { return actorAt(g_selected).joint_high; }
 const uint8_t* servoIds() { return actorAt(g_selected).servo_ids; }
+const int8_t* servoDirection() { return actorAt(g_selected).servo_direction; }
 float actionScale() { return actorAt(g_selected).action_scale; }
 float phasePeriodS() { return actorAt(g_selected).phase_period_s; }
 float phaseStandThreshold() {
@@ -543,7 +560,7 @@ bool finishUpload() {
             shape.phase_stand_threshold, shape.command_vx_min,
             shape.command_vx_max, shape.command_wz_max,
             shape.standing_fraction, shape.stance_gravity,
-            shape.root_to_gyro,
+            shape.root_to_gyro, shape.servo_direction,
             /*quantized=*/true, g_uploaded_weights, g_uploaded_biases,
             g_uploaded_weight_scale, g_uploaded_bias_scale};
     g_uploaded_ready = true;
