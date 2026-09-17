@@ -48,6 +48,7 @@
 #include <policy_mode.h>
 #include <policy.h>
 #include <rcb4_link.h>
+#include <robot_select_mode.h>
 #include <status_mode.h>
 
 namespace {
@@ -59,8 +60,14 @@ Rcb4Link rcb4_link;
 BridgeMode bridge_mode(rcb4_link);
 StatusMode status_mode(rcb4_link);
 PolicyMode policy_mode(rcb4_link);
+// Touches nothing but the LCD/button/NVS -- no Rcb4Link, on purpose: this
+// is reachable (see the mode cycle below) with no board wired up at all,
+// which is exactly the state a just-unboxed AtomS3 is in the first time
+// someone sets its robot identity.
+RobotSelectMode robot_select_mode;
 
-Mode* const kModes[] = {&bridge_mode, &status_mode, &policy_mode};
+Mode* const kModes[] = {&bridge_mode, &status_mode, &policy_mode,
+                        &robot_select_mode};
 constexpr size_t kModeCount = sizeof(kModes) / sizeof(kModes[0]);
 
 // Which mode the firmware comes up in. BRIDGE, unless a build says otherwise:
