@@ -122,18 +122,13 @@ bool validate(const String& cert_pem, const String& key_pem, time_t now,
 
 bool timeIsValid(time_t now) { return now >= kMinValidEpoch; }
 
-bool syncTime() {
+void beginTimeSync() {
     // Two servers, same as the reference this is modelled on: NICT (a
     // Japanese national time authority, low latency domestically) first,
-    // pool.ntp.org as a fallback anywhere else.
+    // pool.ntp.org as a fallback anywhere else. Only starts the ESP-IDF
+    // SNTP client's own background work -- see this function's own header
+    // comment (cert_store.h) for why nothing here waits for it to finish.
     configTime(0, 0, "ntp.nict.jp", "pool.ntp.org");
-    const uint32_t deadline = millis() + 15000;
-    time_t now = time(nullptr);
-    while (!timeIsValid(now) && millis() < deadline) {
-        delay(200);
-        now = time(nullptr);
-    }
-    return timeIsValid(now);
 }
 
 bool download(time_t now, Credentials& out, String& error) {

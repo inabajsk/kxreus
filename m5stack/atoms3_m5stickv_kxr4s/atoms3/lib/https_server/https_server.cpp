@@ -38,6 +38,11 @@ enum class State : uint8_t {
 
 State g_state = State::IDLE;
 uint32_t g_next_attempt_ms = 0;
+/// 0 while SYNCING_TIME has not yet called cert_store::beginTimeSync()
+/// for this attempt -- set to when to give up, the moment it has. See
+/// that state's own comment for why this is a deadline checked on every
+/// poll(), not a blocking wait.
+uint32_t g_time_sync_deadline_ms = 0;
 cert_store::Credentials g_creds;
 String g_url;  // valid only once g_state == SERVING
 
@@ -169,22 +174,50 @@ void poll() {
         case State::IDLE:
             // See cert_store.h's own comment: nothing beyond this
             // robot's own standalone AP to reach local-ip.sh or NTP
-            // through in that mode.
-            if (net::status() == net::Status::CONNECTED) {
+            // through in that mode. Also where a failed time sync (see
+            // SYNCING_TIME below) lands to wait out its own backoff --
+            // g_next_attempt_ms is shared with that failure path (never
+            // both pending at once, since only one state runs at a time).
+            if (net::status() == net::Status::CONNECTED &&
+                (g_next_attempt_ms == 0 ||
+                 static_cast<int32_t>(now_ms - g_next_attempt_ms) >= 0)) {
                 g_state = State::SYNCING_TIME;
+                g_time_sync_deadline_ms = 0;
             }
             break;
 
         case State::SYNCING_TIME:
             if (net::status() != net::Status::CONNECTED) {
                 g_state = State::IDLE;  // lost the network mid-sync
+                g_time_sync_deadline_ms = 0;
                 break;
             }
-            if (cert_store::syncTime()) {
-                g_state = State::FETCHING_CERT;
+            if (g_time_sync_deadline_ms == 0) {
+                // First poll() since entering this state -- kick off SNTP
+                // once and give it up to 15 s of WALL-CLOCK time, spread
+                // across many non-blocking poll() calls rather than one
+                // call blocking for all of it (see cert_store::
+                // beginTimeSync()'s own comment on why: a network that
+                // filters NTP outright, confirmed on real hardware to
+                // otherwise stall the button/Serial/RCB-4 relay for the
+                // whole 15 s, every retry, forever).
+                cert_store::beginTimeSync();
+                g_time_sync_deadline_ms = now_ms + 15000;
             }
-            // else: try again next poll() -- syncTime() itself already
-            // blocks up to 15 s per attempt, so this is not a tight loop.
+            if (cert_store::timeIsValid(time(nullptr))) {
+                g_state = State::FETCHING_CERT;
+                g_time_sync_deadline_ms = 0;
+            } else if (static_cast<int32_t>(now_ms - g_time_sync_deadline_ms) >=
+                       0) {
+                // No server answered in time -- back off the same
+                // kRetryIntervalMs every other failure path here already
+                // uses, rather than restarting the SNTP client every
+                // single poll() (which a permanently NTP-blocking network
+                // would otherwise do forever).
+                g_time_sync_deadline_ms = 0;
+                g_next_attempt_ms = now_ms + kRetryIntervalMs;
+                g_state = State::IDLE;
+            }
             break;
 
         case State::FETCHING_CERT: {

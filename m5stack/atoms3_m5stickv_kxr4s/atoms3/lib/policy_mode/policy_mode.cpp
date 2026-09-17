@@ -832,16 +832,82 @@ bool PolicyMode::step() {
     return true;
 }
 
-// kxrl2g has no getup (or any second) actor -- RISE and SIT both just ramp
+// Per-robot RISE/SIT scripts -- see policy_mode.h's own riseSequence()/
+// sitSequence() comment for why this is a table keyed by policy::robotId()
+// now, not one pair of static members: kxrl4d alone has a trained getup
+// skill, so it alone gets a RISE that actually runs it.
+namespace {
+
+// kxrl4t has no getup (or any second) actor -- RISE and SIT both just ramp
 // to WALK's own home stance and hold there, the same place a plain `hold`
 // (button click) puts the robot.
-const PolicyMode::Step PolicyMode::kRiseSequence[1] = {
-        {Step::Kind::RAMP, PolicyMode::WALK, 1.0f},
+const PolicyMode::Step kRiseSequenceKxrl4T[] = {
+        {PolicyMode::Step::Kind::RAMP, PolicyMode::WALK, 1.0f},
+};
+const PolicyMode::Step kSitSequenceKxrl4T[] = {
+        {PolicyMode::Step::Kind::RAMP, PolicyMode::WALK, 1.0f},
 };
 
-const PolicyMode::Step PolicyMode::kSitSequence[1] = {
-        {Step::Kind::RAMP, PolicyMode::WALK, 1.0f},
+// kxrl4d: RISE runs its own trained getup skill for 6 s, then hands over to
+// WALK -- see DEPLOY.md section 5's own timing. SIT has no trained
+// lie-down skill (unlike the wheeled hand's own sit), so it just ramps back
+// to the shared home stance under WALK.
+const PolicyMode::Step kRiseSequenceKxrl4D[] = {
+        {PolicyMode::Step::Kind::RUN, PolicyMode::GETUP, 6.0f},
 };
+const PolicyMode::Step kSitSequenceKxrl4D[] = {
+        {PolicyMode::Step::Kind::RAMP, PolicyMode::WALK, 1.0f},
+};
+
+// kxrl6 has no getup (or any second) actor either -- same as kxrl4t.
+const PolicyMode::Step kRiseSequenceKxrl6[] = {
+        {PolicyMode::Step::Kind::RAMP, PolicyMode::WALK, 1.0f},
+};
+const PolicyMode::Step kSitSequenceKxrl6[] = {
+        {PolicyMode::Step::Kind::RAMP, PolicyMode::WALK, 1.0f},
+};
+
+// kxrl2g has no getup (or any second) actor either -- same as kxrl4t.
+const PolicyMode::Step kRiseSequenceKxrl2G[] = {
+        {PolicyMode::Step::Kind::RAMP, PolicyMode::WALK, 1.0f},
+};
+const PolicyMode::Step kSitSequenceKxrl2G[] = {
+        {PolicyMode::Step::Kind::RAMP, PolicyMode::WALK, 1.0f},
+};
+
+struct SequenceSet {
+    const PolicyMode::Step* rise;
+    size_t rise_count;
+    const PolicyMode::Step* sit;
+    size_t sit_count;
+};
+
+// Index order MUST match policy::RobotId exactly (KXRL4T, KXRL4D, KXRL6,
+// KXRL2G) -- same convention lib/policy/policy.cpp's own kRobots[] follows.
+const SequenceSet kSequenceSets[] = {
+        {kRiseSequenceKxrl4T, sizeof(kRiseSequenceKxrl4T) / sizeof(PolicyMode::Step),
+         kSitSequenceKxrl4T, sizeof(kSitSequenceKxrl4T) / sizeof(PolicyMode::Step)},
+        {kRiseSequenceKxrl4D, sizeof(kRiseSequenceKxrl4D) / sizeof(PolicyMode::Step),
+         kSitSequenceKxrl4D, sizeof(kSitSequenceKxrl4D) / sizeof(PolicyMode::Step)},
+        {kRiseSequenceKxrl6, sizeof(kRiseSequenceKxrl6) / sizeof(PolicyMode::Step),
+         kSitSequenceKxrl6, sizeof(kSitSequenceKxrl6) / sizeof(PolicyMode::Step)},
+        {kRiseSequenceKxrl2G, sizeof(kRiseSequenceKxrl2G) / sizeof(PolicyMode::Step),
+         kSitSequenceKxrl2G, sizeof(kSitSequenceKxrl2G) / sizeof(PolicyMode::Step)},
+};
+
+}  // namespace
+
+const PolicyMode::Step* PolicyMode::riseSequence(size_t* count) const {
+    const SequenceSet& s = kSequenceSets[static_cast<size_t>(policy::robotId())];
+    *count = s.rise_count;
+    return s.rise;
+}
+
+const PolicyMode::Step* PolicyMode::sitSequence(size_t* count) const {
+    const SequenceSet& s = kSequenceSets[static_cast<size_t>(policy::robotId())];
+    *count = s.sit_count;
+    return s.sit;
+}
 
 bool PolicyMode::writeJointTargets(const float* target) {
     // Computed for every joint (cheap, and out[] doubles as scratch), but only
@@ -1214,12 +1280,12 @@ void PolicyMode::loop() {
     if (pending_transition_ != Request::FREE &&
         (state_ == State::RUNNING || state_ == State::HOLDING)) {
         const bool rise = pending_transition_ == Request::RISE;
-        if (beginSequence(rise ? kRiseSequence : kSitSequence,
-                          rise ? sizeof(kRiseSequence) / sizeof(Step)
-                               : sizeof(kSitSequence) / sizeof(Step),
-                          // Both sequences land on WALK: the only actor this
-                          // build has.
-                          WALK)) {
+        size_t seq_count = 0;
+        const Step* seq = rise ? riseSequence(&seq_count) : sitSequence(&seq_count);
+        // Every sequence lands on WALK, whichever robot -- even kxrl4d's
+        // own getup-based RISE hands over to WALK once it finishes (see
+        // riseSequence()'s own comment).
+        if (beginSequence(seq, seq_count, WALK)) {
             pending_transition_ = Request::FREE;
         }
     }

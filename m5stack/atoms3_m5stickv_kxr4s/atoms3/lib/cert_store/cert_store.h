@@ -52,10 +52,18 @@ bool loadFromCache(time_t now, Credentials& out, String& error);
 
 bool saveToCache(const Credentials& credentials);
 
-/// Sets the system clock from NTP (blocking, up to a few seconds) --
-/// needed before download()/loadFromCache() can judge a certificate's
-/// expiry at all. Returns false if no server answered in time.
-bool syncTime();
+/// Starts setting the system clock from NTP -- needed before download()/
+/// loadFromCache() can judge a certificate's expiry at all. Non-blocking:
+/// configTime() itself only kicks off the SNTP client's own background
+/// work; call this once, then poll timeIsValid(time(nullptr)) on whatever
+/// schedule the caller likes (see https_server.cpp's own SYNCING_TIME
+/// state) rather than busy-waiting here -- an earlier version of this
+/// function did that itself, blocking up to 15 s per call, which stalled
+/// EVERYTHING else the same main loop() does (the button, Serial, the
+/// RCB-4 relay) for that whole span, repeating every retry on a network
+/// that blocks NTP outright (a guest Wi-Fi's own UDP/123 filtering,
+/// confirmed on real hardware).
+void beginTimeSync();
 
 /// Whether `now` looks like a real, NTP-set clock rather than an unset
 /// RTC still reading close to the Unix epoch (1970) -- true once past a

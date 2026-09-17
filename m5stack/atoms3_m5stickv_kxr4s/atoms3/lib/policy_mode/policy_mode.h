@@ -110,17 +110,30 @@ public:
         MOTION = 5,
     };
 
-    /// The actors compiled in, in the order lib/policy lists them.
-    ///
-    /// This build is for kxrl2g (Kondo KXR-L2G, a 22-DOF true biped: 2
-    /// 5-DOF legs + 2 3-DOF+2-gripper arms + 2-DOF head, only the legs
-    /// standing on the ground) -- not the walking hand the rest of this
-    /// mode's comments describe. No getup policy was trained for it, so
-    /// this is the one-actor case: RISE and SIT (see
-    /// kRiseSequence/kSitSequence) have nowhere else to go and just ramp
-    /// back to WALK's own home.
+    /// The union of every actor role any of kxr4s's four robots' own
+    /// kActors[] table names (see lib/policy/policy.cpp's own kRobots[]).
+    /// Not every robot has both: kxrl4t/kxrl6/kxrl2g carry only WALK, and
+    /// a RISE/SIT sequence for any of those three (see riseSequence()/
+    /// sitSequence(), chosen per the CONFIGURED robot, not compiled in
+    /// for just one any more) never names GETUP. Index into
+    /// policy::select()/policy::name(), so the numbering must match
+    /// kActors[]'s own order (kxrl4d: 0 = walk, 1 = getup) exactly.
     enum Actor : uint8_t {
         WALK = 0,
+        GETUP = 1,
+    };
+
+    /// One step of a transition: either ease the joints somewhere, or run an
+    /// actor for a while. Public (unlike the rest of this class's own
+    /// internals) because policy_mode.cpp's own per-robot rise/sit tables
+    /// (see riseSequence()/sitSequence()'s own comment) are free-standing
+    /// objects of this type, declared outside the class -- an out-of-class
+    /// member definition would still reach a private nested type, but a
+    /// plain object of it, elsewhere in the same file, needs it visible.
+    struct Step {
+        enum class Kind : uint8_t { RAMP, RUN } kind;
+        uint8_t actor;      ///< RUN: which actor. RAMP: whose home pose.
+        float seconds;      ///< RUN: how long. RAMP: the minimum time.
     };
 
 private:
@@ -189,18 +202,16 @@ private:
     //   made the palm bounce and the hand fall.
     // ---------------------------------------------------------------
 
-    /// One step of a transition: either ease the joints somewhere, or run an
-    /// actor for a while.
-    struct Step {
-        enum class Kind : uint8_t { RAMP, RUN } kind;
-        uint8_t actor;      ///< RUN: which actor. RAMP: whose home pose.
-        float seconds;      ///< RUN: how long. RAMP: the minimum time.
-    };
-
-    /// Both requests just ramp to WALK's own home -- there is no other
-    /// actor on this build to land on (see Actor's own comment).
-    static const Step kRiseSequence[1];
-    static const Step kSitSequence[1];
+    /// Which steps RISE/SIT actually run -- per the CONFIGURED robot (see
+    /// policy::robotId()), not compiled in for just one any more: kxrl4d
+    /// alone has a trained getup skill, so ITS rise runs GETUP for a
+    /// while; kxrl4t/kxrl6/kxrl2g (and kxrl4d's own SIT -- no trained
+    /// lie-down skill either) just ramp to WALK's own home, the same
+    /// place a plain `hold` (button click) puts the hand. Defined in
+    /// policy_mode.cpp, keyed by robot, rather than as static members
+    /// here: there is no single answer any more for this class to own.
+    const Step* riseSequence(size_t* count) const;
+    const Step* sitSequence(size_t* count) const;
 
     /// Start a scripted transition. Returns false if one is already running.
     bool beginSequence(const Step* steps, size_t count, uint8_t ends_as);
