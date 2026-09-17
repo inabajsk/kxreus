@@ -168,6 +168,22 @@ const float* homeRadOf(size_t index);
 const float* jointLowRad();
 const float* jointHighRad();
 const uint8_t* servoIds();
+
+/// The compiled-in servo id list for the NAMED robot's own "walk" actor
+/// (index 0 -- see policy.cpp's own kRobots[] convention), regardless of
+/// which robot is actually CONFIGURED right now. Every other accessor on
+/// this page answers for "the configured robot"; this one exists only
+/// for RobotSelectMode's own hardware auto-detect (see
+/// lib/robot_select_mode), which has to compare a live RCB-4 servo scan
+/// against EVERY candidate robot, not just whichever one happens to be
+/// selected -- there being no configured robot yet is the exact case
+/// that feature is for.
+///
+/// @param id     which robot's own table to read.
+/// @param count  set to that robot's own actDim() -- how many entries
+///                `*count` are valid. 0 (and a null return) if `id` is
+///                out of range.
+const uint8_t* servoIdsOfRobot(RobotId id, size_t* count);
 /// The board's own positive-rotation sign for each servo, in the same
 /// per-joint order servoIds() is (see kxreus/rcb4robotconfig.l's own
 /// per-servo direction annotation, next to each robot's joint name --

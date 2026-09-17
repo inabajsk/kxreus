@@ -55,11 +55,14 @@ Rcb4Link rcb4_link;
 BridgeMode bridge_mode(rcb4_link);
 StatusMode status_mode(rcb4_link);
 PolicyMode policy_mode(rcb4_link);
-// Touches nothing but the LCD/button/NVS -- no Rcb4Link, on purpose: this
-// is reachable (see the mode cycle below) with no board wired up at all,
-// which is exactly the state a just-unboxed M5StickC is in the first
-// time someone sets its robot identity.
-RobotSelectMode robot_select_mode;
+// Shares rcb4_link with BRIDGE/POLICY -- unlike every other field this
+// mode touches (LCD/button/NVS only), enter()'s own hardware guess reads
+// the RCB-4's live servo table over this same UART (see
+// RobotSelectMode::detectFromHardware()'s own comment). Works the same
+// with nothing wired up at all: that read just fails and the guess is
+// skipped, exactly the state a just-unboxed M5StickC is in the first
+// time someone sets its robot identity by hand instead.
+RobotSelectMode robot_select_mode(rcb4_link);
 
 Mode* const kModes[] = {&bridge_mode, &status_mode, &policy_mode,
                         &robot_select_mode};

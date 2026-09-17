@@ -656,6 +656,17 @@ const float* homeRadOf(size_t index) {
 const float* jointLowRad() { return actorAt(g_selected).joint_low; }
 const float* jointHighRad() { return actorAt(g_selected).joint_high; }
 const uint8_t* servoIds() { return actorAt(g_selected).servo_ids; }
+
+const uint8_t* servoIdsOfRobot(RobotId id, size_t* count) {
+    const size_t index = static_cast<size_t>(id);
+    if (index >= kRobotCount) {
+        *count = 0;
+        return nullptr;
+    }
+    const RobotEntry& r = kRobots[index];
+    *count = r.act_dim;
+    return r.actors[0].servo_ids;
+}
 const int8_t* servoDirection() { return actorAt(g_selected).servo_direction; }
 float actionScale() { return actorAt(g_selected).action_scale; }
 float phasePeriodS() { return actorAt(g_selected).phase_period_s; }
