@@ -13,15 +13,24 @@
 // which runs unconditionally, regardless of which mode is current (see its
 // own top comment for why that is safe: neither opcode touches that wire).
 //
-// The button cycles three modes, and they are modes rather than options
+// The button cycles four modes, and they are modes rather than options
 // because each one wants the RCB-4's own UART to itself:
 //
 //   BRIDGE  the PC (or a PC-side ATOM Echo) speaks RCB-4 and this carries
 //           ordinary commands to the real board too. The default.
 //   STATUS  ordinary passthrough stops; shows what has been going through.
-//   POLICY  this speaks RCB-4 and runs the trained actor itself, with the PC
-//           reduced to sending three numbers of velocity command. See
+//   ROBOT   choose which of the five robots this unit is, with nothing
+//           but the button -- see lib/robot_select_mode.
+//   POLICY  this speaks RCB-4 and runs the trained actor itself (or, for
+//           kxra6g, which carries none, dispatches its own onboard
+//           motion table instead), with the PC reduced to sending three
+//           numbers of velocity command or a motion slot. See
 //           lib/policy_mode.
+//
+// ROBOT sits right after STATUS, before POLICY -- reachable without a
+// detour through POLICY, which is the mode with the least to offer an
+// operator standing at the button in the first place (most of all for
+// kxra6g, which has no actor to hold a stance with).
 //
 // A LONG press cycles them. A short press, and a double press, go to whatever
 // the current mode makes of them -- in POLICY, servos on and off, and the
@@ -69,8 +78,13 @@ PolicyMode policy_mode(rcb4_link);
 // someone sets its robot identity by hand instead.
 RobotSelectMode robot_select_mode(rcb4_link);
 
-Mode* const kModes[] = {&bridge_mode, &status_mode, &policy_mode,
-                        &robot_select_mode};
+// ROBOT sits right after STATUS, before POLICY: picking a robot identity
+// (or just checking the hardware guess) should never need a detour
+// through POLICY to get there and back -- especially for a robot like
+// kxra6g that carries no trained actor, where POLICY has the least to
+// offer an operator standing at the button in the first place.
+Mode* const kModes[] = {&bridge_mode, &status_mode, &robot_select_mode,
+                        &policy_mode};
 constexpr size_t kModeCount = sizeof(kModes) / sizeof(kModes[0]);
 
 // Which mode the firmware comes up in. BRIDGE, unless a build says otherwise:

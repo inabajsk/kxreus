@@ -113,10 +113,17 @@ RobotId robotId();
 /// within one robot.
 bool setRobotId(RobotId id);
 
-/// This unit's own LCD mounting -- 0 or 2 (180 degrees), per robot rather
-/// than a single compile-time DISPLAY_ROTATION the way a per-robot tree
-/// had: which robot's body an AtomS3 ends up mounted in decides this now,
-/// not which firmware image it happened to be flashed with.
+/// This unit's own LCD mounting -- 0 or 2 (180 degrees), read off the
+/// configured robot's own kRobots[] row rather than a single compile-time
+/// DISPLAY_ROTATION the way a per-robot tree had. Every row is 2 today:
+/// confirmed on real hardware that this project's AtomS3 case mounts the
+/// board the same way regardless of which of the five robots it is
+/// configured as -- swapping identity via setRobotId() does not re-mount
+/// the physical board, so this is not really "one value per robot" so
+/// much as "one value per physical case", incidentally read out of the
+/// per-robot table because that is where every other per-unit constant
+/// already lives. A genuinely differently-mounted unit would need its
+/// own real per-unit setting instead of a different guess here.
 int displayRotation();
 
 /// Copy the weights into RAM, if this build asks for it.

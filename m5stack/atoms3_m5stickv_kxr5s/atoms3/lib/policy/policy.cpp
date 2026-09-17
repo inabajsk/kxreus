@@ -560,33 +560,43 @@ struct RobotEntry {
     size_t detect_count;
 };
 
+// display_rotation is 2 (180 degrees) for all five rows below, not just
+// kxrl2g/kxra6g as the four-robot kxr4s table had it. That table's own
+// per-robot value was really standing in for "how THIS PHYSICAL AtomS3
+// happens to be mounted", which was a fine proxy for robot identity back
+// when each robot was its own firmware tree flashed onto its own,
+// never-reassigned unit -- but kxr5s's whole point is that ONE physical
+// unit's robot identity is chosen in NVS and can change, and swapping
+// that identity does not un-mount the board or spin it around: confirmed
+// on real hardware this session, the same physical AtomS3 read upside
+// down under kxrl4t/kxrl4d/kxrl6's own compiled-in 0 and right side up
+// only once switched to kxrl2g or kxra6g's own 2. Every AtomS3 case this
+// project uses mounts it the same way, so 2 is the right value across
+// the board (a differently mounted unit, if one ever turns up, needs its
+// own real per-unit setting -- not a per-robot guess that breaks the
+// moment its identity is reassigned).
 const RobotEntry kRobots[] = {
         {"kxrl4t", kKxrl4TActors, kKxrl4TActorCount, kKxrl4TMotions,
-         kKxrl4TMotionCount, /*display_rotation=*/0,
+         kKxrl4TMotionCount, /*display_rotation=*/2,
          POLICY_KXRL4TWALK_OBS_DIM, POLICY_KXRL4TWALK_ACT_DIM,
          2 * POLICY_KXRL4TWALK_OBS_DIM * sizeof(float) +
                  POLICY_KXRL4TWALK_LAYERS * 2 * sizeof(float) +
                  POLICY_KXRL4TWALK_WEIGHT_FLOATS * sizeof(int16_t),
          nullptr, 0},
         {"kxrl4d", kKxrl4DActors, kKxrl4DActorCount, kKxrl4DMotions,
-         kKxrl4DMotionCount, /*display_rotation=*/0,
+         kKxrl4DMotionCount, /*display_rotation=*/2,
          POLICY_KXRL4DWALK_OBS_DIM, POLICY_KXRL4DWALK_ACT_DIM,
          2 * POLICY_KXRL4DWALK_OBS_DIM * sizeof(float) +
                  POLICY_KXRL4DWALK_LAYERS * 2 * sizeof(float) +
                  POLICY_KXRL4DWALK_WEIGHT_FLOATS * sizeof(int16_t),
          nullptr, 0},
         {"kxrl6", kKxrl6Actors, kKxrl6ActorCount, kKxrl6Motions,
-         kKxrl6MotionCount, /*display_rotation=*/0, POLICY_KXRL6WALK_OBS_DIM,
+         kKxrl6MotionCount, /*display_rotation=*/2, POLICY_KXRL6WALK_OBS_DIM,
          POLICY_KXRL6WALK_ACT_DIM,
          2 * POLICY_KXRL6WALK_OBS_DIM * sizeof(float) +
                  POLICY_KXRL6WALK_LAYERS * 2 * sizeof(float) +
                  POLICY_KXRL6WALK_WEIGHT_FLOATS * sizeof(int16_t),
          nullptr, 0},
-        // This unit's AtomS3 sits mounted upside down on the body, so the
-        // LCD needs a 180 degree flip to read right side up -- the same
-        // 2 the standalone atoms3_m5stickv_kxrl2g tree's own
-        // platformio.ini used to hardcode. Retune here if a differently
-        // mounted kxrl2g body turns up.
         {"kxrl2g", kKxrl2GActors, kKxrl2GActorCount, kKxrl2GMotions,
          kKxrl2GMotionCount, /*display_rotation=*/2, POLICY_KXRL2GWALK_OBS_DIM,
          POLICY_KXRL2GWALK_ACT_DIM,
@@ -595,10 +605,7 @@ const RobotEntry kRobots[] = {
                  POLICY_KXRL2GWALK_WEIGHT_FLOATS * sizeof(int16_t),
          nullptr, 0},
         // No actors (nullptr/0): see this table's own top comment and
-        // policy::RobotId's own comment on kxra6g. display_rotation 2,
-        // confirmed on real hardware this same session as
-        // atoms3_kxra6g's own standalone tree uses (that AtomS3 also
-        // sits mounted upside down).
+        // policy::RobotId's own comment on kxra6g.
         {"kxra6g", nullptr, 0, kKxra6GMotions, kKxra6GMotionCount,
          /*display_rotation=*/2, /*obs_dim=*/0, /*act_dim=*/0,
          /*upload_bytes=*/0, kKxra6GDetectIds, kKxra6GDetectCount},
