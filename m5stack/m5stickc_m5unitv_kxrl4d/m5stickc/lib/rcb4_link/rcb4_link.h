@@ -117,6 +117,25 @@ public:
 
     void begin();
 
+    /// Whether an ordinary (non-intercepted) host frame is actually
+    /// forwarded to the real RCB-4 over this link's own UART.
+    ///
+    /// The IMU (0x90) and M5StickV (0x91) opcodes never touch this UART at
+    /// all -- feedFromHost() answers them itself -- so they stay available
+    /// regardless of this setting; only a PLAIN RCB-4 command (servo
+    /// positions, ROM reads, etc.) is affected.
+    ///
+    /// Exists because a host can now reach this relay from more than one
+    /// mode (BridgeMode's own Serial/ESP-NOW draining runs unconditionally
+    /// -- see main.cpp's HostRelay), but only BRIDGE mode actually owns
+    /// this wire: POLICY mode is itself continuously writing servo
+    /// commands to the same UART, and a host's ordinary frame arriving
+    /// mid-write would interleave with and corrupt it. Default false, so a
+    /// build that forgets to call this at all fails safe (no forwarding)
+    /// rather than fails open.
+    void setPassthroughEnabled(bool enabled) { passthrough_enabled_ = enabled; }
+    bool passthroughEnabled() const { return passthrough_enabled_; }
+
     /// Brings up the M5StickV's own I2C bus: M5.Ex_I2C, on the Grove
     /// connector (M5STICKV_SDA_PIN/M5STICKV_SCL_PIN) -- a peripheral
     /// completely separate from M5.Imu's own internal bus on this board.
@@ -161,9 +180,19 @@ public:
     /// like anything at all.
     bool midFrame() const { return body_remaining_ > 0 || pending_len_ > 0; }
 
-    /// Move whatever the board has said back to the host.
-    /// @return the number of bytes forwarded.
-    size_t pumpToHost();
+    /// Drain whatever the board has said, into a caller-owned buffer.
+    ///
+    /// Does not decide where those bytes go: unlike a plain USB-only relay,
+    /// this firmware now has two possible hosts (direct Serial, and a
+    /// PC-side ATOM Echo over ESP-NOW -- see BridgeMode's own HostSource),
+    /// and only the caller knows which one asked. Formerly wrote straight to
+    /// Serial itself; that assumption stopped holding once a second
+    /// transport existed.
+    ///
+    /// @param out  buffer to fill.
+    /// @param max  its capacity.
+    /// @return the number of bytes copied into `out`.
+    size_t pumpToHost(uint8_t* out, size_t max);
 
     /// Fill an IMU reply frame. Zeros if the IMU never came up, which reads as
     /// a zero acceleration vector and so fails on the far side rather than
@@ -350,6 +379,13 @@ private:
     bool transact(const uint8_t* cmd, size_t cmd_len, uint8_t* reply,
                   size_t reply_size, uint32_t timeout_ms);
 
+    /// How long an incomplete frame (see midFrame()) may sit waiting for
+    /// its own continuation before feedFromHost() gives up on it and
+    /// starts clean on the next byte -- see that function's own top
+    /// comment for why a stall this long means the rest is never coming
+    /// rather than merely being late.
+    static constexpr uint32_t FRAME_STALL_TIMEOUT_MS = 1000;
+
     HardwareSerial serial_;
     uint8_t pending_[2] = {0, 0};
     int pending_len_ = 0;
@@ -359,6 +395,9 @@ private:
     bool host_spoke_ = false;
     uint32_t to_host_ = 0;
     uint32_t imu_requests_ = 0;
+    /// millis() when the currently-incomplete frame (if any) started --
+    /// see FRAME_STALL_TIMEOUT_MS.
+    uint32_t frame_start_ms_ = 0;
 
     /// An M5StickV request being captured whole by feedFromHost() (see its
     /// own comment) -- [length, opcode, addr, subcmd, ...] up to 7 bytes,
@@ -366,6 +405,9 @@ private:
     uint8_t m5stickv_req_[7] = {0};
     size_t m5stickv_req_len_ = 0;
     bool capturing_m5stickv_ = false;
+
+    /// See setPassthroughEnabled's own comment. Off by default (fail safe).
+    bool passthrough_enabled_ = false;
 };
 
 #endif  // RCB4_LINK_H

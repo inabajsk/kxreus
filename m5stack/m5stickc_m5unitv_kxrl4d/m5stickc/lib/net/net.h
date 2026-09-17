@@ -275,6 +275,23 @@ void requestM5StickVWrite(uint8_t reg_addr, uint8_t value);
 /// is never applied twice.
 bool takeM5StickVWrite(uint8_t* reg_addr, uint8_t* value);
 
+/// The phone's policy page asking to run a different actor (compiled-in,
+/// or "uploaded" -- see policy::finishUpload()) -- from net.cpp's own
+/// /actor handler. Queued exactly like requestM5StickVWrite() above, but
+/// consumed on a different task: see takeActorSelect()'s own comment for
+/// why.
+void requestActorSelect(uint8_t index);
+
+/// Consumed by PolicyMode's own control-loop task (core 1), NOT its draw
+/// task, unlike takeM5StickVWrite(): policy::select() rewrites exactly
+/// the weight/bias pointers run() reads every control step, so it must
+/// run on run()'s own core, and only when nothing is calling run()
+/// concurrently -- PolicyMode::loop() only actually applies this while
+/// State::IDLE, dropping it otherwise (see that call site's own comment).
+/// True (and *index filled) if a request was waiting; clears it either
+/// way, so the same request is never applied twice.
+bool takeActorSelect(uint8_t* index);
+
 /// Take one waiting command frame, from UDP or from the page.
 ///
 /// @param frame  where to put it.
@@ -296,6 +313,40 @@ void send(const uint8_t* frame, size_t len);
 
 /// Whether a command has arrived over UDP recently enough to answer.
 bool hasPeer();
+
+/// Whether the phone's own control page is currently open and polling --
+/// true within a few polls of its last GET /c, false once it has closed
+/// the tab or lost its own network path here. /c is what the page's
+/// tick() sends ten times a second for as long as it is open, whether or
+/// not the operator's thumb is actually doing anything, so this is a
+/// direct "is a phone here" signal -- see BridgeMode's own PHONE lamp,
+/// which is the reason this exists (it needed a phone-liveness question
+/// to answer, the same way EspNowLink::isLinkUp() answers one for the
+/// PC-side ATOM Echo).
+bool phoneActive();
+
+/// GET /info's own body -- shared by the plain WebServer (net.cpp's own
+/// handleInfoRequest()) and the HTTPS server (lib/https_server), which
+/// both serve the same phone page and so must answer this the same way.
+String buildInfoJson();
+
+/// Large enough for GET /c's own reply (see buildCommandJson()) at its
+/// biggest: the fixed fields plus two POLICY_ACT_DIM-long arrays (pulse,
+/// target) and the M5StickV detection bytes -- sized here, once, so both
+/// servers that call it agree on how big a buffer to give it.
+constexpr size_t COMMAND_JSON_MAX =
+        420 + POLICY_ACT_DIM * 24 + Rcb4Link::M5STICKV_MAX_READ * 4;
+
+/// GET /c's own body: applies `hex` (COMMAND_SIZE*2 hex chars, or nullptr
+/// for none -- the page's own periodic poll often has nothing new to
+/// send) as a command frame exactly the way the USB/UDP paths do, then
+/// reports telemetry. Also marks this instant as "a phone asked" (see
+/// phoneActive()) regardless of whether `hex` parsed -- even a malformed
+/// frame still proves a phone is there. Writes into `out` (at least
+/// COMMAND_JSON_MAX bytes) rather than returning a String: called from
+/// PsychicHttp's own response-building path in lib/https_server, which
+/// wants a plain buffer, not one more copy through String.
+void buildCommandJson(const char* hex, char* out, size_t out_cap);
 
 /// Whether the control loop has published telemetry recently.
 ///

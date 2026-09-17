@@ -226,8 +226,15 @@ size_t Rcb4Link::buildM5StickVReply(uint8_t frame[M5STICKV_REPLY_CAPACITY]) {
 
 void Rcb4Link::releasePending() {
     if (pending_len_ > 0) {
-        serial_.write(pending_, pending_len_);
-        to_board_ += pending_len_;
+        // See setPassthroughEnabled's own comment: an ordinary frame is
+        // only ever actually written to the real RCB-4 while some mode has
+        // asked for that (BRIDGE mode, today). Bytes are still consumed
+        // and counted here either way -- framing must stay in sync
+        // regardless -- just not put on the wire.
+        if (passthrough_enabled_) {
+            serial_.write(pending_, pending_len_);
+            to_board_ += pending_len_;
+        }
         pending_len_ = 0;
     }
 }
@@ -235,6 +242,27 @@ void Rcb4Link::releasePending() {
 Rcb4Link::Intercept Rcb4Link::feedFromHost(uint8_t byte) {
     host_spoke_ = true;
     last_host_ms_ = millis();
+
+    // Self-heal a frame stuck mid-parse -- a byte lost somewhere on the way
+    // here (ESP-NOW has no 100% guarantee even with EspNowLink's own
+    // seq+ACK retry; a plain USB link can drop one too under enough noise)
+    // otherwise leaves pending_len_/body_remaining_/capturing_m5stickv_
+    // waiting forever for a continuation that will never arrive -- and
+    // every byte from then on is misread against that stale state, which
+    // is indistinguishable from a true hang to whoever is on the other
+    // end (measured: a euslisp :wait-ack retry loop spinning until
+    // manually interrupted and restarted, which "fixed" it only because
+    // restarting reopens the port and this board happens to still be
+    // freshly booted). Discarding a too-old partial frame and starting
+    // clean on the next byte costs, at most, one already-doomed
+    // request/reply cycle -- far cheaper than staying wedged until
+    // somebody notices and power-cycles this board.
+    if (midFrame() && millis() - frame_start_ms_ > FRAME_STALL_TIMEOUT_MS) {
+        pending_len_ = 0;
+        body_remaining_ = 0;
+        capturing_m5stickv_ = false;
+        m5stickv_req_len_ = 0;
+    }
 
     // An M5StickV request being captured whole (see M5STICKV_OPCODE's own
     // comment on why this cannot be held back the same fixed-length way
@@ -251,8 +279,10 @@ Rcb4Link::Intercept Rcb4Link::feedFromHost(uint8_t byte) {
 
     // Mid-frame: the opcode is already known, so this is just a relay.
     if (body_remaining_ > 0) {
-        serial_.write(byte);
-        to_board_++;
+        if (passthrough_enabled_) {
+            serial_.write(byte);
+            to_board_++;
+        }
         body_remaining_--;
         return Intercept::NONE;
     }
@@ -267,14 +297,19 @@ Rcb4Link::Intercept Rcb4Link::feedFromHost(uint8_t byte) {
         }
         // Checksum does not match, so this was not the IMU request after all.
         // Hand the whole thing to the board and let it judge.
-        serial_.write(IMU_REQUEST, 2);
-        serial_.write(byte);
-        to_board_ += 3;
+        if (passthrough_enabled_) {
+            serial_.write(IMU_REQUEST, 2);
+            serial_.write(byte);
+            to_board_ += 3;
+        }
         return Intercept::NONE;
     }
 
     pending_[pending_len_++] = byte;
     if (pending_len_ == 1) {
+        // A fresh frame starting -- see the stall check at the top of this
+        // function, which bounds how long it may stay incomplete.
+        frame_start_ms_ = millis();
         // A length of 0 or 1 cannot be a frame; pass it on rather than
         // waiting for an opcode that will never come.
         if (byte < 2) releasePending();
@@ -311,16 +346,20 @@ Rcb4Link::Intercept Rcb4Link::feedFromHost(uint8_t byte) {
     return Intercept::NONE;
 }
 
-size_t Rcb4Link::pumpToHost() {
-    uint8_t buf[256];
+size_t Rcb4Link::pumpToHost(uint8_t* out, size_t max) {
+    // While passthrough is off, this UART is not this link's own to read:
+    // whoever else owns it right now (PolicyMode's own transact(), which
+    // does its own serial_.available()/read()) must see every byte the
+    // real RCB-4 sends, not have some of them stolen by a host-relay loop
+    // now running unconditionally in every mode -- see
+    // setPassthroughEnabled's own comment.
+    if (!passthrough_enabled_) return 0;
+
     size_t n = 0;
-    while (serial_.available() && n < sizeof(buf)) {
-        buf[n++] = serial_.read();
+    while (serial_.available() && n < max) {
+        out[n++] = serial_.read();
     }
-    if (n > 0) {
-        Serial.write(buf, n);
-        to_host_ += n;
-    }
+    to_host_ += n;
     return n;
 }
 

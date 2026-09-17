@@ -9,7 +9,6 @@ void StatusMode::enter() {
     showing_qr_ = false;
     drawn_url_ = "";
     qr_dirty_ = true;
-    setup_len_ = 0;
     // apriltag_en (bit 3) of the M5StickV's own control register (reg 0x00)
     // -- off by default on that side (object_detection_I2C_slave.py never
     // sets it on its own), so nothing runs find_apriltags() at all, and
@@ -43,26 +42,6 @@ void StatusMode::onDoubleClick() {
     last_draw_ms_ = 0;
     qr_dirty_ = true;
 }
-
-void StatusMode::readSetup() {
-    while (Serial.available()) {
-        const char c = static_cast<char>(Serial.read());
-        if (c == '\n' || c == '\r') {
-            setup_line_[setup_len_] = '\0';
-            if (setup_len_ > 0 && !net::handleSetupLine(setup_line_, Serial)) {
-                Serial.println("ERR expected: net <ssid>TAB<password>, net?, net!");
-            }
-            setup_len_ = 0;
-            continue;
-        }
-        if (setup_len_ + 1 >= sizeof(setup_line_)) {
-            setup_len_ = 0;  // nothing this long is one of these commands
-            continue;
-        }
-        setup_line_[setup_len_++] = c;
-    }
-}
-
 
 void StatusMode::drawQr() {
     const String url = net::url();
@@ -100,7 +79,11 @@ void StatusMode::drawQr() {
 }
 
 void StatusMode::loop() {
-    readSetup();
+    // The Wi-Fi setup text protocol used to be read here (Serial only, and
+    // only reachable in this one mode) -- now HostRelay reads it from every
+    // mode uniformly (Serial and ESP-NOW alike, gated on the same "net"
+    // prefix BridgeMode's own version always required), so this mode no
+    // longer needs its own copy.
 
     const uint32_t now = millis();
     if (now - last_draw_ms_ < REDRAW_INTERVAL_MS) return;

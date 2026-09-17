@@ -271,14 +271,40 @@ const char kWebPage[] PROGMEM = R"HTML(<!doctype html>
   #motionSel { flex:1 1 auto; font-size:14px; padding:0 10px; border-radius:8px;
                border:1px solid #444; background:#1b1b1b; color:#eee; }
   #motionGo { flex:0 0 auto; padding:10px 18px; background:#5a3d0e; }
+  .voicesec { display:flex; gap:8px; padding:0 14px 8px; max-width:460px;
+              margin:0 auto; width:100%; box-sizing:border-box; flex:0 0 auto;
+              align-items:center; }
+  #voiceBtn { flex:0 0 auto; padding:10px 18px; background:#5a2b5a; }
+  #voiceBtn[aria-pressed="true"] { background:#8a3f8a; }
+  #voiceBtn:disabled { background:#2b2f36; color:#678; }
+  #voiceStatus { flex:1 1 auto; min-width:0; font-size:12px; color:#9aa;
+                 word-break:break-word; }
+  #voiceText { flex:1 1 auto; min-width:0; font-size:13px; padding:8px 10px;
+               border-radius:8px; border:1px solid #444; background:#1b1b1b;
+               color:#eee; }
+  #voiceGo { flex:0 0 auto; padding:8px 14px; font-size:13px;
+             background:#5a2b5a; }
+  /* Interim (not-yet-final) recognition text -- greyed, same distinction
+     the reference firmware's own LCD makes between still-listening and
+     committed text. */
+  #voiceStatus.interim { color:#678; font-style:italic; }
   .m5vsec { padding:0 14px 8px; max-width:460px; margin:0 auto; width:100%;
             box-sizing:border-box; flex:0 0 auto;
             display:flex; align-items:baseline; gap:10px; }
+  /* Fixed to exactly one line, no matter how much (or little) detection
+     data is behind it -- see describeM5StickV()'s own comment. Wrapping
+     used to grow this row's own height with whatever the M5StickV last
+     saw, which pushed the logsec row (and its wifi-setup/save buttons)
+     down and up under the operator's thumb as detections came and went. */
   #m5vStatus { font-size:11px; color:#678; font-variant-numeric:tabular-nums;
-               word-break:break-all; flex:1 1 auto; min-width:0; }
+               white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+               flex:1 1 auto; min-width:0; }
   #m5vLink { flex:0 0 auto; font-size:11px; color:#7ab8ff; text-decoration:none; }
   .policysec { display:flex; gap:8px; padding:0 14px 8px; max-width:460px;
                margin:0 auto; width:100%; box-sizing:border-box; flex:0 0 auto; }
+  #actorSel { flex:1 1 auto; font-size:14px; padding:0 10px; border-radius:8px;
+              border:1px solid #444; background:#1b1b1b; color:#eee; }
+  #actorGo { flex:0 0 auto; padding:10px 14px; background:#2b4a2b; }
   #policyFile { flex:0 0 auto; padding:10px 10px; background:#2b2f36;
                 font-size:13px; max-width:120px; }
   #policyGo { flex:0 0 auto; padding:10px 14px; background:#5a3d0e; }
@@ -335,12 +361,25 @@ const char kWebPage[] PROGMEM = R"HTML(<!doctype html>
   <select id="motionSel"></select>
   <button id="motionGo">call motion</button>
 </div>
+<div class="voicesec">
+  <button id="voiceBtn">🎤 話す</button>
+  <div id="voiceStatus">--</div>
+</div>
+<div class="voicesec">
+  <input id="voiceText" type="text" autocapitalize="off" autocorrect="off"
+    placeholder="5番 (キーボードのマイクでも入力可)">
+  <button id="voiceGo">実行</button>
+</div>
 <div class="m5vsec">
   <div id="m5vStatus">M5StickV: --</div>
   <a id="m5vLink" href="/m5v">settings &rarr;</a>
 </div>
 <div class="policysec">
-  <input id="policyFile" type="file" accept=".bin">
+  <select id="actorSel"></select>
+  <button id="actorGo">run</button>
+</div>
+<div class="policysec">
+  <input id="policyFile" type="file" accept=".bin,application/octet-stream">
   <button id="policyGo">upload</button>
 </div>
 <div class="policysec">
@@ -389,6 +428,10 @@ let mode = 2, vx = 0, wz = 0, useImu = false;
 // tools/motions_from_h4p.py), not a generic 0-119 list -- most of the 120
 // slots are factory-empty and calling one is pointless at best.
 let motionNumber = 0;
+// [number, name] pairs, same list motionSel's own <option>s come from --
+// see loadInfo() and voiceBtn's own handler, which checks a spoken number
+// against this before treating it as a real command.
+let MOTIONS = [];
 // Filled in by loadInfo(); the field-log module below needs it before that
 // first fetch resolves, so records logged in the meantime say "unknown"
 // (see FieldLog.record()) rather than silently mislabelling themselves.
@@ -505,6 +548,21 @@ document.getElementById('imu').addEventListener('click', () => {
 document.getElementById('imu').textContent = 'attitude: fixed';
 
 const motionSel = document.getElementById('motionSel');
+const actorSel = document.getElementById('actorSel');
+
+// ACTORS (populated by loadInfo(), below) grows by one, "uploaded", the
+// first time a policy upload succeeds -- see policy::finishUpload()'s own
+// comment. Rebuilt from scratch each time rather than diffed: cheap, and
+// simpler than tracking whether the one new option is already there.
+function fillActorSelect() {
+  actorSel.innerHTML = '';
+  ACTORS.forEach((name, i) => {
+    const opt = document.createElement('option');
+    opt.value = i;
+    opt.textContent = `${i}: ${name}`;
+    actorSel.appendChild(opt);
+  });
+}
 
 // The one thing this page needs from the device beyond the 10 Hz telemetry
 // tick: static per-robot facts that would otherwise have to be a different
@@ -520,6 +578,10 @@ async function loadInfo() {
     SERVO_IDS = info.servoIds;
     VX_MIN = info.vxMin; VX_MAX = info.vxMax; WZ_MAX = info.wzMax;
     ACTORS = info.actors;
+    fillActorSelect();
+    MOTIONS = info.motions;  // [number, name] pairs -- see voiceBtn's own
+                              // handler, which validates a spoken number
+                              // against this same list before acting on it.
     for (const [num, name] of info.motions) {
       const opt = document.createElement('option');
       opt.value = num;
@@ -536,6 +598,136 @@ async function loadInfo() {
   }
 }
 loadInfo();
+
+// "run": ask PolicyMode to switch to whichever actor the select above is
+// on. Handed off, not applied here -- see net::requestActorSelect()'s own
+// comment -- so this only ever fails on the network, never on whether the
+// device happens to be free to act on it right now (see
+// net::takeActorSelect()'s own comment on when it is simply dropped:
+// stop the robot -- "free" or "hold" -- first).
+document.getElementById('actorGo').addEventListener('click', async () => {
+  const status = document.getElementById('policyStatus');
+  try {
+    const r = await fetch('/actor', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+      body: 'index=' + actorSel.value,
+    });
+    status.textContent = r.ok
+        ? `policy: asked to run "${ACTORS[actorSel.value]}" -- stop first if it does not take`
+        : 'policy: request failed';
+  } catch (e) {
+    status.textContent = 'policy: network error';
+  }
+});
+
+// Shared by the file-picker upload below and the "downloadable policies"
+// section right after it: POST /policy (multipart, streamed by net.cpp
+// straight into policy::beginUpload()/appendUpload()/finishUpload()) is
+// the one path that has actually proven reliable on real hardware. An
+// earlier version of the download section instead had THIS DEVICE fetch
+// the file itself, directly, over its own second HTTPS connection --
+// reproduced on real hardware: that connection failing on its own
+// ("connection refused") then left the HTTPS server answering nothing
+// at all until the device was rebooted by hand, evidently unable to
+// hold this server's own TLS state open at the same time as a second,
+// unrelated one. Routing every source (a local file, or a blob this
+// page fetched itself from elsewhere) through this SAME upload call
+// keeps the robot's own HTTPS server completely out of it either way.
+function uploadPolicyBlob(blob, doneMessage) {
+  const status = document.getElementById('policyStatus');
+  const form = new FormData();
+  form.append('file', blob, 'policy.bin');
+  const xhr = new XMLHttpRequest();
+  xhr.open('POST', '/policy');
+  xhr.upload.onprogress = (e) => {
+    if (e.lengthComputable) {
+      status.textContent =
+          `policy: uploading ${Math.round(100 * e.loaded / e.total)}%`;
+    }
+  };
+  xhr.onload = async () => {
+    if (xhr.status === 200) {
+      status.textContent = doneMessage;
+      try {
+        const r = await fetch('/info', {cache: 'no-store'});
+        ACTORS = (await r.json()).actors;
+        fillActorSelect();
+      } catch (e) { /* the select just keeps its old options */ }
+    } else {
+      status.textContent = `policy: failed (${xhr.responseText || xhr.status})`;
+    }
+  };
+  xhr.onerror = () => { status.textContent = 'policy: network error'; };
+  xhr.send(form);
+}
+
+// "upload": a raw weights+biases file for THIS SAME actor's own network
+// shape (see policy::beginUpload()'s own comment on the exact layout
+// tools/export_policy.py must produce it in) -- not a different gait,
+// just a different trained checkpoint of the one already running, to
+// compare against.
+document.getElementById('policyGo').addEventListener('click', () => {
+  const input = document.getElementById('policyFile');
+  if (!input.files.length) {
+    document.getElementById('policyStatus').textContent = 'policy: pick a file first';
+    return;
+  }
+  uploadPolicyBlob(input.files[0], 'policy: uploaded -- pick "uploaded" above and run');
+});
+
+// Ready-made, already-quantized policies to compare against -- no PC,
+// just this phone. Both the manifest and the ~103 KiB policy body are
+// fetched by the PHONE's OWN browser (this repo is public; any browser
+// reaches raw.githubusercontent.com, on whatever network the phone
+// itself is on, regardless of which one the robot joined), then handed
+// to uploadPolicyBlob() above -- the same call the file picker uses --
+// so the robot's own HTTPS server is never involved. See
+// uploadPolicyBlob()'s own comment for why not: an earlier version had
+// the ROBOT fetch this itself, which broke its HTTPS server on real
+// hardware.
+const DOWNLOAD_BASE =
+    'https://raw.githubusercontent.com/inabajsk/kxreus/master/' +
+    'm5stack/m5stickc_m5unitv_kxrl4d/downloadable_policies/';
+let DOWNLOADS = [];
+
+async function loadDownloadList() {
+  const sel = document.getElementById('downloadSel');
+  try {
+    const r = await fetch(DOWNLOAD_BASE + 'manifest.json', {cache: 'no-store'});
+    DOWNLOADS = await r.json();
+    sel.innerHTML = '';
+    for (const d of DOWNLOADS) {
+      const opt = document.createElement('option');
+      opt.value = d.file;
+      opt.textContent = d.name;
+      sel.appendChild(opt);
+    }
+  } catch (e) {
+    sel.innerHTML = '<option>(list unavailable -- check this phone\'s own internet)</option>';
+  }
+}
+loadDownloadList();
+
+document.getElementById('downloadGo').addEventListener('click', async () => {
+  const sel = document.getElementById('downloadSel');
+  const status = document.getElementById('policyStatus');
+  const entry = DOWNLOADS.find((d) => d.file === sel.value);
+  if (!entry) return;
+  status.textContent = `policy: 「${entry.name}」をこの端末に取得中…`;
+  try {
+    const r = await fetch(DOWNLOAD_BASE + entry.file, {cache: 'no-store'});
+    if (!r.ok) {
+      status.textContent = `policy: 取得失敗 (GitHub側, ${r.status})`;
+      return;
+    }
+    const blob = await r.blob();
+    status.textContent = `policy: 「${entry.name}」をロボットに転送中…`;
+    uploadPolicyBlob(blob, `policy: 「${entry.name}」転送完了 -- 上で"uploaded"を選んで実行`);
+  } catch (e) {
+    status.textContent = 'policy: network error (この端末側)';
+  }
+});
 
 // Records this robot's own telemetry (attitude chief among it -- see
 // tick()'s own call into record()) into the phone's IndexedDB for as long
@@ -791,109 +983,199 @@ document.getElementById('motionGo').addEventListener('click', () => {
   dragging = null; kx = 0; ky = 0; draw();
 });
 
-// Shared by both the local-file "upload" button and the GitHub "fetch"
-// button below: either way the bytes end up POSTed to this device's own
-// /policy (see policy::beginUpload()'s own comment on the wire format),
-// which is the ONLY path that ever touches this device's upload buffer.
-// A downloaded policy is never fetched by this device itself -- an
-// earlier attempt at that (on a sibling tree, m5stickc_m5stickv_kxrl4t)
-// found that a device running its own HTTPS server cannot also make a
-// second, separate outbound HTTPS connection reliably: that connection
-// failing on its own ("connection refused") then left the HTTPS server
-// answering nothing at all until the device was rebooted by hand.
-// Routing every source (a local file, or a blob this page fetched itself
-// from elsewhere) through this SAME upload call keeps this device out of
-// that path entirely.
-function uploadPolicyBlob(blob, doneMessage) {
-  const status = document.getElementById('policyStatus');
-  const form = new FormData();
-  form.append('file', blob, 'policy.bin');
-  const xhr = new XMLHttpRequest();
-  xhr.open('POST', '/policy');
-  xhr.upload.onprogress = (e) => {
-    if (e.lengthComputable) {
-      status.textContent =
-          `policy: uploading ${Math.round(100 * e.loaded / e.total)}%`;
-    }
+// Voice-triggered motion calls -- "<number>番" ("number 5", say) runs that
+// motion-table slot exactly the way picking it from motionSel and pressing
+// "call motion" already does (see that handler just above): both paths
+// below only ever set motionNumber/mode, the same two variables, so every
+// existing safeguard (server-side State::IDLE gating, the manual-recovery
+// comment above) applies unchanged either way.
+//
+// Two input paths, because only one of them works on THIS page today:
+//
+// 1. A plain text field (voiceText/voiceGo). Typing "5番" and pressing
+//    Enter/実行 needs nothing beyond what every page already has -- and
+//    critically, so does using the PHONE'S OWN KEYBOARD dictation button
+//    to fill it: that is an OS-level feature of the keyboard itself, not
+//    a page permission, so it works over plain HTTP exactly the same as
+//    typing does. This is the path that actually functions right now.
+//
+// 2. webkitSpeechRecognition (voiceBtn), modelled on
+//    https://github.com/iory/atoms3-voice-control (Web Speech API in the
+//    page, recognized text handled client-side) -- but that firmware's
+//    own HTTPS/local-ip.sh certificate machinery is deliberately NOT
+//    ported here: SpeechRecognition itself requires a secure context
+//    (HTTPS or localhost) by browser policy, and this page is served
+//    over plain HTTP from the M5StickC's own WebServer, so the API is
+//    simply unavailable as things stand -- see the RAM-cost discussion
+//    at this repo's own beginUpload() for why a TLS server was not
+//    added just to unlock it. The button below detects this and disables
+//    itself with an explanation, pointing at path 1 instead; whoever
+//    gets this device onto a secure origin later (a reverse proxy, a
+//    browser flag, or eventually porting that certificate system) gets a
+//    working push-to-talk button for free, no further change here.
+(() => {
+  const status = document.getElementById('voiceStatus');
+  const textInput = document.getElementById('voiceText');
+  const textGo = document.getElementById('voiceGo');
+
+  // Digits followed by "番" ("5番" == motion table slot 5), anywhere in
+  // the utterance -- not anchored to the whole string, since a spoken
+  // (or dictated) sentence carries filler words a strict match would
+  // reject outright ("5番お願い" is exactly as valid an ask as bare
+  // "5番").
+  const NUMBER_RE = /([0-9]+)\s*番/;
+
+  // This robot's own motion names (see tools/motions_from_h4p.py /
+  // policy.cpp's own kMotions[]) are kanji, but a spoken command does not
+  // reliably transcribe as the same kanji -- a compound the recognizer
+  // is unsure of often comes back as its reading instead, in hiragana or
+  // katakana. Hand-authored per name (the list is short and fixed, not
+  // worth pulling in a real kanji-to-reading engine for): update this if
+  // that table ever changes. Matched as a plain substring, same leniency
+  // NUMBER_RE already gives filler words ("前進して" still finds "前進").
+  const MOTION_READINGS = {
+    '一定歩行前（3回)': 'いっていほこうまえ',
+    '一定歩行後（3回）': 'いっていほこうあと',
+    '左旋回（３回）': 'ひだりせんかい',
+    '右旋回（3回）': 'みぎせんかい',
+    '前進': 'ぜんしん',
+    '後進': 'こうしん',
+    '左移動': 'ひだりいどう',
+    '右移動': 'みぎいどう',
+    '旋回左': 'せんかいひだり',
+    '旋回右': 'せんかいみぎ',
+    'ゆっくり歩行前': 'ゆっくりほこうまえ',
+    'ゆっくり歩行後': 'ゆっくりほこうあと',
+    '手を振る': 'てをふる',
+    'バタバタする': 'ばたばたする',
+    '首を振る': 'くびをふる',
+    'ホームポジション': 'ほーむぽじしょん',
+    '電圧低下': 'でんあつていか',
   };
-  xhr.onload = async () => {
-    if (xhr.status === 200) {
-      status.textContent = doneMessage;
-      try {
-        const r = await fetch('/info', {cache: 'no-store'});
-        ACTORS = (await r.json()).actors;
-      } catch (e) { /* ACTORS just keeps its old contents */ }
-    } else {
-      status.textContent = `policy: failed (${xhr.responseText || xhr.status})`;
-    }
-  };
-  xhr.onerror = () => { status.textContent = 'policy: network error'; };
-  xhr.send(form);
-}
 
-// "upload": a raw weights+biases file for THIS SAME actor's own network
-// shape (see policy::beginUpload()'s own comment on the exact layout
-// tools/export_policy.py must produce it in) -- not a different gait,
-// just a different trained checkpoint of the one already running, to
-// compare against.
-document.getElementById('policyGo').addEventListener('click', () => {
-  const input = document.getElementById('policyFile');
-  if (!input.files.length) {
-    document.getElementById('policyStatus').textContent = 'policy: pick a file first';
-    return;
+  // Katakana -> hiragana (U+30A1-U+30F6 sit exactly 0x60 above their
+  // hiragana counterparts), so a recognizer that rendered a reading in
+  // katakana still matches MOTION_READINGS' own hiragana.
+  function toHiragana(s) {
+    return s.replace(/[ァ-ヶ]/g,
+        (c) => String.fromCharCode(c.charCodeAt(0) - 0x60));
   }
-  uploadPolicyBlob(input.files[0], 'policy: uploaded -- see this robot\'s own actor-switching (button/sequence) for how to run it');
-});
 
-// Ready-made, already-quantized policies to compare against -- no PC,
-// just this phone. Both the manifest and the policy body are fetched by
-// the PHONE's OWN browser (this repo is public; any browser reaches
-// raw.githubusercontent.com, on whatever network the phone itself is on,
-// regardless of which one the robot joined), then handed to
-// uploadPolicyBlob() above -- the same call the file picker uses -- so
-// this device's own HTTPS server (if any) is never involved.
-const DOWNLOAD_BASE =
-    'https://raw.githubusercontent.com/inabajsk/kxreus/master/' +
-    'm5stack/m5stickc_m5unitv_kxrl4d/downloadable_policies/';
-let DOWNLOADS = [];
-
-async function loadDownloadList() {
-  const sel = document.getElementById('downloadSel');
-  try {
-    const r = await fetch(DOWNLOAD_BASE + 'manifest.json', {cache: 'no-store'});
-    DOWNLOADS = await r.json();
-    sel.innerHTML = '';
-    for (const d of DOWNLOADS) {
-      const opt = document.createElement('option');
-      opt.value = d.file;
-      opt.textContent = d.name;
-      sel.appendChild(opt);
+  // "<N>番" first (unambiguous when present), then the motion's own kanji
+  // name as a plain substring either way (recognized text inside the
+  // name, or the name inside a longer recognized sentence), then its
+  // reading the same way. First match wins; MOTIONS is short enough that
+  // which of several partial matches "wins" has never needed a tie-break.
+  function findMotion(text) {
+    const m = text.match(NUMBER_RE);
+    if (m) {
+      const num = parseInt(m[1], 10);
+      const known = MOTIONS.find(([n]) => n === num);
+      if (known) return known;
     }
-  } catch (e) {
-    sel.innerHTML = '<option>(list unavailable -- check this phone\'s own internet)</option>';
+    for (const known of MOTIONS) {
+      const name = known[1];
+      if (text.includes(name) || name.includes(text)) return known;
+    }
+    const reading = toHiragana(text);
+    for (const known of MOTIONS) {
+      const target = MOTION_READINGS[known[1]];
+      if (target && (reading.includes(target) || target.includes(reading))) {
+        return known;
+      }
+    }
+    return null;
   }
-}
-loadDownloadList();
 
-document.getElementById('downloadGo').addEventListener('click', async () => {
-  const sel = document.getElementById('downloadSel');
-  const status = document.getElementById('policyStatus');
-  const entry = DOWNLOADS.find((d) => d.file === sel.value);
-  if (!entry) return;
-  status.textContent = `policy: 「${entry.name}」をこの端末に取得中…`;
-  try {
-    const r = await fetch(DOWNLOAD_BASE + entry.file, {cache: 'no-store'});
-    if (!r.ok) {
-      status.textContent = `policy: 取得失敗 (GitHub側, ${r.status})`;
+  function runMotion(text) {
+    const known = findMotion(text);
+    if (!known) {
+      status.textContent = `認識: 「${text}」(該当する動作が見つかりません)`;
       return;
     }
-    const blob = await r.blob();
-    status.textContent = `policy: 「${entry.name}」をロボットに転送中…`;
-    uploadPolicyBlob(blob, `policy: 「${entry.name}」転送完了 -- 上で"uploaded"を選んで実行`);
-  } catch (e) {
-    status.textContent = 'policy: network error (この端末側)';
+    const [num, name] = known;
+    motionNumber = num;
+    mode = 5;
+    dragging = null; kx = 0; ky = 0; draw();
+    status.textContent = `認識: 「${text}」-> ${num}番「${name}」を実行`;
+    status.className = '';
   }
-});
+
+  function runFromTextField() {
+    const text = textInput.value.trim();
+    if (!text) return;
+    runMotion(text);
+    textInput.value = '';
+  }
+  textGo.addEventListener('click', runFromTextField);
+  textInput.addEventListener('keydown', (ev) => {
+    if (ev.key === 'Enter') runFromTextField();
+  });
+
+  const btn = document.getElementById('voiceBtn');
+  const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+  if (!window.isSecureContext || !Recognition) {
+    btn.disabled = true;
+    btn.title = window.isSecureContext
+        ? '音声認識に対応していないブラウザです'
+        : 'このページは http なので音声認識APIは使えません -- 下の入力欄でキーボードのマイクを使ってください';
+    return;
+  }
+
+  const recognition = new Recognition();
+  recognition.lang = 'ja-JP';
+  recognition.continuous = false;
+  recognition.interimResults = true;
+  let listening = false;
+
+  recognition.onresult = (ev) => {
+    const result = ev.results[ev.results.length - 1];
+    const text = result[0].transcript;
+    if (result.isFinal) {
+      runMotion(text);
+    } else {
+      status.textContent = `聞き取り中: 「${text}」`;
+      status.className = 'interim';
+    }
+  };
+  recognition.onerror = (ev) => {
+    status.textContent = `音声認識エラー: ${ev.error}`;
+    status.className = '';
+  };
+  recognition.onend = () => {
+    listening = false;
+    btn.setAttribute('aria-pressed', 'false');
+  };
+
+  // Push-to-talk, like the reference firmware's own button: held down
+  // while speaking, released when done, rather than always-on listening
+  // that would also pick up the robot's operator talking to someone else
+  // in the room.
+  function start(ev) {
+    ev.preventDefault();
+    if (listening) return;
+    listening = true;
+    btn.setAttribute('aria-pressed', 'true');
+    status.textContent = '聞いています…';
+    status.className = 'interim';
+    try {
+      recognition.start();
+    } catch (e) {
+      // start() throws if called while already running (e.g. a stray
+      // double-fire of pointerdown) -- recognition's own onend/onerror
+      // will still land normally, so there is nothing else to do here.
+    }
+  }
+  function stop() {
+    if (!listening) return;
+    recognition.stop();
+  }
+  btn.addEventListener('pointerdown', start);
+  btn.addEventListener('pointerup', stop);
+  btn.addEventListener('pointerleave', stop);
+  btn.addEventListener('pointercancel', stop);
+})();
 
 // Pinned to the viewport (see #estop's CSS) and needs no coordinates from
 // the stick's own layout, so it works even when that layout has gone wrong.
@@ -928,50 +1210,49 @@ function frame() {
   return Array.from(b, x => x.toString(16).padStart(2, '0')).join('');
 }
 
+// The M5StickV's own object-detection firmware (atom/m5stickv/
+// object_detection_I2C_slave.py) writes one or more back-to-back records
+// into this buffer, each starting with a type byte (TYPE_NN=0,
+// TYPE_APRILTAG=1, TYPE_RED=2, TYPE_GREEN=3, TYPE_APRIL3D=4,
+// TYPE_APRIL3D_COLOR=5, TYPE_CUBE_FACE=6, TYPE_CUBE_BBOX=7) and then that
+// type's own fixed-size fields. Only the FIRST record is actually decoded
+// here -- the common case is one detection mode enabled at a time, so
+// the buffer is usually several records of the SAME type back to back,
+// and RECORD_SIZE below is enough to at least count those -- rather than
+// walking a fully general mixed-type stream, which would need every
+// type's exact size right (several are still being extended on the
+// MaixPy side) to avoid parsing off into garbage. Good enough for "what
+// kind of thing, and how many", which is what a glance at this row is
+// for; the M5v settings page's own hex dump (removed) was never that.
+const M5V_TYPE_NAMES = {
+  0: '物体', 1: 'AprilTag', 2: '赤', 3: '緑',
+  4: 'AprilTag3D', 5: 'AprilTag3D+色', 6: 'キューブ面', 7: 'キューブ候補',
+};
+const M5V_RECORD_SIZE = {0: 11, 1: 20, 2: 9, 3: 9};
+function describeM5StickV(bytes) {
+  if (!bytes || bytes.length === 0) return '検出なし';
+  const type = bytes[0];
+  const name = M5V_TYPE_NAMES[type] ?? `不明(${type})`;
+  let detail = '';
+  if (type === 0 && bytes.length >= 11) {
+    detail = ` class${bytes[10]}`;  // no label table on this device -- see
+                                     // object_detection_I2C_slave.py's own
+                                     // comment on why classification stays
+                                     // a bare id here.
+  } else if (type === 1 && bytes.length >= 19) {
+    detail = ` #${bytes[17] | (bytes[18] << 8)}`;
+  }
+  const size = M5V_RECORD_SIZE[type];
+  const count = size ? Math.floor(bytes.length / size) : 1;
+  return count > 1 ? `${name}${detail} ×${count}` : `${name}${detail}`;
+}
+
 const STATES = {0:'idle', 1:'running', 2:'holding', 3:'FAULT', 4:'homing',
                 5:'transition', 6:'motion'};
 // Filled in by loadInfo() -- this robot's own lib/policy/policy.cpp
 // kActors[] names, in order, so a build with only "walk" (most of these
 // robots have no getup policy at all) is not shown a nonexistent "getup".
 let ACTORS = [];
-
-// Decodes the M5StickV I2C bridge's raw detection-record bytes into a short
-// human-readable summary, mirroring object_detection_I2C_slave.py's own
-// TYPE_NN/TYPE_APRILTAG/TYPE_RED/TYPE_GREEN byte layout (see that script's
-// own detection_data.append() calls) -- the same decode
-// atom_common/lib/status_mode.cpp's drawAprilTag() already does for the
-// device's own LCD, done here again because a phone looking at this page has
-// no LCD of its own to read. Only the four record types this firmware's own
-// control register can normally turn on are decoded (see M5STICKV_OPCODE's
-// own comment); anything else (April3D, cube faces -- rare, off by default)
-// falls through to a byte count rather than guessing at its shape.
-function decodeM5vRecords(bytes) {
-  const i16 = (lo, hi) => { const v = (hi << 8) | lo; return v >= 0x8000 ? v - 0x10000 : v; };
-  const sizes = {0: 11, 1: 20, 2: 9, 3: 9};
-  const out = [];
-  let i = 0;
-  while (i < bytes.length) {
-    const type = bytes[i];
-    const size = sizes[type];
-    if (size === undefined || i + size > bytes.length) {
-      out.push(`${bytes.length - i} unrecognised byte(s)`);
-      break;
-    }
-    const r = bytes.slice(i, i + size);
-    if (type === 0) {
-      out.push(`NN class ${r[10]} (${Math.round(r[9] / 255 * 100)}%)`);
-    } else if (type === 1) {
-      const id = i16(r[17], r[18]);
-      out.push(`AprilTag #${id} (${Math.round(r[19] / 255 * 100)}%)`);
-    } else if (type === 2) {
-      out.push('red blob');
-    } else {
-      out.push('green blob');
-    }
-    i += size;
-  }
-  return out;
-}
 let inflight = false;
 async function tick() {
   if (inflight) return;   // one request at a time; the device serves one
@@ -1021,16 +1302,11 @@ async function tick() {
     // The M5StickV I2C bridge's last poll (see net::Telemetry::m5stickv_ok's
     // own comment) -- published unconditionally, like gravity, so this
     // reads stale-but-present rather than blank between the (much slower)
-    // polls PolicyMode actually does. Decoded into record names (see
-    // decodeM5vRecords()) rather than shown as raw hex: "AprilTag #3 (91%)"
-    // says something at a glance a byte dump does not.
+    // polls PolicyMode actually does. See describeM5StickV()'s own
+    // comment for what this decodes and why only the first record.
     if (Array.isArray(t.m5v_data)) {
-      const recs = decodeM5vRecords(t.m5v_data);
-      const summary = recs.length ? recs.join(', ')
-                     : t.m5v_data.length ? `${t.m5v_data.length} bytes, none decoded`
-                     : 'nothing detected';
       document.getElementById('m5vStatus').textContent = t.m5v_ok
-        ? `M5StickV: ${summary}`
+        ? `M5StickV: ${describeM5StickV(t.m5v_data)}`
         : 'M5StickV: not answering';
     }
     // After the display update, not before: a throw above (a field this
@@ -1130,6 +1406,29 @@ const char kM5vPage[] PROGMEM = R"HTML(<!doctype html>
 <h2>Spoken announcements (register 0xFE)</h2>
 <div id="speak"></div>
 <script>
+// Same decoder as kWebPage's own describeM5StickV() -- duplicated rather
+// than shared, since this is a separate page with its own <script>. See
+// that copy's comment for the byte layout and why only the first record.
+const M5V_TYPE_NAMES = {
+  0: '物体', 1: 'AprilTag', 2: '赤', 3: '緑',
+  4: 'AprilTag3D', 5: 'AprilTag3D+色', 6: 'キューブ面', 7: 'キューブ候補',
+};
+const M5V_RECORD_SIZE = {0: 11, 1: 20, 2: 9, 3: 9};
+function describeM5StickV(bytes) {
+  if (!bytes || bytes.length === 0) return '検出なし';
+  const type = bytes[0];
+  const name = M5V_TYPE_NAMES[type] ?? `不明(${type})`;
+  let detail = '';
+  if (type === 0 && bytes.length >= 11) {
+    detail = ` class${bytes[10]}`;
+  } else if (type === 1 && bytes.length >= 19) {
+    detail = ` #${bytes[17] | (bytes[18] << 8)}`;
+  }
+  const size = M5V_RECORD_SIZE[type];
+  const count = size ? Math.floor(bytes.length / size) : 1;
+  return count > 1 ? `${name}${detail} ×${count}` : `${name}${detail}`;
+}
+
 // [bit, label] -- order is display order, not bit order, so the more
 // commonly wanted toggles (this page exists because of apriltag_en) sit
 // near the top.
@@ -1203,38 +1502,6 @@ async function onToggle(e) {
   }
 }
 
-// See kWebPage's own copy of this function for the full comment -- this
-// page is a separate <script> (a plain page navigation, not client-side
-// routing, per this file's own top comment), so nothing is shared between
-// the two and the decoder is simply duplicated rather than factored out.
-function decodeM5vRecords(bytes) {
-  const i16 = (lo, hi) => { const v = (hi << 8) | lo; return v >= 0x8000 ? v - 0x10000 : v; };
-  const sizes = {0: 11, 1: 20, 2: 9, 3: 9};
-  const out = [];
-  let i = 0;
-  while (i < bytes.length) {
-    const type = bytes[i];
-    const size = sizes[type];
-    if (size === undefined || i + size > bytes.length) {
-      out.push(`${bytes.length - i} unrecognised byte(s)`);
-      break;
-    }
-    const r = bytes.slice(i, i + size);
-    if (type === 0) {
-      out.push(`NN class ${r[10]} (${Math.round(r[9] / 255 * 100)}%)`);
-    } else if (type === 1) {
-      const id = i16(r[17], r[18]);
-      out.push(`AprilTag #${id} (${Math.round(r[19] / 255 * 100)}%)`);
-    } else if (type === 2) {
-      out.push('red blob');
-    } else {
-      out.push('green blob');
-    }
-    i += size;
-  }
-  return out;
-}
-
 async function poll() {
   try {
     // No "f" argument: handleCommandRequest() only ACTS on a command frame
@@ -1259,12 +1526,8 @@ async function poll() {
       speakByte = t.m5v_speak;
       paint();
     }
-    const recs = decodeM5vRecords(t.m5v_data ?? []);
-    const summary = recs.length ? recs.join(', ')
-                   : (t.m5v_data ?? []).length ? `${t.m5v_data.length} bytes, none decoded`
-                   : 'nothing detected';
     document.getElementById('status').textContent = t.m5v_ok
-      ? `M5StickV: ${summary}`
+      ? `M5StickV: ${describeM5StickV(t.m5v_data)}`
       : 'M5StickV: not answering';
   } catch (e) {
     document.getElementById('status').textContent = 'no answer from the robot';

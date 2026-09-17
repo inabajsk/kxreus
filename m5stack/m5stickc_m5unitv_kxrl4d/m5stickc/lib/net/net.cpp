@@ -9,6 +9,7 @@
 #include <esp_task_wdt.h>
 #include <string.h>
 
+#include <https_server.h>
 #include <mode.h>
 #include <policy.h>
 
@@ -37,14 +38,17 @@ constexpr uint32_t RETRY_INTERVAL_MS = 10000;
 /// the dark when the operator's program exits.
 constexpr uint32_t PEER_TIMEOUT_MS = 5000;
 
+/// How long since the phone's last GET /c before phoneActive() gives up on
+/// it -- a few multiples of the page's own 100 ms poll, the same margin
+/// hasPeer()'s PEER_TIMEOUT_MS gives a 10 Hz UDP peer, just tighter since
+/// this is a status lamp meant to notice a closed tab quickly rather than
+/// tolerate a slow WAN link.
+constexpr uint32_t PHONE_TIMEOUT_MS = 500;
+
 Preferences prefs;
 WiFiUDP udp;
 WebServer server(80);
 bool g_http_open = false;
-
-/// Set across handlePolicyUploadChunk()'s three UPLOAD_FILE_* calls, read
-/// once by handlePolicyUploadComplete() -- see that pair's own comment.
-bool g_policy_upload_ok = false;
 
 /// Set once by setServoIds(), from PolicyMode::enter() (core 1) right after
 /// buildServoOrder(), and only ever read afterwards, by handleInfoRequest()
@@ -63,6 +67,21 @@ uint8_t g_servo_id_count = 0;
 bool g_m5v_write_pending = false;
 uint8_t g_m5v_write_reg = 0;
 uint8_t g_m5v_write_value = 0;
+
+/// The policy page's own "run this actor" button -- see
+/// requestActorSelect()/takeActorSelect()'s own comments for why this one
+/// is drained on a different task than g_m5v_write_pending above.
+bool g_actor_select_pending = false;
+uint8_t g_actor_select_index = 0;
+
+/// Whether the upload in progress right now (see the /policy handler) has
+/// gone well so far -- checked and updated at each of the three
+/// UPLOAD_FILE_START/WRITE/END callbacks, since WebServer's upload
+/// mechanism has no way to fail a chunk out of that callback other than
+/// remembering not to trust the rest of it. Read once more, at the very
+/// end, to decide the HTTP status the OUTER handler sends -- see
+/// handlePolicyUploadChunk()/handlePolicyUploadComplete().
+bool g_policy_upload_ok = false;
 
 /// The robot's own access point while nobody has told it which network to
 /// join here. Open (no password): this is a physical machine in a room, not
@@ -166,6 +185,14 @@ uint8_t g_command[COMMAND_SIZE];
 bool g_command_pending = false;
 bool g_command_from_udp = false;
 
+/// Last time handleCommandRequest() saw a phone's own GET /c -- see
+/// phoneActive()'s own comment. A plain millis() timestamp, not guarded by
+/// g_shared: written only from the server task, read only from
+/// BridgeMode's own loop() (core 1), and a 32-bit-aligned word is one
+/// instruction either way on this chip, the same reasoning EspNowLink's
+/// own liveness timestamps already rely on.
+uint32_t g_last_phone_ms = 0;
+
 Status g_status = Status::UNCONFIGURED;
 String g_ssid;
 String g_password;
@@ -253,148 +280,23 @@ int hexDigit(char c) {
 /// load rather than carrying baked into its own HTML -- see kWebPage's own
 /// comment: this is what makes that one page work, unmodified, on all of
 /// this firmware's robots instead of each needing its own copy.
+/// buildInfoJson() itself lives in the public net:: section below (out of
+/// this anonymous namespace) so lib/https_server can call it too -- both
+/// servers answer the same phone page's same /info request identically.
 void handleInfoRequest() {
-    char range[96];
-    // Actor 0: this firmware's own convention (see policy.cpp's kActors[])
-    // is that it is always the walking actor, whichever build -- see
-    // commandVxMinOf()'s own comment for why this is not commandVxMin().
-    snprintf(range, sizeof(range), "\"vxMin\":%.4f,\"vxMax\":%.4f,\"wzMax\":%.4f,",
-            policy::commandVxMinOf(0), policy::commandVxMaxOf(0),
-            policy::commandWzMaxOf(0));
-    String body = "{\"robot\":\"" ROBOT_NAME "\",";
-    body += range;
-    body += "\"actors\":[";
-    for (size_t i = 0; i < policy::count(); i++) {
-        if (i > 0) body += ',';
-        body += '"';
-        body += policy::name(i);
-        body += '"';
-    }
-    body += "],\"motions\":[";
-    const size_t n = policy::motionCount();
-    for (size_t i = 0; i < n; i++) {
-        const policy::Motion& m = policy::motion(i);
-        if (i > 0) body += ',';
-        body += '[';
-        body += static_cast<int>(m.number);
-        body += ",\"";
-        // Names come from a real Heart to Heart project (see
-        // tools/motions_from_h4p.py), not from anyone typing into this
-        // request, but a bare '"' or '\' in one would still break the JSON
-        // it sits in -- escaped rather than assumed absent.
-        for (const char* p = m.name; *p; p++) {
-            if (*p == '"' || *p == '\\') body += '\\';
-            body += *p;
-        }
-        body += "\"]";
-    }
-    body += "],\"servoIds\":[";
-    // Static per robot (see setServoIds()) -- the fixed order every
-    // Telemetry's servo_pulse/joint_target_rad line up with, so kWebPage's
-    // FieldLog can label each column without also needing this every tick.
-    for (uint8_t i = 0; i < g_servo_id_count; i++) {
-        if (i > 0) body += ',';
-        body += static_cast<int>(g_servo_ids[i]);
-    }
-    body += "]}";
-    server.send(200, "application/json", body);
+    server.send(200, "application/json", buildInfoJson());
 }
 
-/// The page's one request, served on core 0.
+/// The page's one request, served on core 0. Thin: see buildCommandJson()
+/// (public net:: section, shared with lib/https_server) for the body.
 ///
 /// Answers from the published snapshot rather than reaching into the control
 /// loop, and leaves the command in a slot for that loop to find. Neither side
 /// waits for the other.
 void handleCommandRequest() {
     const String hex = server.hasArg("f") ? server.arg("f") : String();
-    bool accepted = false;
-    if (hex.length() == COMMAND_SIZE * 2) {
-        uint8_t frame[COMMAND_SIZE];
-        bool ok = true;
-        for (size_t i = 0; i < COMMAND_SIZE && ok; i++) {
-            const int hi = hexDigit(hex[i * 2]);
-            const int lo = hexDigit(hex[i * 2 + 1]);
-            if (hi < 0 || lo < 0) {
-                ok = false;
-            } else {
-                frame[i] = static_cast<uint8_t>((hi << 4) | lo);
-            }
-        }
-        if (ok) {
-            portENTER_CRITICAL(&g_shared);
-            memcpy(g_command, frame, sizeof(frame));
-            g_command_pending = true;
-            g_command_from_udp = false;
-            portEXIT_CRITICAL(&g_shared);
-            accepted = true;
-        }
-    }
-
-    Published snapshot;
-    portENTER_CRITICAL(&g_shared);
-    snapshot = g_telemetry;
-    portEXIT_CRITICAL(&g_shared);
-    const bool live = snapshot.t.updated_ms != 0 &&
-                      millis() - snapshot.t.updated_ms < 1000;
-
-    // Sized for the fixed fields plus two POLICY_ACT_DIM-long arrays (pulse,
-    // target) -- built with snprintf-and-advance rather than one format
-    // string, since neither array's length is known at compile time.
-    char body[420 + POLICY_ACT_DIM * 24 + Rcb4Link::M5STICKV_MAX_READ * 4];
-    size_t len = snprintf(body, sizeof(body),
-             "{\"state\":%u,\"vx\":%.3f,\"wz\":%.3f,\"loop_ms\":%.1f,"
-             "\"err\":%lu,\"over\":%lu,\"draw_ms\":%.1f,"
-             "\"req\":%u,\"actor\":%u,\"seq\":%u,"
-             "\"quiet\":%lu,\"rx\":%lu,\"step\":%lu,"
-             "\"try\":%u,\"home_err\":%d,"
-             "\"gravity\":[%.3f,%.3f,%.3f],"
-             "\"live\":%s,\"ok\":%s,",
-             static_cast<unsigned>(snapshot.t.state), snapshot.t.vx, snapshot.t.wz,
-             snapshot.t.loop_us / 1000.0f,
-             static_cast<unsigned long>(snapshot.t.errors),
-             static_cast<unsigned long>(snapshot.t.overruns),
-             snapshot.t.draw_us / 1000.0f,
-             static_cast<unsigned>(snapshot.debug.request),
-             static_cast<unsigned>(snapshot.debug.actor),
-             static_cast<unsigned>(snapshot.debug.sequence_step),
-             static_cast<unsigned long>(snapshot.debug.quiet_ms),
-             static_cast<unsigned long>(snapshot.debug.host_frames),
-             static_cast<unsigned long>(snapshot.debug.step),
-             static_cast<unsigned>(snapshot.debug.homing_attempt),
-             static_cast<int>(snapshot.debug.home_err),
-             snapshot.t.gravity[0], snapshot.t.gravity[1], snapshot.t.gravity[2],
-             live ? "true" : "false", accepted ? "true" : "false");
-    // Per real servo (see Telemetry::servo_count's own comment): the raw
-    // pulse last read back, and the joint target (radians) that produced
-    // it, same order as /info's own "servoIds". Only fresh while
-    // RUNNING/HOLDING -- see sendTelemetry()'s own comment -- but sent
-    // every tick regardless, the same as gravity already is.
-    len += snprintf(body + len, sizeof(body) - len, "\"pulse\":[");
-    for (uint8_t i = 0; i < snapshot.t.servo_count && len + 32 < sizeof(body); i++) {
-        len += snprintf(body + len, sizeof(body) - len, "%s%u", i > 0 ? "," : "",
-                        static_cast<unsigned>(snapshot.t.servo_pulse[i]));
-    }
-    len += snprintf(body + len, sizeof(body) - len, "],\"target\":[");
-    for (uint8_t i = 0; i < snapshot.t.servo_count && len + 32 < sizeof(body); i++) {
-        len += snprintf(body + len, sizeof(body) - len, "%s%.4f", i > 0 ? "," : "",
-                        snapshot.t.joint_target_rad[i]);
-    }
-    // The M5StickV I2C bridge's last poll (see Telemetry::m5stickv_ok's own
-    // comment) -- stale between polls, but sent every tick regardless, the
-    // same as gravity and the servo arrays above already are.
-    len += snprintf(body + len, sizeof(body) - len,
-                    "],\"m5v_ok\":%s,\"m5v_data\":[",
-                    snapshot.t.m5stickv_ok ? "true" : "false");
-    for (uint8_t i = 0; i < snapshot.t.m5stickv_len && len + 8 < sizeof(body); i++) {
-        len += snprintf(body + len, sizeof(body) - len, "%s%u", i > 0 ? "," : "",
-                        static_cast<unsigned>(snapshot.t.m5stickv_data[i]));
-    }
-    // The control/speak-enable registers' last-read values -- see kM5vPage,
-    // the only consumer, which needs these to show what is actually
-    // enabled right now rather than assuming its last write took.
-    len += snprintf(body + len, sizeof(body) - len, "],\"m5v_ctrl\":%u,\"m5v_speak\":%u}",
-                    static_cast<unsigned>(snapshot.t.m5stickv_ctrl),
-                    static_cast<unsigned>(snapshot.t.m5stickv_speak_ctrl));
+    char body[COMMAND_JSON_MAX];
+    buildCommandJson(hex.length() > 0 ? hex.c_str() : nullptr, body, sizeof(body));
     server.send(200, "application/json", body);
 }
 
@@ -564,47 +466,6 @@ void runWifiScan() {
     portEXIT_CRITICAL(&g_shared);
 }
 
-/// kWebPage's policy-upload form's one file field, streamed straight into
-/// policy.cpp's own upload buffer as it arrives -- see policy::
-/// beginUpload()'s own comment on the byte layout expected and why this
-/// has to stream rather than buffer the whole body as a String first
-/// (which is what server.arg("plain") would do for a raw POST, on top of
-/// the upload buffer policy.cpp itself is about to hold).
-///
-/// multipart/form-data (a plain HTML <input type=file> plus FormData) is
-/// what buys the streaming: WebServer only calls this callback, rather
-/// than buffering the body itself, for that content type.
-void handlePolicyUploadChunk() {
-    HTTPUpload& upload = server.upload();
-    switch (upload.status) {
-        case UPLOAD_FILE_START:
-            g_policy_upload_ok = policy::beginUpload();
-            break;
-        case UPLOAD_FILE_WRITE:
-            if (g_policy_upload_ok) {
-                g_policy_upload_ok =
-                        policy::appendUpload(upload.buf, upload.currentSize);
-            }
-            break;
-        case UPLOAD_FILE_END:
-            if (g_policy_upload_ok) g_policy_upload_ok = policy::finishUpload();
-            break;
-        case UPLOAD_FILE_ABORTED:
-            g_policy_upload_ok = false;
-            break;
-    }
-}
-
-/// Runs once the upload above has fully arrived (or failed partway) --
-/// the one place this request actually answers, same split
-/// handlePolicyUploadChunk()'s own comment already explains WebServer's
-/// two-callback upload API needs.
-void handlePolicyUploadComplete() {
-    server.send(g_policy_upload_ok ? 200 : 400, "text/plain",
-               g_policy_upload_ok ? "ok" : "upload failed: wrong size, out "
-                                            "of RAM, or actor busy running");
-}
-
 /// kProvisionPage's SSID picker asks for this instead of a name to remember
 /// and retype. Spins in place waiting for poll() (core 1) to actually run
 /// the scan (see g_scan_pending) rather than answering "started" and making
@@ -654,6 +515,69 @@ void handleM5vSetRequest() {
     }
     requestM5StickVWrite(static_cast<uint8_t>(reg), static_cast<uint8_t>(value));
     server.send(200, "text/plain", "ok");
+}
+
+/// kWebPage's actor picker: "run this one" for whichever index /info's own
+/// "actors" array named -- see requestActorSelect()'s own comment for why
+/// this only hands the request off rather than calling policy::select()
+/// here. Answers at once regardless of whether PolicyMode is even IDLE
+/// right now to apply it (see takeActorSelect()'s own comment on why it
+/// might simply be dropped).
+void handleActorSelectRequest() {
+    if (!server.hasArg("index")) {
+        server.send(400, "text/plain", "index required");
+        return;
+    }
+    const long index = server.arg("index").toInt();
+    if (index < 0 || index > 255) {
+        server.send(400, "text/plain", "index must be 0-255");
+        return;
+    }
+    requestActorSelect(static_cast<uint8_t>(index));
+    server.send(200, "text/plain", "ok");
+}
+
+/// kWebPage's policy-upload form's one file field, streamed straight into
+/// policy.cpp's own upload buffer as it arrives -- see policy::
+/// beginUpload()'s own comment on the byte layout expected and why this
+/// has to stream rather than buffer the whole ~103 KiB body as a String
+/// first (which is what server.arg("plain") would do for a raw POST, on
+/// top of the ~103 KiB buffer policy.cpp itself is about to hold).
+///
+/// multipart/form-data (a plain HTML <input type=file> plus FormData) is
+/// what buys the streaming: WebServer only calls this callback, rather
+/// than buffering the body itself, for that content type. A raw
+/// application/octet-stream POST would have been simpler client-side, but
+/// would have cost exactly the double-buffering this avoids.
+void handlePolicyUploadChunk() {
+    HTTPUpload& upload = server.upload();
+    switch (upload.status) {
+        case UPLOAD_FILE_START:
+            g_policy_upload_ok = policy::beginUpload();
+            break;
+        case UPLOAD_FILE_WRITE:
+            if (g_policy_upload_ok) {
+                g_policy_upload_ok =
+                        policy::appendUpload(upload.buf, upload.currentSize);
+            }
+            break;
+        case UPLOAD_FILE_END:
+            if (g_policy_upload_ok) g_policy_upload_ok = policy::finishUpload();
+            break;
+        case UPLOAD_FILE_ABORTED:
+            g_policy_upload_ok = false;
+            break;
+    }
+}
+
+/// Runs once the upload above has fully arrived (or failed partway) --
+/// the one place this request actually answers, same split
+/// handlePolicyUploadChunk()'s own comment already explains WebServer's
+/// two-callback upload API needs.
+void handlePolicyUploadComplete() {
+    server.send(g_policy_upload_ok ? 200 : 400, "text/plain",
+               g_policy_upload_ok ? "ok" : "upload failed: wrong size, out "
+                                            "of RAM, or actor busy running");
 }
 
 /// The provisioning form's one POST, handled the same way handleCommandRequest
@@ -739,20 +663,34 @@ void handleProvisionRequest() {
 void ensureServer() {
     if (g_http_open) return;
     server.on("/", []() {
+        // Once the HTTPS twin (lib/https_server) is actually up, send a
+        // phone there instead of serving the plain-HTTP page directly --
+        // this is the one redirect https://github.com/iory/
+        // atoms3-voice-control's own QR code flow relies on: the code
+        // never changes (still `http://<IP>/`), but what "/" answers
+        // does, the moment a certificate exists. Provisioning is
+        // deliberately exempt: joining Wi-Fi for the first time has no
+        // certificate to redirect to yet, and does not need one either.
+        if (!g_provisioning && https_server::isReady()) {
+            server.sendHeader("Location", https_server::url());
+            server.send(302, "text/plain", "");
+            return;
+        }
         server.send_P(200, "text/html",
                       g_provisioning ? kProvisionPage : kWebPage);
     });
     server.on("/c", handleCommandRequest);
     server.on("/info", handleInfoRequest);
+    server.on("/save", HTTP_POST, handleSaveRequest);
+    server.on("/ap", HTTP_POST, handleUseOwnApRequest);
+    server.on("/provision", HTTP_POST, handleProvisionRequest);
+    server.on("/scan", handleScanRequest);
+    server.on("/actor", HTTP_POST, handleActorSelectRequest);
     // See handlePolicyUploadChunk()'s own comment on the two-callback
     // shape this needs: handlePolicyUploadComplete answers once
     // handlePolicyUploadChunk has streamed (and applied) the whole body.
     server.on("/policy", HTTP_POST, handlePolicyUploadComplete,
               handlePolicyUploadChunk);
-    server.on("/save", HTTP_POST, handleSaveRequest);
-    server.on("/ap", HTTP_POST, handleUseOwnApRequest);
-    server.on("/provision", HTTP_POST, handleProvisionRequest);
-    server.on("/scan", handleScanRequest);
     // The M5StickV settings page: its own screen (kM5vPage), reachable from
     // kWebPage and back, and the one action it can take (see
     // handleM5vSetRequest's own comment).
@@ -803,6 +741,151 @@ void onConnected() {
 }
 
 }  // namespace
+
+/// The actual body of /info -- shared by the plain WebServer
+/// (handleInfoRequest(), above) and the HTTPS server (see
+/// lib/https_server), which both serve the same phone page and so must
+/// answer this the same way. No server-specific type appears here on
+/// purpose.
+String buildInfoJson() {
+    char range[96];
+    // Actor 0: this firmware's own convention (see policy.cpp's kActors[])
+    // is that it is always the walking actor, whichever build -- see
+    // commandVxMinOf()'s own comment for why this is not commandVxMin().
+    snprintf(range, sizeof(range), "\"vxMin\":%.4f,\"vxMax\":%.4f,\"wzMax\":%.4f,",
+            policy::commandVxMinOf(0), policy::commandVxMaxOf(0),
+            policy::commandWzMaxOf(0));
+    String body = "{\"robot\":\"" ROBOT_NAME "\",";
+    body += range;
+    body += "\"actors\":[";
+    for (size_t i = 0; i < policy::count(); i++) {
+        if (i > 0) body += ',';
+        body += '"';
+        body += policy::name(i);
+        body += '"';
+    }
+    body += "],\"motions\":[";
+    const size_t n = policy::motionCount();
+    for (size_t i = 0; i < n; i++) {
+        const policy::Motion& m = policy::motion(i);
+        if (i > 0) body += ',';
+        body += '[';
+        body += static_cast<int>(m.number);
+        body += ",\"";
+        // Names come from a real Heart to Heart project (see
+        // tools/motions_from_h4p.py), not from anyone typing into this
+        // request, but a bare '"' or '\' in one would still break the JSON
+        // it sits in -- escaped rather than assumed absent.
+        for (const char* p = m.name; *p; p++) {
+            if (*p == '"' || *p == '\\') body += '\\';
+            body += *p;
+        }
+        body += "\"]";
+    }
+    body += "],\"servoIds\":[";
+    // Static per robot (see setServoIds()) -- the fixed order every
+    // Telemetry's servo_pulse/joint_target_rad line up with, so kWebPage's
+    // FieldLog can label each column without also needing this every tick.
+    for (uint8_t i = 0; i < g_servo_id_count; i++) {
+        if (i > 0) body += ',';
+        body += static_cast<int>(g_servo_ids[i]);
+    }
+    body += "]}";
+    return body;
+}
+
+void buildCommandJson(const char* hex, char* out, size_t out_cap) {
+    // See phoneActive()'s own comment: this is the one request the page's
+    // tick() sends unconditionally, ten times a second, for as long as it
+    // is open -- marked here regardless of whether `hex` below turns out
+    // well formed, since even a malformed one still proves a phone is
+    // there asking.
+    g_last_phone_ms = millis();
+    bool accepted = false;
+    if (hex != nullptr && strlen(hex) == COMMAND_SIZE * 2) {
+        uint8_t frame[COMMAND_SIZE];
+        bool ok = true;
+        for (size_t i = 0; i < COMMAND_SIZE && ok; i++) {
+            const int hi = hexDigit(hex[i * 2]);
+            const int lo = hexDigit(hex[i * 2 + 1]);
+            if (hi < 0 || lo < 0) {
+                ok = false;
+            } else {
+                frame[i] = static_cast<uint8_t>((hi << 4) | lo);
+            }
+        }
+        if (ok) {
+            portENTER_CRITICAL(&g_shared);
+            memcpy(g_command, frame, sizeof(frame));
+            g_command_pending = true;
+            g_command_from_udp = false;
+            portEXIT_CRITICAL(&g_shared);
+            accepted = true;
+        }
+    }
+
+    Published snapshot;
+    portENTER_CRITICAL(&g_shared);
+    snapshot = g_telemetry;
+    portEXIT_CRITICAL(&g_shared);
+    const bool live = snapshot.t.updated_ms != 0 &&
+                      millis() - snapshot.t.updated_ms < 1000;
+
+    size_t len = snprintf(out, out_cap,
+             "{\"state\":%u,\"vx\":%.3f,\"wz\":%.3f,\"loop_ms\":%.1f,"
+             "\"err\":%lu,\"over\":%lu,\"draw_ms\":%.1f,"
+             "\"req\":%u,\"actor\":%u,\"seq\":%u,"
+             "\"quiet\":%lu,\"rx\":%lu,\"step\":%lu,"
+             "\"try\":%u,\"home_err\":%d,"
+             "\"gravity\":[%.3f,%.3f,%.3f],"
+             "\"live\":%s,\"ok\":%s,",
+             static_cast<unsigned>(snapshot.t.state), snapshot.t.vx, snapshot.t.wz,
+             snapshot.t.loop_us / 1000.0f,
+             static_cast<unsigned long>(snapshot.t.errors),
+             static_cast<unsigned long>(snapshot.t.overruns),
+             snapshot.t.draw_us / 1000.0f,
+             static_cast<unsigned>(snapshot.debug.request),
+             static_cast<unsigned>(snapshot.debug.actor),
+             static_cast<unsigned>(snapshot.debug.sequence_step),
+             static_cast<unsigned long>(snapshot.debug.quiet_ms),
+             static_cast<unsigned long>(snapshot.debug.host_frames),
+             static_cast<unsigned long>(snapshot.debug.step),
+             static_cast<unsigned>(snapshot.debug.homing_attempt),
+             static_cast<int>(snapshot.debug.home_err),
+             snapshot.t.gravity[0], snapshot.t.gravity[1], snapshot.t.gravity[2],
+             live ? "true" : "false", accepted ? "true" : "false");
+    // Per real servo (see Telemetry::servo_count's own comment): the raw
+    // pulse last read back, and the joint target (radians) that produced
+    // it, same order as /info's own "servoIds". Only fresh while
+    // RUNNING/HOLDING -- see sendTelemetry()'s own comment -- but sent
+    // every tick regardless, the same as gravity already is.
+    len += snprintf(out + len, out_cap - len, "\"pulse\":[");
+    for (uint8_t i = 0; i < snapshot.t.servo_count && len + 32 < out_cap; i++) {
+        len += snprintf(out + len, out_cap - len, "%s%u", i > 0 ? "," : "",
+                        static_cast<unsigned>(snapshot.t.servo_pulse[i]));
+    }
+    len += snprintf(out + len, out_cap - len, "],\"target\":[");
+    for (uint8_t i = 0; i < snapshot.t.servo_count && len + 32 < out_cap; i++) {
+        len += snprintf(out + len, out_cap - len, "%s%.4f", i > 0 ? "," : "",
+                        snapshot.t.joint_target_rad[i]);
+    }
+    // The M5StickV I2C bridge's last poll (see Telemetry::m5stickv_ok's own
+    // comment) -- stale between polls, but sent every tick regardless, the
+    // same as gravity and the servo arrays above already are.
+    len += snprintf(out + len, out_cap - len,
+                    "],\"m5v_ok\":%s,\"m5v_data\":[",
+                    snapshot.t.m5stickv_ok ? "true" : "false");
+    for (uint8_t i = 0; i < snapshot.t.m5stickv_len && len + 8 < out_cap; i++) {
+        len += snprintf(out + len, out_cap - len, "%s%u", i > 0 ? "," : "",
+                        static_cast<unsigned>(snapshot.t.m5stickv_data[i]));
+    }
+    // The control/speak-enable registers' last-read values -- see kM5vPage,
+    // the only consumer, which needs these to show what is actually
+    // enabled right now rather than assuming its last write took.
+    snprintf(out + len, out_cap - len, "],\"m5v_ctrl\":%u,\"m5v_speak\":%u}",
+            static_cast<unsigned>(snapshot.t.m5stickv_ctrl),
+            static_cast<unsigned>(snapshot.t.m5stickv_speak_ctrl));
+}
 
 void begin() {
     // Opened read-write even though nothing is written here: a read-only open
@@ -1098,6 +1181,25 @@ bool takeM5StickVWrite(uint8_t* reg_addr, uint8_t* value) {
     return pending;
 }
 
+void requestActorSelect(uint8_t index) {
+    portENTER_CRITICAL(&g_shared);
+    g_actor_select_index = index;
+    g_actor_select_pending = true;
+    portEXIT_CRITICAL(&g_shared);
+}
+
+bool takeActorSelect(uint8_t* index) {
+    bool pending;
+    portENTER_CRITICAL(&g_shared);
+    pending = g_actor_select_pending;
+    if (pending) {
+        *index = g_actor_select_index;
+        g_actor_select_pending = false;
+    }
+    portEXIT_CRITICAL(&g_shared);
+    return pending;
+}
+
 bool policyLive() {
     uint32_t updated;
     portENTER_CRITICAL(&g_shared);
@@ -1181,6 +1283,10 @@ void send(const uint8_t* frame, size_t len) {
 
 bool hasPeer() {
     return g_peer_port != 0 && millis() - g_peer_seen_ms < PEER_TIMEOUT_MS;
+}
+
+bool phoneActive() {
+    return g_last_phone_ms != 0 && millis() - g_last_phone_ms < PHONE_TIMEOUT_MS;
 }
 
 }  // namespace net
