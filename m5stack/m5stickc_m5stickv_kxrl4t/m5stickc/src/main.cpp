@@ -42,6 +42,7 @@
 #include <host_relay.h>
 #include <mode.h>
 #include <net.h>
+#include <https_server.h>
 #include <policy_mode.h>
 #include <policy.h>
 #include <rcb4_link.h>
@@ -142,6 +143,11 @@ void setup() {
     // relay without a USB cable to this board -- see BridgeMode::loop()'s
     // own EspNowLink::available()/read() branch.
     EspNowLink::begin();
+    // Starts its own state machine (NTP, then a certificate) but does
+    // nothing until net::poll() actually gets this device onto a real
+    // network -- see https_server.h's own comment on why STANDALONE_AP
+    // cannot get past that first step.
+    https_server::begin();
 
     M5.BtnA.setHoldThresh(BUTTON_GAP_MS);
     kModes[current_mode]->enter();
@@ -160,6 +166,7 @@ void loop() {
     }
     net::poll();
     EspNowLink::poll();
+    https_server::poll();
     // Unconditional, regardless of current_mode -- see HostRelay's own top
     // comment for why that is safe (the IMU/M5StickV opcodes it answers
     // never touch the real RCB-4's own UART; ordinary passthrough is

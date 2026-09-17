@@ -1,5 +1,6 @@
 #include "espnow_link.h"
 
+#include <WiFi.h>
 #include <esp_now.h>
 #include <esp_wifi.h>
 #include <string.h>
@@ -92,6 +93,23 @@ void onDataSent(const uint8_t*, esp_now_send_status_t) {}
 }  // namespace
 
 void begin() {
+    // net::begin() only brings up SOME WiFi mode when this robot already
+    // has stored credentials or a saved STANDALONE_AP preference -- a
+    // genuinely fresh board (Status::UNCONFIGURED, nothing in NVS yet)
+    // calls neither WiFi.softAP() nor WiFi.begin() at all, leaving the
+    // WiFi driver entirely uninitialized. esp_now_init() needs it up
+    // regardless -- calling it against a driver that was never started
+    // crashed on real hardware (Guru Meditation / LoadProhibited, inside
+    // esp_now_init() itself) on a from-the-factory-blank AtomS3's very
+    // first boot. This is idempotent and leaves an already-chosen mode
+    // (STA or the STANDALONE_AP's own AP) alone.
+    if (WiFi.getMode() == WIFI_OFF) {
+        WiFi.mode(WIFI_AP_STA);
+        // WiFi.mode() kicks off the driver's own startup asynchronously;
+        // this margin before esp_now_init() is cheap insurance against
+        // calling into it before the driver has actually come up.
+        delay(100);
+    }
     esp_now_init();
     esp_now_register_send_cb(onDataSent);
     esp_now_register_recv_cb(onDataRecv);

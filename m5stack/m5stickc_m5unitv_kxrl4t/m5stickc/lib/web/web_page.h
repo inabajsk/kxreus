@@ -340,7 +340,7 @@ const char kWebPage[] PROGMEM = R"HTML(<!doctype html>
   <a id="m5vLink" href="/m5v">settings &rarr;</a>
 </div>
 <div class="policysec">
-  <input id="policyFile" type="file" accept=".bin">
+  <input id="policyFile" type="file" accept=".bin,application/octet-stream">
   <button id="policyGo">upload</button>
 </div>
 <div class="policysec">

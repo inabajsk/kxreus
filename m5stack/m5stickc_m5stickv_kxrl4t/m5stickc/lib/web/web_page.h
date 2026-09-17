@@ -379,7 +379,7 @@ const char kWebPage[] PROGMEM = R"HTML(<!doctype html>
   <button id="actorGo">run</button>
 </div>
 <div class="policysec">
-  <input id="policyFile" type="file" accept=".bin">
+  <input id="policyFile" type="file" accept=".bin,application/octet-stream">
   <button id="policyGo">upload</button>
 </div>
 <div class="policysec">
