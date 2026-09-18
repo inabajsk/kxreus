@@ -1,0 +1,7 @@
+[
+  {
+    "name": "omni-v1",
+    "file": "kxrl2g_walk_omni_v1.bin",
+    "note": "Omnidirectional (forward/back/left/right, not just forward+turn) retrain, 2026-09-19. walking-kxr-rl's own tools/train_all.py, KXR_OMNI_RANGE=0.3 (this robot's own measured v_max, ~0.32 m/s, so the full requested range). Deliberately the BASE checkpoint (700 iterations, no extension): three independent runs each reached Episode_Termination/fell_over=0.0 with Metrics/twist/error_vel_xy~0.18 right at 700 iterations, then destabilized (fell_over up to 0.17-0.21) every time training continued past it -- the extension chunks this robot's own training kept trying were making things worse, not better. `name` is intentionally short (this firmware's own saveUploaded() reuses it as the flash save name: letters/digits/-/_ only, <=16 chars -- see policy.h's own validSavedName() comment)."
+  }
+]
