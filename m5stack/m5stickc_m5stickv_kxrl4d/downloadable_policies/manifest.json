@@ -1,5 +1,10 @@
 [
   {
+    "name": "omni-v1",
+    "file": "kxrl4d_walk_omni_v1.bin",
+    "note": "Omnidirectional (forward/back/left/right, not just forward+turn) retrain, 2026-09-19. walking-kxr-rl's own tools/train_all.py, KXR_OMNI_RANGE=0.3 (this robot's own measured v_max, ~0.29 m/s, so the full requested range). 2793 iterations. Metrics/twist/error_vel_xy=0.19, Episode_Termination/fell_over=0.0. `name` is intentionally short (this firmware's own saveUploaded() reuses it as the flash save name: letters/digits/-/_ only, <=16 chars -- see policy.h's own validSavedName() comment)."
+  },
+  {
     "name": "walking-kxr-rl (own training)",
     "file": "kxrl4d_walk_own.bin",
     "note": "Trained by walking-kxr-rl itself (tools/train_all.py, 700 iterations)."
