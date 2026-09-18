@@ -18,6 +18,7 @@ import re
 
 from mjlab.envs import ManagerBasedRlEnvCfg
 from mjlab.envs import mdp as envs_mdp
+from mjlab.envs.mdp import dr
 from mjlab.envs.mdp.actions import JointPositionActionCfg
 from mjlab.managers.event_manager import EventTermCfg
 from mjlab.managers.reward_manager import RewardTermCfg
@@ -360,6 +361,26 @@ def kxr_env_cfg(
     r"^{}_collision\d+$".format(re.escape(link)) for link in foot_links)
   cfg.events["foot_friction"].params["ranges"] = (0.5, 1.0)
   cfg.events["base_com"].params["asset_cfg"].body_names = (robot.torso_link,)
+  # A point mass added at the torso, zero to 200 g, one fixed value per
+  # ENVIRONMENT for its whole run (mode="startup", same as foot_friction
+  # and base_com right above -- not per episode reset: with 4096 parallel
+  # envs the policy still sees the whole 0-200 g range constantly, just
+  # never a single env switching payload mid-training). Requested
+  # directly: real deployment sometimes carries something (a grabbed
+  # object, kxrl2g's own gripper payload) and the policy trained so far
+  # has never had to hold a gait together under that extra, asymmetric
+  # weight. dr.body_mass (not dr.pseudo_inertia) is deliberately the
+  # right call here per that function's own docstring: this models an
+  # ADDED point mass at the COM, not a density change of the body
+  # itself, so leaving body_inertia untouched is correct, not a shortcut.
+  cfg.events["payload_mass"] = EventTermCfg(
+    func=dr.body_mass, mode="startup",
+    params={
+      "asset_cfg": SceneEntityCfg("robot", body_names=(robot.torso_link,)),
+      "operation": "add",
+      "ranges": (0.0, 0.2),  # kg
+    },
+  )
 
   joint_pos_action = cfg.actions["joint_pos"]
   assert isinstance(joint_pos_action, JointPositionActionCfg)
