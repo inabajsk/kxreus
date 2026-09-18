@@ -187,6 +187,12 @@ def kxr_env_cfg(
   v_max_override = opt.num("KXR_VMAX", float(task.get("v_max", 0.0)))
   speed = (_SpeedScale(stride_span, GAIT_PERIOD, v_max_override)
            if stride_span > 0.0 else None)
+  # m/s, symmetric on x, y and yaw -- 0 (default) leaves every branch below
+  # exactly as it was (forward-only, no strafing: see twist.ranges.lin_vel_y's
+  # own assignment just below). Every deployed policy so far can only walk
+  # forward and turn, which was a deliberate first-generation choice, not a
+  # hardware limit -- this opts a run into the fuller command space instead.
+  omni_range = opt.num("KXR_OMNI_RANGE", 0.0)
   # "Feet" = the tips of the limbs the measured home stance actually stands on.
   # For most KXR bodies that is the two legs; kxrl4t stands on all four of its
   # identical 2-DOF limbs, so all four are gait limbs (see robots.py).
@@ -280,8 +286,11 @@ def kxr_env_cfg(
     twist.rel_standing_envs = 0.0
     cfg.rewards["track_linear_velocity"].params["std"] = speed.std
     # The stock ladder walks the command from 0 up to a speed this robot has
-    # no way to reach; the band above is already inside its means.
-    cfg.curriculum.pop("command_vel", None)
+    # no way to reach; the band above is already inside its means. Left in
+    # place (not popped) when omni_range is on: that override, below, needs
+    # cfg.curriculum["command_vel"] to still exist to set its own stages.
+    if omni_range <= 0.0:
+      cfg.curriculum.pop("command_vel", None)
   else:
     twist.ranges.lin_vel_x = (0.0, 0.3)
     twist.ranges.ang_vel_z = (-0.3, 0.3)
@@ -293,6 +302,32 @@ def kxr_env_cfg(
        "ang_vel_z": (-0.2, 0.2)},
       {"step": 1600 * 24, "lin_vel_x": (0.0, 0.30), "lin_vel_y": (0.0, 0.0),
        "ang_vel_z": (-0.3, 0.3)},
+    ]
+
+  if omni_range > 0.0:
+    # Full 2D command -- forward/back AND left/right -- overriding whichever
+    # branch above just ran (both left lin_vel_y pinned at (0.0, 0.0) and
+    # lin_vel_x one-sided). Ramped the same 3-stage way the curriculum
+    # branch above already ramps a single axis: asking a policy to solve
+    # strafing and reversing from step 0 at full speed is a much harder
+    # cold start than easing into it. Needs cfg.curriculum["command_vel"]
+    # to still exist even coming from the `speed is not None` branch,
+    # which normally pops it -- see that branch's own guard.
+    #
+    # track_linear_velocity's own reward kernel width (std) is left exactly
+    # as whichever branch above set it: this widens the COMMAND range, not
+    # the tracking tolerance, which may itself need retuning once real
+    # training data says so, not guessed at here.
+    twist.ranges.lin_vel_x = (-omni_range, omni_range)
+    twist.ranges.lin_vel_y = (-omni_range, omni_range)
+    twist.ranges.ang_vel_z = (-0.3, 0.3)
+    twist.rel_standing_envs = 0.05
+    cfg.curriculum["command_vel"].params["velocity_stages"] = [
+      {"step": step,
+       "lin_vel_x": (-omni_range * frac, omni_range * frac),
+       "lin_vel_y": (-omni_range * frac, omni_range * frac),
+       "ang_vel_z": (-0.3 * frac, 0.3 * frac)}
+      for step, frac in ((0, 1 / 3), (800 * 24, 2 / 3), (1600 * 24, 1.0))
     ]
 
   cfg.events["reset_base"].params["pose_range"] = {
