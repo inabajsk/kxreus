@@ -314,10 +314,23 @@ def kxr_env_cfg(
     # to still exist even coming from the `speed is not None` branch,
     # which normally pops it -- see that branch's own guard.
     #
-    # track_linear_velocity's own reward kernel width (std) is left exactly
-    # as whichever branch above set it: this widens the COMMAND range, not
-    # the tracking tolerance, which may itself need retuning once real
-    # training data says so, not guessed at here.
+    # track_linear_velocity's own reward kernel width (std) WAS left
+    # exactly as whichever branch above set it (the `speed is not None`
+    # branch's own speed.std, sized for a one-sided band roughly half
+    # speed.v_max wide -- 0.1-0.175 m/s across these four robots). Real
+    # training data then said so: the first omni run (KXR_OMNI_RANGE=0.3,
+    # this std left untouched) plateaued in well under its own extension
+    # budget while Metrics/twist/error_vel_xy got WORSE between chunks
+    # (kxrl4d 0.114 -> 0.136 m/s) -- a kernel this narrow next to errors
+    # this large sits so close to zero everywhere in the now much bigger
+    # 2D command box that there is little gradient telling "closer" from
+    # "further", the exact failure mode _SpeedScale's own class
+    # docstring already describes for an unscaled kernel. Set to
+    # omni_range itself (0.3 today) instead: wider than the old per-robot
+    # std on purpose, since the command band is now 2D and several times
+    # wider per axis (0.6 vs ~0.1-0.175), not guessed independently of
+    # that -- retune again from HERE if the same regression shows up.
+    cfg.rewards["track_linear_velocity"].params["std"] = omni_range
     twist.ranges.lin_vel_x = (-omni_range, omni_range)
     twist.ranges.lin_vel_y = (-omni_range, omni_range)
     twist.ranges.ang_vel_z = (-0.3, 0.3)
