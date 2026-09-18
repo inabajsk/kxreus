@@ -305,15 +305,21 @@ def kxr_env_cfg(
     ]
 
   if omni_range > 0.0:
-    # Full 2D command -- forward/back AND left/right -- overriding whichever
-    # branch above just ran (both left lin_vel_y pinned at (0.0, 0.0) and
-    # lin_vel_x one-sided). Ramped the same 3-stage way the curriculum
-    # branch above already ramps a single axis: asking a policy to solve
-    # strafing and reversing from step 0 at full speed is a much harder
-    # cold start than easing into it. Needs cfg.curriculum["command_vel"]
-    # to still exist even coming from the `speed is not None` branch,
-    # which normally pops it -- see that branch's own guard.
-    #
+    # Capped to what this ROBOT's own body can actually hold (speed.v_max,
+    # already measured above from its own stride) rather than applied as
+    # one flat number for all four: kxrl4d/kxrl6/kxrl2g's own v_max (0.29,
+    # 0.35, 0.32 m/s) all clear a flat 0.3 comfortably, but kxrl4t's own
+    # is only 0.19 -- asking it for 0.3 m/s omnidirectionally was asking
+    # for 58% more than it can physically do, in every direction, for the
+    # whole run. Real training data said so: alone among the four,
+    # kxrl4t's own Metrics/twist/error_vel_xy never recovered (0.33 ->
+    # 0.43 m/s over the run) where the other three all ended at 0.19-0.22,
+    # and a policy chasing a target that can never be reached has no
+    # reason to ever stop increasing its own effort trying. speed is
+    # always set here (only the `speed is not None` branch above can
+    # reach this one with cfg.curriculum["command_vel"] intact -- see its
+    # own guard), so this is never None to cap against.
+    effective_omni_range = min(omni_range, speed.v_max)
     # track_linear_velocity's own reward kernel width (std) WAS left
     # exactly as whichever branch above set it (the `speed is not None`
     # branch's own speed.std, sized for a one-sided band roughly half
@@ -326,19 +332,19 @@ def kxr_env_cfg(
     # 2D command box that there is little gradient telling "closer" from
     # "further", the exact failure mode _SpeedScale's own class
     # docstring already describes for an unscaled kernel. Set to
-    # omni_range itself (0.3 today) instead: wider than the old per-robot
+    # effective_omni_range itself instead: wider than the old per-robot
     # std on purpose, since the command band is now 2D and several times
-    # wider per axis (0.6 vs ~0.1-0.175), not guessed independently of
-    # that -- retune again from HERE if the same regression shows up.
-    cfg.rewards["track_linear_velocity"].params["std"] = omni_range
-    twist.ranges.lin_vel_x = (-omni_range, omni_range)
-    twist.ranges.lin_vel_y = (-omni_range, omni_range)
+    # wider per axis, not guessed independently of that -- retune again
+    # from HERE if the same regression shows up.
+    cfg.rewards["track_linear_velocity"].params["std"] = effective_omni_range
+    twist.ranges.lin_vel_x = (-effective_omni_range, effective_omni_range)
+    twist.ranges.lin_vel_y = (-effective_omni_range, effective_omni_range)
     twist.ranges.ang_vel_z = (-0.3, 0.3)
     twist.rel_standing_envs = 0.05
     cfg.curriculum["command_vel"].params["velocity_stages"] = [
       {"step": step,
-       "lin_vel_x": (-omni_range * frac, omni_range * frac),
-       "lin_vel_y": (-omni_range * frac, omni_range * frac),
+       "lin_vel_x": (-effective_omni_range * frac, effective_omni_range * frac),
+       "lin_vel_y": (-effective_omni_range * frac, effective_omni_range * frac),
        "ang_vel_z": (-0.3 * frac, 0.3 * frac)}
       for step, frac in ((0, 1 / 3), (800 * 24, 2 / 3), (1600 * 24, 1.0))
     ]
