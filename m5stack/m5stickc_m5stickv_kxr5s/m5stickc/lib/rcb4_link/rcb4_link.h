@@ -48,6 +48,10 @@ public:
     static constexpr int UART_PORT_NUM = 2;
     /// The board's fast mode. A board set to :slow wants 115200 instead.
     static constexpr uint32_t BAUD = 1250000;
+    /// A board (or cable/wiring) that cannot hold the full 1.25 Mbps still
+    /// often answers at half that -- see probeBoardWithFallback()'s own
+    /// comment.
+    static constexpr uint32_t BAUD_FALLBACK = 625000;
 
     static constexpr uint8_t IMU_OPCODE = 0x90;
     static constexpr size_t IMU_REPLY_SIZE = 15;
@@ -103,6 +107,13 @@ public:
     /// slave.py), not a protocol constant -- a bus can carry other I2C
     /// addresses too, which is what subcmd 2 (SCAN) is for.
     static constexpr uint8_t M5STICKV_DEFAULT_ADDR = 0x25;
+    /// The same script's own other configured address (I2C_INDEX = 0x24,
+    /// its "left eye" in a stereo pair -- 0x25 above is the "right eye"):
+    /// a second unit can be wired to the same bus at once. Used only by
+    /// BridgeMode's own status display, which checks for both rather than
+    /// assuming a single-unit setup the way every runtime caller above
+    /// (POLICY/STATUS mode's own periodic poll) still does.
+    static constexpr uint8_t M5STICKV_ALT_ADDR = 0x24;
     static constexpr size_t M5STICKV_MAX_READ = 60;
     /// [length, opcode, addr, subcmd, i2c_ok, dataLen, data.., checksum].
     static constexpr size_t M5STICKV_REPLY_CAPACITY = 6 + M5STICKV_MAX_READ;
@@ -154,6 +165,25 @@ public:
     /// @param timeout_ms how long to wait for the reply.
     /// @return true if a complete version frame came back.
     bool probeBoard(uint32_t timeout_ms = 200);
+
+    /// Same as probeBoard(), but if the board does not answer at the
+    /// currently active baud, re-inits the UART at whichever of BAUD/
+    /// BAUD_FALLBACK is not currently active and tries once more --
+    /// some boards, cables, or wiring runs cannot hold the full 1.25 Mbps
+    /// but do answer at half that. Adopts the rate that worked (see
+    /// currentBaud()) and leaves it there; reverts to whichever rate was
+    /// active before this call if neither answers, so a call that finds
+    /// nothing does not leave the link sitting at an untested baud.
+    ///
+    /// Must only be called where probeBoard() itself may be (host idle,
+    /// no frame in flight): switching baud mid-frame would corrupt it the
+    /// same way probing itself would.
+    bool probeBoardWithFallback(uint32_t timeout_ms = 200);
+
+    /// Which of BAUD/BAUD_FALLBACK the link is actually running at right
+    /// now -- for a status display; see probeBoardWithFallback()'s own
+    /// comment for when this can change.
+    uint32_t currentBaud() const { return active_baud_; }
 
     /// Milliseconds since the host last sent a byte, or UINT32_MAX if it
     /// never has. Used to find a gap safe to probe in.
@@ -371,6 +401,11 @@ public:
 private:
     void releasePending();
 
+    /// The pin-reset/invert dance begin() already did, parameterised on
+    /// baud -- shared with probeBoardWithFallback()'s own re-init at the
+    /// other rate.
+    void beginAt(uint32_t baud);
+
     /// Send a command and read the frame that answers it.
     ///
     /// @param reply_size  the exact length expected, which for the RCB-4 is
@@ -387,6 +422,8 @@ private:
     static constexpr uint32_t FRAME_STALL_TIMEOUT_MS = 1000;
 
     HardwareSerial serial_;
+    /// Which of BAUD/BAUD_FALLBACK is currently live -- see currentBaud().
+    uint32_t active_baud_ = BAUD;
     uint8_t pending_[2] = {0, 0};
     int pending_len_ = 0;
     int body_remaining_ = 0;

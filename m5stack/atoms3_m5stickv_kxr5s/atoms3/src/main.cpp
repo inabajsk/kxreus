@@ -48,6 +48,7 @@
 #include <Arduino.h>
 #include <M5Unified.h>
 #include <OneButton.h>
+#include <ble_link.h>
 #include <bridge_mode.h>
 #include <espnow_link.h>
 #include <host_relay.h>
@@ -172,6 +173,22 @@ void setup() {
     // network -- see https_server.h's own comment on why STANDALONE_AP
     // cannot get past that first step.
     https_server::begin();
+    // The phone's own Flutter app is the BLE peripheral (GATT server);
+    // this only scans for it and connects -- see lib/ble_link's own top
+    // comment for why the roles are reversed from usual.
+    //
+    // DISABLED: bringing this up alongside WiFi station + HTTPS/TLS +
+    // ESP-NOW + LittleFS reproduced, on real AtomS3 hardware, the exact
+    // boot-time crash loop this tree's own platformio.ini already
+    // documents for POLICY_WEIGHTS_IN_RAM (USB-CDC flickering in and out
+    // of enumeration, never settling into a running app) -- confirmed by
+    // reflashing two separate units both without this call and seeing a
+    // normal boot each time. This chip does not have enough RAM to hold
+    // NimBLE's own state on top of everything already running; re-enabling
+    // BLE needs that budget solved first (freeing RAM elsewhere, or only
+    // bringing BLE up on demand rather than unconditionally at boot), not
+    // just uncommenting this line.
+    // BleLink::begin();
 
     button.attachClick(onClick);
     button.attachDoubleClick(onDoubleClick);
@@ -185,6 +202,7 @@ void loop() {
     net::poll();
     EspNowLink::poll();
     https_server::poll();
+    BleLink::poll();
     // Unconditional, regardless of current_mode -- see HostRelay's own top
     // comment for why that is safe (the IMU/M5StickV opcodes it answers
     // never touch the real RCB-4's own UART; ordinary passthrough is

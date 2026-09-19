@@ -71,7 +71,11 @@ private:
     uint32_t last_espnow_draw_ms_ = 0;
     bool board_ok_ = false;
     bool imu_ok_ = false;
-    bool i2c_ok_ = false;
+    /// One per possible M5StickV address -- see Rcb4Link::M5STICKV_
+    /// DEFAULT_ADDR/M5STICKV_ALT_ADDR's own comment on the stereo pair
+    /// this checks for both of, rather than assuming a single unit.
+    bool i2c_ok_default_ = false;
+    bool i2c_ok_alt_ = false;
     /// 0=not present, 1=linked/idle, 2=actively relaying -- see
     /// drawEspNowLamp(). Redrawn only on change, same reasoning as the
     /// other lamps.

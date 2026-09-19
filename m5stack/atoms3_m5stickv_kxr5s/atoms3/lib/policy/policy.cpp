@@ -5,6 +5,7 @@
 #include <string.h>
 
 #include <Arduino.h>  // ESP.getFreeHeap(), for beginUpload()'s own budget check
+#include <LittleFS.h>
 #include <Preferences.h>
 
 #include "policy_spec_kxrl4twalk.h"
@@ -1019,9 +1020,19 @@ bool beginUpload() {
     g_upload_active = false;
     g_upload_received = 0;
 
-    // Either the early malloc in begin() failed (see kUploadBufBytes' own
-    // comment -- this device genuinely does not have ~123 KiB to spare
-    // right now) or the buffer this would write into is the one run() is
+    // The early malloc in begin() runs before WiFi/HTTPS/LittleFS have
+    // claimed any heap, so it usually succeeds -- but if it doesn't (or
+    // heap has fragmented enough since boot that a fresh malloc here
+    // would also fail), retry it here rather than leaving g_upload_buf
+    // null forever: a device that has been up for a while, with several
+    // HTTP(S) clients having connected, may free/reallocate the same
+    // ~123KB block once already having succeeded, so failing here is not
+    // necessarily permanent the way it looked from begin() alone.
+    if (g_upload_buf == nullptr) {
+        g_upload_buf = static_cast<uint8_t*>(malloc(kUploadBufBytes));
+    }
+    // Either that still failed (heap genuinely too fragmented/low right
+    // now) or the buffer this would write into is the one run() is
     // reading from on every control step right now (the uploaded actor is
     // the one currently selected). Either way, a caller sees this the same
     // way an out-of-RAM failure already looks: select a different
@@ -1054,16 +1065,17 @@ bool appendUpload(const uint8_t* data, size_t len) {
 
 size_t uploadBytesReceived() { return g_upload_active ? g_upload_received : 0; }
 
-bool finishUpload() {
-    const size_t expected = currentRobot().upload_bytes;
-    if (!g_upload_active || g_upload_received != expected) {
-        g_upload_active = false;
-        g_upload_received = 0;
-        return false;
-    }
-    g_upload_active = false;
-    g_upload_received = 0;
+}  // namespace policy
 
+namespace {
+
+/// Parse g_upload_buf (exactly currentRobot().upload_bytes long, in the
+/// layout policy.h's own beginUpload() comment documents) into
+/// g_uploaded_actor and mark it ready. Shared by finishUpload() (the
+/// bytes just arrived over the network) and loadSaved() (the bytes just
+/// came off flash instead) -- from here on the two are indistinguishable,
+/// same buffer, same shape, same actor.
+void installUploadedActor() {
     // Same per-layer shapes as the configured robot's own compiled-in
     // "walk" actor (index 0) -- an upload is a different trained
     // checkpoint of it, not a different network (see policy.h's own
@@ -1115,6 +1127,174 @@ bool finishUpload() {
             /*quantized=*/true, g_uploaded_weights, g_uploaded_biases,
             g_uploaded_weight_scale, g_uploaded_bias_scale};
     g_uploaded_ready = true;
+}
+
+// -----------------------------------------------------------------------
+// Saved policies -- see policy.h's own top comment on this section.
+//
+// One flat file per save, on the "spiffs"-labelled LittleFS partition
+// (1536 KiB on this board's own partition table -- see
+// gen_esp32part.py against .pio/build/*/partitions.bin, unused until
+// this) already reserved and never touched by anything else here.
+// Filenames stay short on purpose: this component's own filename limit
+// is 32 bytes INCLUDING the leading '/', not the 255 upstream littlefs
+// itself allows, so "/p_" + a robot name (<=6 today) + "_" + a name +
+// ".bin" leaves little room -- see kSavedNameMax.
+// -----------------------------------------------------------------------
+
+constexpr size_t kSavedNameMax = 16;
+bool g_littlefs_ready = false;
+
+bool ensureLittleFs() {
+    if (g_littlefs_ready) return true;
+    // true: format it if mounting fails -- this partition has never been
+    // written to by anything before this feature existed, so the first
+    // real use of it is exactly the situation that flag is for, not a
+    // fallback for real corruption.
+    g_littlefs_ready = LittleFS.begin(true);
+    return g_littlefs_ready;
+}
+
+bool validSavedName(const char* name) {
+    const size_t len = strlen(name);
+    if (len == 0 || len > kSavedNameMax) return false;
+    for (size_t i = 0; i < len; i++) {
+        const char c = name[i];
+        const bool ok = (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||
+                        (c >= '0' && c <= '9') || c == '-' || c == '_';
+        if (!ok) return false;
+    }
+    return true;
+}
+
+/// "/p_kxrl4t_hatori.bin" -- see this section's own top comment on why
+/// short. Truncates rather than refuses if somehow still too long (every
+/// caller already goes through validSavedName()'s own length check
+/// first, so this is a second line of defence, not the real limit).
+String savedPath(const char* robot, const char* name) {
+    String path = "/p_";
+    path += robot;
+    path += "_";
+    path += name;
+    path += ".bin";
+    return path;
+}
+
+/// The index'th saved filename for the CONFIGURED robot, matched by the
+/// same "/p_<robot>_" prefix savedPath() writes -- directory order is
+/// whatever LittleFS's own iteration gives, stable between calls only as
+/// long as nothing is saved/deleted in between (fine for one UI listing
+/// built from consecutive savedCount()/savedName() calls, which is the
+/// only real caller). Empty if index is out of range.
+String savedEntryAt(size_t index) {
+    if (!ensureLittleFs()) return String();
+    String prefix = "/p_";
+    prefix += policy::robotIdName(policy::robotId());
+    prefix += "_";
+    File dir = LittleFS.open("/");
+    if (!dir || !dir.isDirectory()) return String();
+    size_t seen = 0;
+    for (File f = dir.openNextFile(); f; f = dir.openNextFile()) {
+        String path = f.name();
+        // ESP32 core versions disagree on whether File::name() carries a
+        // leading '/' for a root-level file -- normalise rather than bet
+        // on either.
+        if (path.length() == 0 || path[0] != '/') path = "/" + path;
+        if (path.startsWith(prefix) && path.endsWith(".bin")) {
+            if (seen == index) return path;
+            seen++;
+        }
+    }
+    return String();
+}
+
+}  // namespace
+
+namespace policy {
+
+bool saveUploaded(const char* name) {
+    if (!g_uploaded_ready || !validSavedName(name)) return false;
+    if (!ensureLittleFs()) return false;
+    const String path =
+            savedPath(robotIdName(robotId()), name);
+    File f = LittleFS.open(path, "w");
+    if (!f) return false;
+    const size_t expected = currentRobot().upload_bytes;
+    const size_t written = f.write(g_upload_buf, expected);
+    f.close();
+    if (written != expected) {
+        LittleFS.remove(path);  // partial file left by a full disk -- see
+                                 // savedBytesFree(); do not leave it behind
+                                 // looking like a real save.
+        return false;
+    }
+    return true;
+}
+
+size_t savedCount() {
+    if (!ensureLittleFs()) return 0;
+    size_t count = 0;
+    while (savedEntryAt(count).length() > 0) count++;
+    return count;
+}
+
+const char* savedName(size_t index) {
+    // A static buffer, unlike robotIdName()/name() (plain literals from
+    // kRobots[]/actors[] -- nothing to build): this one is assembled
+    // from a filename at call time, so it has to live somewhere between
+    // building it and the caller reading it. Valid only until the next
+    // call, the same rule strtok() already made callers used to.
+    static String buf;
+    const String path = savedEntryAt(index);
+    if (path.length() == 0) return "";
+    const String prefix = "/p_" + String(robotIdName(robotId())) + "_";
+    buf = path.substring(prefix.length(), path.length() - 4);  // strip .bin
+    return buf.c_str();
+}
+
+bool loadSaved(size_t index) {
+    // Same guard as beginUpload()'s own comment: the slot this would
+    // overwrite is the one run() reads live, on a different core, if it
+    // is also the one currently selected.
+    if (g_uploaded_ready && g_selected == currentRobot().actor_count) {
+        return false;
+    }
+    const String path = savedEntryAt(index);
+    if (path.length() == 0 || g_upload_buf == nullptr) return false;
+    File f = LittleFS.open(path, "r");
+    if (!f) return false;
+    const size_t expected = currentRobot().upload_bytes;
+    const bool size_ok = static_cast<size_t>(f.size()) == expected;
+    const size_t got = size_ok ? f.read(g_upload_buf, expected) : 0;
+    f.close();
+    if (!size_ok || got != expected) return false;
+    installUploadedActor();
+    return true;
+}
+
+bool deleteSaved(size_t index) {
+    const String path = savedEntryAt(index);
+    if (path.length() == 0) return false;
+    return LittleFS.remove(path);
+}
+
+size_t savedBytesFree() {
+    if (!ensureLittleFs()) return 0;
+    const size_t total = LittleFS.totalBytes();
+    const size_t used = LittleFS.usedBytes();
+    return total > used ? total - used : 0;
+}
+
+bool finishUpload() {
+    const size_t expected = currentRobot().upload_bytes;
+    if (!g_upload_active || g_upload_received != expected) {
+        g_upload_active = false;
+        g_upload_received = 0;
+        return false;
+    }
+    g_upload_active = false;
+    g_upload_received = 0;
+    installUploadedActor();
     return true;
 }
 

@@ -347,4 +347,70 @@ size_t uploadBytesReceived();
 /// @return true if installed.
 bool finishUpload();
 
+// ---------------------------------------------------------------------
+// Saved policies -- an upload above lives only in RAM (g_upload_buf) and
+// is gone on the next reboot; these persist the exact same bytes to
+// flash (LittleFS, the "spiffs" partition this board's own partition
+// table already carries -- see tools/README or the partition table
+// itself, unused until this), under an operator-given name, scoped to
+// whichever robot is CONFIGURED at the time it is saved (the byte
+// layout is that robot's own actor shape; a name means nothing for a
+// different one). Meant for a hand-trained checkpoint (the phone
+// page's own upload form, "hatori", "pro1", etc.) that is worth keeping
+// around without re-uploading it after every power cycle.
+//
+// A saved file is not automatically loaded or selected at boot -- same
+// "selecting is a deliberate act" reasoning finishUpload() already
+// follows for the plain upload slot. It becomes reachable again (an
+// entry in savedName()) as soon as anything asks, with no boot-time
+// cost until it does.
+// ---------------------------------------------------------------------
+
+/// Save the CURRENT contents of the upload slot (the actor finishUpload()
+/// most recently installed, still exactly what a phone last uploaded)
+/// under `name`, for the CONFIGURED robot. Overwrites a previous save of
+/// the same name for the same robot.
+///
+/// `name` becomes part of a filename: kept short (32 bytes, checked) and
+/// restricted to letters, digits, '-' and '_' -- anything else is
+/// rejected outright rather than silently mangled into something else on
+/// disk.
+///
+/// @return false if there is nothing uploaded to save (finishUpload()
+///         never succeeded this session), `name` is invalid, or the
+///         write itself failed (LittleFS not available, or genuinely out
+///         of the space "Flash容量が許す限り" -- see savedBytesFree()).
+bool saveUploaded(const char* name);
+
+/// How many policies are saved on flash for the CONFIGURED robot.
+size_t savedCount();
+
+/// The index'th one's own name, 0 <= index < savedCount(). Empty string
+/// out of range.
+const char* savedName(size_t index);
+
+/// Read a saved policy back off flash into the upload slot (the same
+/// slot finishUpload() installs into -- see count()/name()/select(),
+/// index count()-1 once this returns true) WITHOUT selecting it, same
+/// deliberate-act reasoning as finishUpload(). Refuses (false, nothing
+/// changed) if that slot is the one actually SELECTED and RUNNING right
+/// now -- same guard beginUpload() already has, for the same reason:
+/// overwriting the weights run() is reading live, from a different core,
+/// is not survivable. Also refuses if the saved file's own byte length
+/// no longer matches this robot's current uploadExpectedBytes() (a stale
+/// save from a build whose actor shape has since changed).
+bool loadSaved(size_t index);
+
+/// Remove a saved policy from flash. Safe to call on the one currently
+/// loaded into the upload slot (see loadSaved()) -- that copy is already
+/// in RAM and unaffected; only the flash file goes away.
+bool deleteSaved(size_t index);
+
+/// Flash bytes free for MORE saves like this one, on the "spiffs"
+/// partition every save above shares with every other saved policy for
+/// every robot (not just the configured one) -- "Flash容量が許す限り"
+/// literally: nothing here reserves a per-robot quota, so this is the
+/// one honest answer to "how many more can I keep".
+size_t savedBytesFree();
+
 }  // namespace policy

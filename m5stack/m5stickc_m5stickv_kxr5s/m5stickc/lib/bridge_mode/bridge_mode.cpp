@@ -49,6 +49,45 @@ void drawEspNowLamp(int y, int state) {
     M5.Display.print(label);
 }
 
+/// "RCB4 1.3M" / "RCB4 625K" -- the RCB4 lamp's own label, with which of
+/// Rcb4Link::BAUD/BAUD_FALLBACK is currently active appended so a fallback
+/// (see Rcb4Link::probeBoardWithFallback()'s own comment) is visible, not
+/// just the fact that the link is green. "1.3M" rather than "1.25M": one
+/// character shorter, which matters on this board's own 80 px panel (see
+/// BridgeMode::enter()'s own comment on that width) -- AtomS3's wider one
+/// can afford the exact figure instead.
+const char* rcb4Label(const Rcb4Link& link) {
+    return link.currentBaud() == Rcb4Link::BAUD ? "RCB4 1.3M" : "RCB4 625K";
+}
+
+/// "I2C 24 25" -- one M5StickV bus can carry two units at once (see
+/// Rcb4Link::M5STICKV_DEFAULT_ADDR/M5STICKV_ALT_ADDR's own comment on the
+/// stereo left/right-eye pair), so this checks for both rather than one
+/// lamp speaking for a single assumed unit: each address's own text is
+/// green if it answered, grey if not. "24"/"25" rather than "0x24"/"0x25":
+/// four characters shorter, which matters on this board's own 80 px panel
+/// (see BridgeMode::enter()'s own comment on that width).
+void drawI2cLamp(int y, bool ok_alt, bool ok_default) {
+    M5.Display.fillRect(0, y, M5.Display.width(), 16, TFT_BLACK);
+    M5.Display.fillRoundRect(4, y + 2, 12, 12, 3,
+                             (ok_alt || ok_default) ? TFT_GREEN : TFT_RED);
+    M5.Display.setTextSize(1);
+    M5.Display.setCursor(22, y + 4);
+    M5.Display.setTextColor(TFT_WHITE, TFT_BLACK);
+    M5.Display.print("I2C ");
+    M5.Display.setTextColor(ok_alt ? TFT_GREEN : TFT_DARKGREY, TFT_BLACK);
+    M5.Display.print("24");
+    M5.Display.setTextColor(TFT_WHITE, TFT_BLACK);
+    M5.Display.print(" ");
+    M5.Display.setTextColor(ok_default ? TFT_GREEN : TFT_DARKGREY, TFT_BLACK);
+    M5.Display.print("25");
+    // Restored, not left green/grey: every drawLamp() call after this one
+    // prints with whatever colour is currently set (it does not set its
+    // own), same as this function inherited TFT_WHITE from BridgeMode::
+    // enter()'s own setTextColor() before touching it here.
+    M5.Display.setTextColor(TFT_WHITE, TFT_BLACK);
+}
+
 }  // namespace
 
 void BridgeMode::enter() {
@@ -79,14 +118,16 @@ void BridgeMode::enter() {
     // own cannot tell a silent board from a quiet one -- with nothing wired to
     // the COM port it passes bytes into the dark just the same -- so this is
     // the one moment the bridge can find out and say so.
-    board_ok_ = link_.probeBoard();
+    board_ok_ = link_.probeBoardWithFallback();
     imu_ok_ = M5.Imu.isEnabled();
     uint8_t unused = 0;
-    i2c_ok_ =
+    i2c_ok_alt_ =
+            link_.readM5StickVReg(Rcb4Link::M5STICKV_ALT_ADDR, 0x00, &unused);
+    i2c_ok_default_ =
             link_.readM5StickVReg(Rcb4Link::M5STICKV_DEFAULT_ADDR, 0x00, &unused);
-    drawLamp(BOARD_LAMP_Y, "RCB4", board_ok_);
+    drawLamp(BOARD_LAMP_Y, rcb4Label(link_), board_ok_);
     drawLamp(IMU_LAMP_Y, "IMU", imu_ok_);
-    drawLamp(I2C_LAMP_Y, "I2C", i2c_ok_);
+    drawI2cLamp(I2C_LAMP_Y, i2c_ok_alt_, i2c_ok_default_);
     espnow_state_ = -1;  // force the ESP-NOW lamp's first paint too
     phone_ok_ = net::phoneActive();
     drawLamp(PHONE_LAMP_Y, "PHONE", phone_ok_);
@@ -174,12 +215,13 @@ void BridgeMode::loop() {
     if (link_.sinceHostSpoke() > HOST_IDLE_MS &&
         now - last_probe_ms_ > PROBE_INTERVAL_MS) {
         last_probe_ms_ = now;
-        const bool alive = link_.probeBoard();
-        if (alive != board_ok_) {
+        const uint32_t baud_before = link_.currentBaud();
+        const bool alive = link_.probeBoardWithFallback();
+        if (alive != board_ok_ || link_.currentBaud() != baud_before) {
             board_ok_ = alive;
             // Redrawn only on a change: drawing costs milliseconds that a
             // control loop on the far side would feel.
-            drawLamp(BOARD_LAMP_Y, "RCB4", board_ok_);
+            drawLamp(BOARD_LAMP_Y, rcb4Label(link_), board_ok_);
         }
     }
 }

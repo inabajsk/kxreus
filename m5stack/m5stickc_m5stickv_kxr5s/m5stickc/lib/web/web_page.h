@@ -305,9 +305,16 @@ const char kWebPage[] PROGMEM = R"HTML(<!doctype html>
   #actorSel { flex:1 1 auto; font-size:14px; padding:0 10px; border-radius:8px;
               border:1px solid #444; background:#1b1b1b; color:#eee; }
   #actorGo { flex:0 0 auto; padding:10px 14px; background:#2b4a2b; }
-  #policyFile { flex:0 0 auto; padding:10px 10px; background:#2b2f36;
-                font-size:13px; max-width:120px; }
+  #policyFile { flex:1 1 auto; padding:10px 10px; background:#2b2f36;
+                font-size:13px; min-width:0; }
+  #policyName { flex:1 1 auto; font-size:13px; padding:0 10px; min-width:0;
+                border-radius:8px; border:1px solid #444;
+                background:#1b1b1b; color:#eee; }
   #policyGo { flex:0 0 auto; padding:10px 14px; background:#5a3d0e; }
+  #savedSel { flex:1 1 auto; font-size:14px; padding:0 10px; border-radius:8px;
+              border:1px solid #444; background:#1b1b1b; color:#eee; min-width:0; }
+  #savedGo { flex:0 0 auto; padding:10px 14px; background:#2b4a2b; }
+  #savedDel { flex:0 0 auto; padding:10px 14px; background:#5a1e1e; }
   #downloadSel { flex:1 1 auto; font-size:14px; padding:0 10px; border-radius:8px;
                  border:1px solid #444; background:#1b1b1b; color:#eee; }
   #downloadGo { flex:0 0 auto; padding:10px 14px; background:#0e4a5a; }
@@ -380,7 +387,14 @@ const char kWebPage[] PROGMEM = R"HTML(<!doctype html>
 </div>
 <div class="policysec">
   <input id="policyFile" type="file" accept=".bin,application/octet-stream">
+  <input id="policyName" type="text" autocapitalize="off" autocorrect="off"
+    placeholder="save as (optional)" maxlength="16">
   <button id="policyGo">upload</button>
+</div>
+<div class="policysec">
+  <select id="savedSel"><option>(no saved policies)</option></select>
+  <button id="savedGo">load</button>
+  <button id="savedDel">delete</button>
 </div>
 <div class="policysec">
   <select id="downloadSel"><option>(loading list…)</option></select>
@@ -549,6 +563,25 @@ document.getElementById('imu').textContent = 'attitude: fixed';
 
 const motionSel = document.getElementById('motionSel');
 const actorSel = document.getElementById('actorSel');
+const savedSel = document.getElementById('savedSel');
+let SAVED = [];  // filled by loadInfo() -- flash-persisted checkpoints for
+                 // THIS robot (see policy.h's own saveUploaded() comment).
+
+function fillSavedSelect() {
+  savedSel.innerHTML = '';
+  if (SAVED.length === 0) {
+    const opt = document.createElement('option');
+    opt.textContent = '(no saved policies)';
+    savedSel.appendChild(opt);
+    return;
+  }
+  SAVED.forEach((name, i) => {
+    const opt = document.createElement('option');
+    opt.value = i;
+    opt.textContent = name;
+    savedSel.appendChild(opt);
+  });
+}
 
 // ACTORS (populated by loadInfo(), below) grows by one, "uploaded", the
 // first time a policy upload succeeds -- see policy::finishUpload()'s own
@@ -579,6 +612,9 @@ async function loadInfo() {
     VX_MIN = info.vxMin; VX_MAX = info.vxMax; WZ_MAX = info.wzMax;
     ACTORS = info.actors;
     fillActorSelect();
+    SAVED = info.saved;
+    fillSavedSelect();
+    savedSel.title = `flash free: ${info.savedFreeKB} KB`;
     MOTIONS = info.motions;  // [number, name] pairs -- see voiceBtn's own
                               // handler, which validates a spoken number
                               // against this same list before acting on it.
@@ -634,10 +670,16 @@ document.getElementById('actorGo').addEventListener('click', async () => {
 // unrelated one. Routing every source (a local file, or a blob this
 // page fetched itself from elsewhere) through this SAME upload call
 // keeps the robot's own HTTPS server completely out of it either way.
-function uploadPolicyBlob(blob, doneMessage) {
+function uploadPolicyBlob(blob, doneMessage, name) {
   const status = document.getElementById('policyStatus');
   const form = new FormData();
   form.append('file', blob, 'policy.bin');
+  // Optional -- see net.cpp's own handlePolicyUploadComplete() comment:
+  // a name saves this same upload to flash under it, letters/digits/-/_
+  // only, up to 16 characters (policyName's own maxlength). Left off
+  // entirely (rather than sent empty) for the "downloadable policies"
+  // call site below, which has never asked for one.
+  if (name) form.append('name', name);
   const xhr = new XMLHttpRequest();
   xhr.open('POST', '/policy');
   xhr.upload.onprogress = (e) => {
@@ -648,12 +690,21 @@ function uploadPolicyBlob(blob, doneMessage) {
   };
   xhr.onload = async () => {
     if (xhr.status === 200) {
-      status.textContent = doneMessage;
+      // Saving can fail without the upload itself failing (bad name,
+      // full flash) -- see saveUploaded()'s own comment; the server
+      // says so in the response body, worth showing alongside whatever
+      // this call site's own message says.
+      status.textContent = /^ok \(/.test(xhr.responseText)
+          ? `${doneMessage} -- ${xhr.responseText}`
+          : doneMessage;
       try {
         const r = await fetch('/info', {cache: 'no-store'});
-        ACTORS = (await r.json()).actors;
+        const info = await r.json();
+        ACTORS = info.actors;
         fillActorSelect();
-      } catch (e) { /* the select just keeps its old options */ }
+        SAVED = info.saved;
+        fillSavedSelect();
+      } catch (e) { /* the selects just keep their old options */ }
     } else {
       status.textContent = `policy: failed (${xhr.responseText || xhr.status})`;
     }
@@ -673,7 +724,74 @@ document.getElementById('policyGo').addEventListener('click', () => {
     document.getElementById('policyStatus').textContent = 'policy: pick a file first';
     return;
   }
-  uploadPolicyBlob(input.files[0], 'policy: uploaded -- pick "uploaded" above and run');
+  const name = document.getElementById('policyName').value.trim();
+  uploadPolicyBlob(input.files[0],
+      name ? `policy: uploaded and saved as "${name}"`
+           : 'policy: uploaded -- pick "uploaded" above and run',
+      name);
+});
+
+// "load": read a flash-saved checkpoint back into the upload slot and
+// ask to run it -- see policy::loadSaved()'s own comment. Same
+// requestActorSelect() hand-off as "run" above, just via a different
+// endpoint since the slot to select is not known client-side until the
+// server has actually loaded it (always the last ACTORS entry once it
+// has -- refreshed from /info below, same as an ordinary upload does).
+document.getElementById('savedGo').addEventListener('click', async () => {
+  const status = document.getElementById('policyStatus');
+  if (SAVED.length === 0) {
+    status.textContent = 'policy: no saved policies for this robot';
+    return;
+  }
+  const name = SAVED[savedSel.value];
+  try {
+    const r = await fetch('/policy/load', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+      body: 'index=' + savedSel.value,
+    });
+    const text = await r.text();
+    if (r.ok) {
+      status.textContent = `policy: loaded "${name}" -- pick "uploaded" above and run`;
+      const info = await (await fetch('/info', {cache: 'no-store'})).json();
+      ACTORS = info.actors;
+      fillActorSelect();
+    } else {
+      status.textContent = `policy: load failed (${text})`;
+    }
+  } catch (e) {
+    status.textContent = 'policy: network error';
+  }
+});
+
+// "delete": forget a flash-saved checkpoint. A copy "load" already put
+// into the upload slot keeps running regardless -- see
+// policy::deleteSaved()'s own comment.
+document.getElementById('savedDel').addEventListener('click', async () => {
+  const status = document.getElementById('policyStatus');
+  if (SAVED.length === 0) {
+    status.textContent = 'policy: no saved policies for this robot';
+    return;
+  }
+  const name = SAVED[savedSel.value];
+  try {
+    const r = await fetch('/policy/delete', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+      body: 'index=' + savedSel.value,
+    });
+    if (r.ok) {
+      status.textContent = `policy: deleted "${name}"`;
+      const info = await (await fetch('/info', {cache: 'no-store'})).json();
+      SAVED = info.saved;
+      fillSavedSelect();
+      savedSel.title = `flash free: ${info.savedFreeKB} KB`;
+    } else {
+      status.textContent = 'policy: delete failed';
+    }
+  } catch (e) {
+    status.textContent = 'policy: network error';
+  }
 });
 
 // Ready-made, already-quantized policies to compare against -- no PC,
@@ -685,7 +803,11 @@ document.getElementById('policyGo').addEventListener('click', () => {
 // so the robot's own HTTPS server is never involved. See
 // uploadPolicyBlob()'s own comment for why not: an earlier version had
 // the ROBOT fetch this itself, which broke its HTTPS server on real
-// hardware.
+// hardware. autoSyncLatestPolicy(), below, runs this same fetch+save
+// automatically for the newest manifest entry, every time this page
+// loads -- as close to "the robot keeps itself up to date" as this
+// hardware's own HTTPS constraint allows, since it is the operator's
+// own phone doing the actual fetch, not the robot polling on its own.
 // kxr5s carries all four robots' own actors in one image (kxra6g's own slice empty) (see
 // lib/policy/policy.h's own RobotId comment), so unlike the single-robot
 // tree this page was derived from, WHICH robot's own downloadable
@@ -719,11 +841,59 @@ async function loadDownloadList() {
       opt.textContent = d.name;
       sel.appendChild(opt);
     }
+    // manifest.json's own convention (see tools/publish_policy.py, or
+    // however a manifest gets written): entry 0 is the newest -- the one
+    // autoSyncLatestPolicy() below checks for, so publishing a new
+    // checkpoint means PREPENDING it, not appending.
+    autoSyncLatestPolicy();
   } catch (e) {
     sel.innerHTML = '<option>(list unavailable -- check this phone\'s own internet)</option>';
   }
 }
 loadDownloadList();
+
+// Automatic half of "downloadable policies": on every page load (an
+// operator opening this page IS the closest thing this hardware has to
+// an unattended check -- see this section's own top comment on why the
+// ROBOT cannot poll GitHub on its own), fetch+save the newest manifest
+// entry under its own name, exactly as the manual "fetch" button below
+// does, UNLESS a save of that exact name already exists (see policy.h's
+// own savedName() -- names are unique per robot) -- so a checkpoint
+// already synced once is never re-fetched, and an operator opening this
+// page again later finds the robot already has the latest run
+// available, without a single tap. Never SELECTS it (see
+// uploadPolicyBlob()'s own comment thread on why loading is deliberate
+// but selecting stays a separate, human act) -- this only makes sure it
+// is not a re-upload away from being run.
+async function autoSyncLatestPolicy() {
+  if (DOWNLOADS.length === 0) return;
+  const latest = DOWNLOADS[0];
+  const status = document.getElementById('policyStatus');
+  let already;
+  try {
+    const info = await (await fetch('/info', {cache: 'no-store'})).json();
+    already = info.saved.includes(latest.name);
+  } catch (e) {
+    return;  // /info itself failing is tick()'s own thing to report
+  }
+  if (already) return;
+  status.textContent = `policy: 新しいポリシー「${latest.name}」を自動取得中…`;
+  try {
+    const r = await fetch(DOWNLOAD_BASE + latest.file, {cache: 'no-store'});
+    if (!r.ok) {
+      status.textContent = `policy: 自動取得失敗 (GitHub側, ${r.status})`;
+      return;
+    }
+    const blob = await r.blob();
+    status.textContent = `policy: 「${latest.name}」をロボットに転送中…`;
+    uploadPolicyBlob(
+        blob,
+        `policy: 「${latest.name}」を自動取得・保存しました -- 保存済み一覧から選んで実行`,
+        latest.name);
+  } catch (e) {
+    status.textContent = 'policy: 自動取得エラー (この端末側)';
+  }
+}
 
 document.getElementById('downloadGo').addEventListener('click', async () => {
   const sel = document.getElementById('downloadSel');

@@ -131,6 +131,37 @@ esp_err_t handleM5vSet(PsychicRequest* request, PsychicResponse* response) {
     return response->send("ok");
 }
 
+/// Same pair as net.cpp's own handlePolicyLoadRequest()/
+/// handlePolicyDeleteRequest() -- see those two's own comments.
+esp_err_t handlePolicyLoad(PsychicRequest* request, PsychicResponse* response) {
+    if (!request->hasParam("index")) {
+        return response->send(400, "text/plain", "index required");
+    }
+    const long index = request->getParam("index")->value().toInt();
+    if (index < 0) {
+        return response->send(400, "text/plain", "index must be >= 0");
+    }
+    if (!policy::loadSaved(static_cast<size_t>(index))) {
+        return response->send(400, "text/plain",
+                              "load failed: no such save, wrong size for "
+                              "this robot, or the upload slot is the one "
+                              "currently running");
+    }
+    net::requestActorSelect(static_cast<uint8_t>(policy::count() - 1));
+    return response->send("ok");
+}
+
+esp_err_t handlePolicyDelete(PsychicRequest* request, PsychicResponse* response) {
+    if (!request->hasParam("index")) {
+        return response->send(400, "text/plain", "index required");
+    }
+    const long index = request->getParam("index")->value().toInt();
+    if (index < 0 || !policy::deleteSaved(static_cast<size_t>(index))) {
+        return response->send(400, "text/plain", "delete failed: no such save");
+    }
+    return response->send("ok");
+}
+
 /// Same three-callback shape as net.cpp's own handlePolicyUploadChunk() /
 /// handlePolicyUploadComplete() (see that pair's own comment on the
 /// stream-rather-than-buffer reasoning) -- PsychicHttp's own onUpload()

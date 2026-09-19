@@ -579,10 +579,78 @@ void handlePolicyUploadChunk() {
 /// the one place this request actually answers, same split
 /// handlePolicyUploadChunk()'s own comment already explains WebServer's
 /// two-callback upload API needs.
+///
+/// An optional "name" FIELD (not the file itself -- FormData's own other
+/// entry, read here rather than in handlePolicyUploadChunk() because
+/// WebServer only guarantees every non-file field has been parsed once
+/// the whole multipart body has, which is exactly now) persists the just
+/// -finished upload to flash under that name -- see policy::
+/// saveUploaded()'s own comment. A blank or missing name is not an
+/// error: the upload is already installed and runnable in RAM regardless
+/// (see finishUpload()), same as it always was before this existed --
+/// saving is opt in, not a new requirement on every upload.
 void handlePolicyUploadComplete() {
-    server.send(g_policy_upload_ok ? 200 : 400, "text/plain",
-               g_policy_upload_ok ? "ok" : "upload failed: wrong size, out "
-                                            "of RAM, or actor busy running");
+    if (!g_policy_upload_ok) {
+        server.send(400, "text/plain",
+                   "upload failed: wrong size, out of RAM, or actor busy "
+                   "running");
+        return;
+    }
+    if (server.hasArg("name") && server.arg("name").length() > 0) {
+        if (!policy::saveUploaded(server.arg("name").c_str())) {
+            // The upload itself is fine and already running -- only
+            // saying so it will not survive a reboot, not undoing it.
+            server.send(200, "text/plain",
+                       "ok (not saved to flash: bad name, or flash full)");
+            return;
+        }
+    }
+    server.send(200, "text/plain", "ok");
+}
+
+/// kWebPage's saved-policy picker: read one back off flash into the
+/// upload slot and ask to run it -- see policy::loadSaved()'s own
+/// comment for why this hands the actual policy::select() off to
+/// PolicyMode's own control loop (requestActorSelect()) exactly like
+/// handleActorSelectRequest() already does for the compiled-in actors,
+/// rather than calling it here.
+void handlePolicyLoadRequest() {
+    if (!server.hasArg("index")) {
+        server.send(400, "text/plain", "index required");
+        return;
+    }
+    const long index = server.arg("index").toInt();
+    if (index < 0) {
+        server.send(400, "text/plain", "index must be >= 0");
+        return;
+    }
+    if (!policy::loadSaved(static_cast<size_t>(index))) {
+        server.send(400, "text/plain",
+                   "load failed: no such save, wrong size for this robot, "
+                   "or the upload slot is the one currently running");
+        return;
+    }
+    // The slot loadSaved() just filled is always the last one count()
+    // now reports -- one past every compiled-in actor.
+    requestActorSelect(static_cast<uint8_t>(policy::count() - 1));
+    server.send(200, "text/plain", "ok");
+}
+
+/// kWebPage's saved-policy picker: forget one. Only ever touches the
+/// flash file (see policy::deleteSaved()'s own comment) -- a copy
+/// already loaded into the upload slot by handlePolicyLoadRequest()
+/// keeps running regardless.
+void handlePolicyDeleteRequest() {
+    if (!server.hasArg("index")) {
+        server.send(400, "text/plain", "index required");
+        return;
+    }
+    const long index = server.arg("index").toInt();
+    if (index < 0 || !policy::deleteSaved(static_cast<size_t>(index))) {
+        server.send(400, "text/plain", "delete failed: no such save");
+        return;
+    }
+    server.send(200, "text/plain", "ok");
 }
 
 /// The provisioning form's one POST, handled the same way handleCommandRequest
@@ -696,6 +764,8 @@ void ensureServer() {
     // handlePolicyUploadChunk has streamed (and applied) the whole body.
     server.on("/policy", HTTP_POST, handlePolicyUploadComplete,
               handlePolicyUploadChunk);
+    server.on("/policy/load", HTTP_POST, handlePolicyLoadRequest);
+    server.on("/policy/delete", HTTP_POST, handlePolicyDeleteRequest);
     // The M5StickV settings page: its own screen (kM5vPage), reachable from
     // kWebPage and back, and the one action it can take (see
     // handleM5vSetRequest's own comment).
@@ -795,7 +865,36 @@ String buildInfoJson() {
         if (i > 0) body += ',';
         body += static_cast<int>(g_servo_ids[i]);
     }
-    body += "]}";
+    body += "],\"saved\":[";
+    // Flash-persisted checkpoints for the CONFIGURED robot (see policy.h's
+    // own saveUploaded()/savedName() comment) -- kWebPage's own saved-list
+    // UI builds its picker from this, the same way it already builds the
+    // actor picker from "actors" above.
+    const size_t saved_n = policy::savedCount();
+    for (size_t i = 0; i < saved_n; i++) {
+        if (i > 0) body += ',';
+        body += '"';
+        // Operator-typed (see saveUploaded()'s own validSavedName() --
+        // letters/digits/-/_ only), so nothing here can need escaping,
+        // but the motions array above already does not assume that of
+        // ITS names, and this one is no more trustworthy a source.
+        for (const char* p = policy::savedName(i); *p; p++) {
+            if (*p == '"' || *p == '\\') body += '\\';
+            body += *p;
+        }
+        body += '"';
+    }
+    body += "],\"savedFreeKB\":";
+    body += static_cast<unsigned long>(policy::savedBytesFree() / 1024);
+    // Surfaced here so a failed /policy upload ("wrong size, out of RAM,
+    // or actor busy running") can be told apart from the phone's own
+    // browser without a serial connection -- if this is small (roughly
+    // under policy::uploadExpectedBytes()/1024), that upload's own
+    // malloc retry (see policy.cpp's beginUpload()) is the likely
+    // culprit, not a bad file or a busy actor.
+    body += ",\"freeHeapKB\":";
+    body += static_cast<unsigned long>(ESP.getFreeHeap() / 1024);
+    body += "}";
     return body;
 }
 

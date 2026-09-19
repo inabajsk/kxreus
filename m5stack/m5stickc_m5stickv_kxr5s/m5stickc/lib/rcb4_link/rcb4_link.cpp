@@ -57,7 +57,7 @@ bool i2cProbe(uint8_t addr) {
 }
 }  // namespace
 
-void Rcb4Link::begin() {
+void Rcb4Link::beginAt(uint32_t baud) {
     // A plain invert=true argument to HardwareSerial::begin() was found
     // unstable on this exact G5/G6 pin pair on real hardware (see
     // atom/s3_echo_with_I2C's own atoms3_i2c_robot.ino, which moved the
@@ -70,10 +70,25 @@ void Rcb4Link::begin() {
     delay(5);
     gpio_reset_pin(static_cast<gpio_num_t>(TX_PIN));
     gpio_reset_pin(static_cast<gpio_num_t>(RX_PIN));
-    serial_.begin(BAUD, SERIAL_8E1, RX_PIN, TX_PIN, /*invert=*/false);
+    serial_.begin(baud, SERIAL_8E1, RX_PIN, TX_PIN, /*invert=*/false);
     delay(5);
     uart_set_line_inverse(static_cast<uart_port_t>(UART_PORT_NUM),
                           UART_SIGNAL_TXD_INV | UART_SIGNAL_RXD_INV);
+    active_baud_ = baud;
+}
+
+void Rcb4Link::begin() { beginAt(BAUD); }
+
+bool Rcb4Link::probeBoardWithFallback(uint32_t timeout_ms) {
+    if (probeBoard(timeout_ms)) return true;
+    const uint32_t tried = active_baud_;
+    const uint32_t other = (tried == BAUD) ? BAUD_FALLBACK : BAUD;
+    beginAt(other);
+    if (probeBoard(timeout_ms)) return true;
+    // Neither answered: back to whichever rate was active before this
+    // call, not left sitting at the untested one.
+    beginAt(tried);
+    return false;
 }
 
 void Rcb4Link::beginM5StickV() {

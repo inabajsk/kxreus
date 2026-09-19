@@ -131,6 +131,37 @@ esp_err_t handleM5vSet(PsychicRequest* request, PsychicResponse* response) {
     return response->send("ok");
 }
 
+/// Same pair as net.cpp's own handlePolicyLoadRequest()/
+/// handlePolicyDeleteRequest() -- see those two's own comments.
+esp_err_t handlePolicyLoad(PsychicRequest* request, PsychicResponse* response) {
+    if (!request->hasParam("index")) {
+        return response->send(400, "text/plain", "index required");
+    }
+    const long index = request->getParam("index")->value().toInt();
+    if (index < 0) {
+        return response->send(400, "text/plain", "index must be >= 0");
+    }
+    if (!policy::loadSaved(static_cast<size_t>(index))) {
+        return response->send(400, "text/plain",
+                              "load failed: no such save, wrong size for "
+                              "this robot, or the upload slot is the one "
+                              "currently running");
+    }
+    net::requestActorSelect(static_cast<uint8_t>(policy::count() - 1));
+    return response->send("ok");
+}
+
+esp_err_t handlePolicyDelete(PsychicRequest* request, PsychicResponse* response) {
+    if (!request->hasParam("index")) {
+        return response->send(400, "text/plain", "index required");
+    }
+    const long index = request->getParam("index")->value().toInt();
+    if (index < 0 || !policy::deleteSaved(static_cast<size_t>(index))) {
+        return response->send(400, "text/plain", "delete failed: no such save");
+    }
+    return response->send("ok");
+}
+
 /// Same three-callback shape as net.cpp's own handlePolicyUploadChunk() /
 /// handlePolicyUploadComplete() (see that pair's own comment on the
 /// stream-rather-than-buffer reasoning) -- PsychicHttp's own onUpload()
@@ -151,12 +182,26 @@ void begin() {
         if (last && g_policy_upload_ok) g_policy_upload_ok = policy::finishUpload();
         return ESP_OK;
     });
-    upload_handler->onRequest([](PsychicRequest*, PsychicResponse* response) {
-        return response->send(g_policy_upload_ok ? 200 : 400, "text/plain",
-                              g_policy_upload_ok
-                                      ? "ok"
-                                      : "upload failed: wrong size, out of RAM, "
-                                        "or actor busy running");
+    // Same "name" field, read the same way net.cpp's own
+    // handlePolicyUploadComplete() does -- see that function's own
+    // comment on why a blank/missing one is not an error.
+    upload_handler->onRequest([](PsychicRequest* request,
+                                 PsychicResponse* response) {
+        if (!g_policy_upload_ok) {
+            return response->send(400, "text/plain",
+                                  "upload failed: wrong size, out of RAM, "
+                                  "or actor busy running");
+        }
+        if (request->hasParam("name") &&
+            request->getParam("name")->value().length() > 0) {
+            if (!policy::saveUploaded(
+                        request->getParam("name")->value().c_str())) {
+                return response->send(200, "text/plain",
+                                      "ok (not saved to flash: bad name, or "
+                                      "flash full)");
+            }
+        }
+        return response->send("ok");
     });
 
     g_https.on("/", HTTP_GET, handleRoot);
@@ -164,6 +209,8 @@ void begin() {
     g_https.on("/info", HTTP_GET, handleInfo);
     g_https.on("/actor", HTTP_POST, handleActor);
     g_https.on("/policy", HTTP_POST, upload_handler);
+    g_https.on("/policy/load", HTTP_POST, handlePolicyLoad);
+    g_https.on("/policy/delete", HTTP_POST, handlePolicyDelete);
     g_https.on("/m5v", HTTP_GET, handleM5v);
     g_https.on("/m5vset", HTTP_POST, handleM5vSet);
 }
