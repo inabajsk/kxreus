@@ -815,10 +815,14 @@ document.getElementById('savedDel').addEventListener('click', async () => {
 // (buildInfoJson()'s own "robot" field, already fetched for the actor/
 // motion lists below) rather than baked into this string. Points at each
 // robot's own EXISTING published directory.
+// Paths are relative to this repo's own m5stack/ -- each robot's
+// downloadable_policies now lives inside this SAME kxr5s tree (moved out
+// of the old per-robot single-firmware trees once kxr5s replaced them),
+// not a sibling directory of its own.
 const DOWNLOAD_DIRS = {
-  kxrl4t: 'm5stickc_m5stickv_kxrl4t',
-  kxrl4d: 'm5stickc_m5stickv_kxrl4d',
-  kxrl6: 'm5stickc_m5stickv_kxrl6',
+  kxrl4t: 'm5stickc_m5stickv_kxr5s/downloadable_policies/kxrl4t',
+  kxrl4d: 'm5stickc_m5stickv_kxr5s/downloadable_policies/kxrl4d',
+  kxrl6: 'm5stickc_m5stickv_kxr5s/downloadable_policies/kxrl6',
 };
 let DOWNLOAD_BASE = null;
 let DOWNLOADS = [];
@@ -831,7 +835,7 @@ async function loadDownloadList() {
     const dir = DOWNLOAD_DIRS[info.robot] || info.robot;
     DOWNLOAD_BASE =
         'https://raw.githubusercontent.com/inabajsk/kxreus/master/' +
-        'm5stack/' + dir + '/downloadable_policies/';
+        'm5stack/' + dir + '/';
     const r = await fetch(DOWNLOAD_BASE + 'manifest.json', {cache: 'no-store'});
     DOWNLOADS = await r.json();
     sel.innerHTML = '';
