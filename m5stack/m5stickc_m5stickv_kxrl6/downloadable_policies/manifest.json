@@ -1,5 +1,10 @@
 [
   {
+    "name": "omni-v1",
+    "file": "kxrl6_walk_omni_v1.bin",
+    "note": "Omnidirectional (forward/back/left/right, not just forward+turn) retrain, 2026-09-19, direct train.py (bypassing train_all.py's plateau detector), 5000 iterations. KXR_OMNI_RANGE=0.3 capped at this robot's own measured v_max (~0.35 m/s, so the full requested range). Also includes NEW payload_mass domain randomization (0-200g at torso COM, randomized per parallel env) on top of the pre-existing foot_friction randomization. This robot's own training was the cleanest of the four: Episode_Termination/fell_over stayed at 0.0000 for essentially the entire 5000 iterations, including through every curriculum stage transition. Final checkpoint (iteration 4999): Metrics/twist/error_vel_xy=0.21, Episode_Termination/fell_over=0.0000. Supersedes the walking-kxr-rl own-training gap noted below (only 4 iterations had been logged previously). `name` kept <=16 chars for saveUploaded()."
+  },
+  {
     "name": "iory/walking-hand-rl reference",
     "file": "kxrl6_walk_walking-hand-rl.bin",
     "note": "Imported from iory/walking-hand-rl's own kxr/policies/kxrl6_walk.pt. walking-kxr-rl's own kxrl6 training is not included here yet -- only 4 iterations logged so far (essentially untrained), not worth publishing."

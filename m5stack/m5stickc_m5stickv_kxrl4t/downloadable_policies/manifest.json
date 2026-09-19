@@ -1,5 +1,10 @@
 [
   {
+    "name": "omni-v1",
+    "file": "kxrl4t_walk_omni_v1.bin",
+    "note": "Omnidirectional (forward/back/left/right, not just forward+turn) retrain, 2026-09-19, direct train.py (bypassing train_all.py's plateau detector which had stopped this robot too early at 700 iterations before). 5000 iterations. KXR_OMNI_RANGE=0.3 capped at this robot's own measured v_max (~0.19 m/s, well below the flat 0.3 request -- this cap is what fixed an earlier attempt where kxrl4t's error kept degrading because it was being commanded speeds it physically cannot reach). Also includes NEW payload_mass domain randomization (0-200g at torso COM, randomized per parallel env) on top of the pre-existing foot_friction randomization. Final checkpoint (iteration 4999): Metrics/twist/error_vel_xy=0.22, Episode_Termination/fell_over~0.01 (near zero, under randomized friction+payload). `name` kept <=16 chars for saveUploaded()."
+  },
+  {
     "name": "walking-kxr-rl (own training)",
     "file": "kxrl4t_walk_own.bin",
     "note": "Trained by walking-kxr-rl itself (tools/train_all.py, 1497 iterations on the fixed home pose). ~0.117 m/s, some residual slip -- see walking-kxr-rl/README.md's own measured table."
