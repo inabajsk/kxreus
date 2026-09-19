@@ -1,5 +1,10 @@
 [
   {
+    "name": "omni-v2",
+    "file": "kxrl4d_walk_omni_v2.bin",
+    "note": "Omnidirectional retrain, 2026-09-19, direct train.py (bypassing train_all.py's plateau detector), 5000 iterations. KXR_OMNI_RANGE=0.3 capped at this robot's own measured v_max (min(0.3, v_max)). NEW: payload_mass domain randomization (0-200g added at torso COM, mode=startup, randomized per parallel env) on top of the pre-existing foot_friction randomization, per the user's request to vary both friction and added payload rather than train under one fixed condition. Final checkpoint (iteration 4999): Metrics/twist/error_vel_xy=0.17, Episode_Termination/fell_over~0.001-0.005 (near zero, now under randomized friction+payload). Supersedes omni-v1, which had neither the v_max cap nor payload randomization."
+  },
+  {
     "name": "omni-v1",
     "file": "kxrl4d_walk_omni_v1.bin",
     "note": "Omnidirectional (forward/back/left/right, not just forward+turn) retrain, 2026-09-19. walking-kxr-rl's own tools/train_all.py, KXR_OMNI_RANGE=0.3 (this robot's own measured v_max, ~0.29 m/s, so the full requested range). 2793 iterations. Metrics/twist/error_vel_xy=0.19, Episode_Termination/fell_over=0.0. `name` is intentionally short (this firmware's own saveUploaded() reuses it as the flash save name: letters/digits/-/_ only, <=16 chars -- see policy.h's own validSavedName() comment)."
