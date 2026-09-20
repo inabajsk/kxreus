@@ -238,7 +238,7 @@ function loadRobot(name) {
   // 元は STL/COLLADA 用の既定ローダーだが、このビューア向けにパイプライン側で
   // 全メッシュを Draco 圧縮 glTF(.glb)へ変換済みなので、拡張子に関わらず
   // 常に GLTFLoader(+DRACOLoader)で読む。
-  loader.loadMeshCb = (path, _mgr, done) => {
+  loader.loadMeshCb = (path, _mgr, _material, done) => {
     const gl = new GLTFLoader(manager);
     gl.setDRACOLoader(dracoLoader);
     gl.load(path, (g) => {
