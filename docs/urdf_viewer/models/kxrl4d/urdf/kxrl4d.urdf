@@ -1,0 +1,536 @@
+<?xml version="1.0"?>
+<robot name="kxrl4d"
+       xmlns:xi="http://www.w3.org/2001/XInclude">
+  <link name="torso-link-l4d">
+    <visual>
+      <origin xyz="0.054 0 0.143976" rpy="0 -0 0"/>
+      <geometry>
+        <mesh filename="package://kxrl4d/meshes/torso-link-l4d_mesh.glb" scale="1 1 1" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0.054 0 0.143976" rpy="0 -0 0"/>
+      <geometry>
+        <mesh filename="package://kxrl4d/meshes/torso-link-l4d_mesh.glb" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.445791" />
+      <origin xyz="0.000811 -2.09416e-10 0.008992" rpy="0 -0 0"/>
+      <inertia ixx="0.001367" ixy="-8.28424e-06" ixz="-1.6338e-06" iyy="0.001254" iyz="1.46101e-06" izz="0.002277"/>
+    </inertial>
+  </link>
+  <link name="head-neck-p">
+    <visual>
+      <origin xyz="0.0435 0 0.0585" rpy="0 -0 0"/>
+      <geometry>
+        <mesh filename="package://kxrl4d/meshes/head-neck-p_mesh.glb" scale="1 1 1" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0.0435 0 0.0585" rpy="0 -0 0"/>
+      <geometry>
+        <mesh filename="package://kxrl4d/meshes/head-neck-p_mesh.glb" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.099194" />
+      <origin xyz="0.015164 7.0634e-07 0.084927" rpy="0 -0 0"/>
+      <inertia ixx="0.000317" ixy="-6.38002e-09" ixz="2.29967e-08" iyy="0.000368" iyz="-2.06931e-08" izz="0.000105"/>
+    </inertial>
+  </link>
+  <link name="head-gripper-p">
+    <visual>
+      <origin xyz="0.038891 0 0.114891" rpy="0 -0 0"/>
+      <geometry>
+        <mesh filename="package://kxrl4d/meshes/head-gripper-p_mesh.glb" scale="1 1 1" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0.038891 0 0.114891" rpy="0 -0 0"/>
+      <geometry>
+        <mesh filename="package://kxrl4d/meshes/head-gripper-p_mesh.glb" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.013267" />
+      <origin xyz="0 0.020023 0.006264" rpy="0 -0 0"/>
+      <inertia ixx="0.000157" ixy="-2.54028e-09" ixz="-2.35822e-09" iyy="0.000208" iyz="-1.52851e-07" izz="6.13619e-05"/>
+    </inertial>
+  </link>
+  <link name="head-gripper2-p">
+    <visual>
+      <origin xyz="0.031466 0 0.137165" rpy="0 -0 0"/>
+      <geometry>
+        <mesh filename="package://kxrl4d/meshes/head-gripper2-p_mesh.glb" scale="1 1 1" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0.031466 0 0.137165" rpy="0 -0 0"/>
+      <geometry>
+        <mesh filename="package://kxrl4d/meshes/head-gripper2-p_mesh.glb" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.013267" />
+      <origin xyz="0 0.020023 0.006264" rpy="0 -0 0"/>
+      <inertia ixx="0.000223" ixy="-2.54028e-09" ixz="-2.35822e-09" iyy="0.000263" iyz="-1.52851e-07" izz="4.98309e-05"/>
+    </inertial>
+  </link>
+  <link name="larm-shoulder-p">
+    <visual>
+      <origin xyz="0.0645 0.048 0" rpy="0 -0 0"/>
+      <geometry>
+        <mesh filename="package://kxrl4d/meshes/larm-shoulder-p_mesh.glb" scale="1 1 1" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0.0645 0.048 0" rpy="0 -0 0"/>
+      <geometry>
+        <mesh filename="package://kxrl4d/meshes/larm-shoulder-p_mesh.glb" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.011355" />
+      <origin xyz="1.38778e-17 0 0.012267" rpy="0 -0 0"/>
+      <inertia ixx="2.02312e-05" ixy="-1.82679e-09" ixz="1.62901e-09" iyy="2.26023e-05" iyz="3.6276e-09" izz="3.57894e-05"/>
+    </inertial>
+  </link>
+  <link name="larm-shoulder-r">
+    <visual>
+      <origin xyz="0 0.029 0" rpy="0 -0 0"/>
+      <geometry>
+        <mesh filename="package://kxrl4d/meshes/larm-shoulder-r_mesh.glb" scale="1 1 1" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 0.029 0" rpy="0 -0 0"/>
+      <geometry>
+        <mesh filename="package://kxrl4d/meshes/larm-shoulder-r_mesh.glb" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.042494" />
+      <origin xyz="1.38778e-17 0 -0.016632" rpy="0 -0 0"/>
+      <inertia ixx="6.22999e-05" ixy="-1.82679e-09" ixz="1.02406e-08" iyy="5.52252e-05" iyz="-1.63018e-09" izz="8.66773e-05"/>
+    </inertial>
+  </link>
+  <link name="larm-elbow-p">
+    <visual>
+      <origin xyz="0 0 -0.053" rpy="0 -0 0"/>
+      <geometry>
+        <mesh filename="package://kxrl4d/meshes/larm-elbow-p_mesh.glb" scale="1 1 1" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 0 -0.053" rpy="0 -0 0"/>
+      <geometry>
+        <mesh filename="package://kxrl4d/meshes/larm-elbow-p_mesh.glb" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.0543" />
+      <origin xyz="0.010966 0 -0.012284" rpy="0 -0 0"/>
+      <inertia ixx="9.61711e-05" ixy="5.54708e-08" ixz="2.00452e-08" iyy="7.48545e-05" iyz="-6.81607e-07" izz="7.82869e-05"/>
+    </inertial>
+  </link>
+  <link name="larm-wrist-p">
+    <visual>
+      <origin xyz="0 0 -0.057976" rpy="0 -0 0"/>
+      <geometry>
+        <mesh filename="package://kxrl4d/meshes/larm-wrist-p_mesh.glb" scale="1 1 1" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 0 -0.057976" rpy="0 -0 0"/>
+      <geometry>
+        <mesh filename="package://kxrl4d/meshes/larm-wrist-p_mesh.glb" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.03752" />
+      <origin xyz="0.002222 1.86739e-06 -0.012784" rpy="0 -0 0"/>
+      <inertia ixx="0.000112" ixy="-3.94001e-12" ixz="6.70239e-09" iyy="0.000112" iyz="-6.02407e-09" izz="6.86318e-05"/>
+    </inertial>
+  </link>
+  <link name="lleg-crotch-p">
+    <visual>
+      <origin xyz="-0.0645 0.048 0" rpy="0 -0 0"/>
+      <geometry>
+        <mesh filename="package://kxrl4d/meshes/lleg-crotch-p_mesh.glb" scale="1 1 1" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="-0.0645 0.048 0" rpy="0 -0 0"/>
+      <geometry>
+        <mesh filename="package://kxrl4d/meshes/lleg-crotch-p_mesh.glb" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.011355" />
+      <origin xyz="0 0 0.012267" rpy="0 -0 0"/>
+      <inertia ixx="2.02312e-05" ixy="-1.82679e-09" ixz="1.62901e-09" iyy="2.26023e-05" iyz="3.6276e-09" izz="3.57894e-05"/>
+    </inertial>
+  </link>
+  <link name="lleg-crotch-r">
+    <visual>
+      <origin xyz="0 0.029 0" rpy="0 -0 0"/>
+      <geometry>
+        <mesh filename="package://kxrl4d/meshes/lleg-crotch-r_mesh.glb" scale="1 1 1" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 0.029 0" rpy="0 -0 0"/>
+      <geometry>
+        <mesh filename="package://kxrl4d/meshes/lleg-crotch-r_mesh.glb" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.042494" />
+      <origin xyz="0 0 -0.016632" rpy="0 -0 0"/>
+      <inertia ixx="6.22999e-05" ixy="-1.82679e-09" ixz="1.02406e-08" iyy="5.52252e-05" iyz="-1.63018e-09" izz="8.66773e-05"/>
+    </inertial>
+  </link>
+  <link name="lleg-knee-p">
+    <visual>
+      <origin xyz="0 0 -0.053" rpy="0 -0 0"/>
+      <geometry>
+        <mesh filename="package://kxrl4d/meshes/lleg-knee-p_mesh.glb" scale="1 1 1" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 0 -0.053" rpy="0 -0 0"/>
+      <geometry>
+        <mesh filename="package://kxrl4d/meshes/lleg-knee-p_mesh.glb" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.0543" />
+      <origin xyz="0.010966 0 -0.012284" rpy="0 -0 0"/>
+      <inertia ixx="9.61711e-05" ixy="5.54708e-08" ixz="2.00452e-08" iyy="7.48545e-05" iyz="-6.81607e-07" izz="7.82869e-05"/>
+    </inertial>
+  </link>
+  <link name="lleg-ankle-p">
+    <visual>
+      <origin xyz="0 0 -0.057976" rpy="0 -0 0"/>
+      <geometry>
+        <mesh filename="package://kxrl4d/meshes/lleg-ankle-p_mesh.glb" scale="1 1 1" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 0 -0.057976" rpy="0 -0 0"/>
+      <geometry>
+        <mesh filename="package://kxrl4d/meshes/lleg-ankle-p_mesh.glb" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.03752" />
+      <origin xyz="0.002222 1.86739e-06 -0.012784" rpy="0 -0 0"/>
+      <inertia ixx="0.000112" ixy="-3.94e-12" ixz="6.70242e-09" iyy="0.000106" iyz="-6.02408e-09" izz="6.26836e-05"/>
+    </inertial>
+  </link>
+  <link name="rarm-shoulder-p">
+    <visual>
+      <origin xyz="0.0645 -0.048 0" rpy="0 -0 0"/>
+      <geometry>
+        <mesh filename="package://kxrl4d/meshes/rarm-shoulder-p_mesh.glb" scale="1 1 1" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0.0645 -0.048 0" rpy="0 -0 0"/>
+      <geometry>
+        <mesh filename="package://kxrl4d/meshes/rarm-shoulder-p_mesh.glb" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.011355" />
+      <origin xyz="1.38778e-17 0 0.012267" rpy="0 -0 0"/>
+      <inertia ixx="2.02312e-05" ixy="-1.82679e-09" ixz="1.62901e-09" iyy="2.26023e-05" iyz="3.6276e-09" izz="3.57894e-05"/>
+    </inertial>
+  </link>
+  <link name="rarm-shoulder-r">
+    <visual>
+      <origin xyz="0 -0.029 0" rpy="0 -0 0"/>
+      <geometry>
+        <mesh filename="package://kxrl4d/meshes/rarm-shoulder-r_mesh.glb" scale="1 1 1" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 -0.029 0" rpy="0 -0 0"/>
+      <geometry>
+        <mesh filename="package://kxrl4d/meshes/rarm-shoulder-r_mesh.glb" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.042494" />
+      <origin xyz="1.38778e-17 0 -0.016632" rpy="0 -0 0"/>
+      <inertia ixx="6.22999e-05" ixy="-1.82679e-09" ixz="1.02406e-08" iyy="5.52252e-05" iyz="-1.63018e-09" izz="8.66773e-05"/>
+    </inertial>
+  </link>
+  <link name="rarm-elbow-p">
+    <visual>
+      <origin xyz="0 0 -0.053" rpy="0 -0 0"/>
+      <geometry>
+        <mesh filename="package://kxrl4d/meshes/rarm-elbow-p_mesh.glb" scale="1 1 1" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 0 -0.053" rpy="0 -0 0"/>
+      <geometry>
+        <mesh filename="package://kxrl4d/meshes/rarm-elbow-p_mesh.glb" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.0543" />
+      <origin xyz="0.010966 0 -0.012284" rpy="0 -0 0"/>
+      <inertia ixx="9.61711e-05" ixy="5.54708e-08" ixz="2.00452e-08" iyy="7.48545e-05" iyz="-6.81607e-07" izz="7.82869e-05"/>
+    </inertial>
+  </link>
+  <link name="rarm-wrist-p">
+    <visual>
+      <origin xyz="0 0 -0.057976" rpy="0 -0 0"/>
+      <geometry>
+        <mesh filename="package://kxrl4d/meshes/rarm-wrist-p_mesh.glb" scale="1 1 1" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 0 -0.057976" rpy="0 -0 0"/>
+      <geometry>
+        <mesh filename="package://kxrl4d/meshes/rarm-wrist-p_mesh.glb" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.03752" />
+      <origin xyz="0.002222 1.86739e-06 -0.012784" rpy="0 -0 0"/>
+      <inertia ixx="0.000112" ixy="-3.94001e-12" ixz="6.70239e-09" iyy="0.000112" iyz="-6.02407e-09" izz="6.86318e-05"/>
+    </inertial>
+  </link>
+  <link name="rleg-crotch-p">
+    <visual>
+      <origin xyz="-0.0645 -0.048 0" rpy="0 -0 0"/>
+      <geometry>
+        <mesh filename="package://kxrl4d/meshes/rleg-crotch-p_mesh.glb" scale="1 1 1" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="-0.0645 -0.048 0" rpy="0 -0 0"/>
+      <geometry>
+        <mesh filename="package://kxrl4d/meshes/rleg-crotch-p_mesh.glb" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.011355" />
+      <origin xyz="0 0 0.012267" rpy="0 -0 0"/>
+      <inertia ixx="2.02312e-05" ixy="-1.82679e-09" ixz="1.62901e-09" iyy="2.26023e-05" iyz="3.6276e-09" izz="3.57894e-05"/>
+    </inertial>
+  </link>
+  <link name="rleg-crotch-r">
+    <visual>
+      <origin xyz="0 -0.029 0" rpy="0 -0 0"/>
+      <geometry>
+        <mesh filename="package://kxrl4d/meshes/rleg-crotch-r_mesh.glb" scale="1 1 1" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 -0.029 0" rpy="0 -0 0"/>
+      <geometry>
+        <mesh filename="package://kxrl4d/meshes/rleg-crotch-r_mesh.glb" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.042494" />
+      <origin xyz="0 0 -0.016632" rpy="0 -0 0"/>
+      <inertia ixx="6.22999e-05" ixy="-1.82679e-09" ixz="1.02406e-08" iyy="5.52252e-05" iyz="-1.63018e-09" izz="8.66773e-05"/>
+    </inertial>
+  </link>
+  <link name="rleg-knee-p">
+    <visual>
+      <origin xyz="0 0 -0.053" rpy="0 -0 0"/>
+      <geometry>
+        <mesh filename="package://kxrl4d/meshes/rleg-knee-p_mesh.glb" scale="1 1 1" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 0 -0.053" rpy="0 -0 0"/>
+      <geometry>
+        <mesh filename="package://kxrl4d/meshes/rleg-knee-p_mesh.glb" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.0543" />
+      <origin xyz="0.010966 0 -0.012284" rpy="0 -0 0"/>
+      <inertia ixx="9.61711e-05" ixy="5.54708e-08" ixz="2.00452e-08" iyy="7.48545e-05" iyz="-6.81607e-07" izz="7.82869e-05"/>
+    </inertial>
+  </link>
+  <link name="rleg-ankle-p">
+    <visual>
+      <origin xyz="0 0 -0.057976" rpy="0 -0 0"/>
+      <geometry>
+        <mesh filename="package://kxrl4d/meshes/rleg-ankle-p_mesh.glb" scale="1 1 1" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 0 -0.057976" rpy="0 -0 0"/>
+      <geometry>
+        <mesh filename="package://kxrl4d/meshes/rleg-ankle-p_mesh.glb" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.03752" />
+      <origin xyz="0.002222 1.86739e-06 -0.012784" rpy="0 -0 0"/>
+      <inertia ixx="0.000112" ixy="-3.94e-12" ixz="6.70242e-09" iyy="0.000106" iyz="-6.02408e-09" izz="6.26836e-05"/>
+    </inertial>
+  </link>
+  <joint name="head-neck-p" type="revolute">
+    <parent link="torso-link-l4d"/>
+    <child  link="head-neck-p"/>
+    <origin xyz="0.0435 0 0.0585" rpy="0 -0 0 "/>
+    <axis   xyz="0 1 0"/>
+    <limit lower="-2.0944" upper="2.0944" effort="0.656248" velocity="7.47998" />
+    <dynamics damping="0.2" friction="0" />
+  </joint>
+  <joint name="head-gripper-p" type="revolute">
+    <parent link="head-neck-p"/>
+    <child  link="head-gripper-p"/>
+    <origin xyz="0.038891 0 0.114891" rpy="0 -0 0 "/>
+    <axis   xyz="0 1 0"/>
+    <limit lower="-1.74533" upper="1.74533" effort="0.656248" velocity="7.47998" />
+    <dynamics damping="0.2" friction="0" />
+  </joint>
+  <joint name="head-gripper2-p" type="revolute">
+    <parent link="head-neck-p"/>
+    <child  link="head-gripper2-p"/>
+    <origin xyz="0.031466 0 0.137165" rpy="0 -0 0 "/>
+    <axis   xyz="0 -1 0"/>
+    <limit lower="-1.74533" upper="1.74533" effort="0.656248" velocity="7.47998" />
+    <dynamics damping="0.2" friction="0" />
+  </joint>
+  <joint name="larm-shoulder-p" type="revolute">
+    <parent link="torso-link-l4d"/>
+    <child  link="larm-shoulder-p"/>
+    <origin xyz="0.0645 0.048 0" rpy="0 -0 0 "/>
+    <axis   xyz="0 1 0"/>
+    <limit lower="-2.35619" upper="2.35619" effort="0.656248" velocity="7.47998" />
+    <dynamics damping="0.2" friction="0" />
+  </joint>
+  <joint name="larm-shoulder-r" type="revolute">
+    <parent link="larm-shoulder-p"/>
+    <child  link="larm-shoulder-r"/>
+    <origin xyz="0 0.029 0" rpy="0 -0 0 "/>
+    <axis   xyz="1 0 0"/>
+    <limit lower="-1.39626" upper="2.0944" effort="0.656248" velocity="7.47998" />
+    <dynamics damping="0.2" friction="0" />
+  </joint>
+  <joint name="larm-elbow-p" type="revolute">
+    <parent link="larm-shoulder-r"/>
+    <child  link="larm-elbow-p"/>
+    <origin xyz="0 0 -0.053" rpy="0 -0 0 "/>
+    <axis   xyz="0 1 0"/>
+    <limit lower="-2.96706" upper="2.96706" effort="0.656248" velocity="7.47998" />
+    <dynamics damping="0.2" friction="0" />
+  </joint>
+  <joint name="larm-wrist-p" type="revolute">
+    <parent link="larm-elbow-p"/>
+    <child  link="larm-wrist-p"/>
+    <origin xyz="0 0 -0.057976" rpy="0 -0 0 "/>
+    <axis   xyz="0 1 0"/>
+    <limit lower="-1.5708" upper="1.5708" effort="0.656248" velocity="7.47998" />
+    <dynamics damping="0.2" friction="0" />
+  </joint>
+  <joint name="lleg-crotch-p" type="revolute">
+    <parent link="torso-link-l4d"/>
+    <child  link="lleg-crotch-p"/>
+    <origin xyz="-0.0645 0.048 0" rpy="0 -0 0 "/>
+    <axis   xyz="0 1 0"/>
+    <limit lower="-2.35619" upper="2.35619" effort="0.656248" velocity="7.47998" />
+    <dynamics damping="0.2" friction="0" />
+  </joint>
+  <joint name="lleg-crotch-r" type="revolute">
+    <parent link="lleg-crotch-p"/>
+    <child  link="lleg-crotch-r"/>
+    <origin xyz="0 0.029 0" rpy="0 -0 0 "/>
+    <axis   xyz="1 0 0"/>
+    <limit lower="-1.39626" upper="2.0944" effort="0.656248" velocity="7.47998" />
+    <dynamics damping="0.2" friction="0" />
+  </joint>
+  <joint name="lleg-knee-p" type="revolute">
+    <parent link="lleg-crotch-r"/>
+    <child  link="lleg-knee-p"/>
+    <origin xyz="0 0 -0.053" rpy="0 -0 0 "/>
+    <axis   xyz="0 1 0"/>
+    <limit lower="-2.96706" upper="2.96706" effort="0.656248" velocity="7.47998" />
+    <dynamics damping="0.2" friction="0" />
+  </joint>
+  <joint name="lleg-ankle-p" type="revolute">
+    <parent link="lleg-knee-p"/>
+    <child  link="lleg-ankle-p"/>
+    <origin xyz="0 0 -0.057976" rpy="0 -0 0 "/>
+    <axis   xyz="0 1 0"/>
+    <limit lower="-1.5708" upper="1.5708" effort="0.656248" velocity="7.47998" />
+    <dynamics damping="0.2" friction="0" />
+  </joint>
+  <joint name="rarm-shoulder-p" type="revolute">
+    <parent link="torso-link-l4d"/>
+    <child  link="rarm-shoulder-p"/>
+    <origin xyz="0.0645 -0.048 0" rpy="0 -0 0 "/>
+    <axis   xyz="0 1 0"/>
+    <limit lower="-2.35619" upper="2.35619" effort="0.656248" velocity="7.47998" />
+    <dynamics damping="0.2" friction="0" />
+  </joint>
+  <joint name="rarm-shoulder-r" type="revolute">
+    <parent link="rarm-shoulder-p"/>
+    <child  link="rarm-shoulder-r"/>
+    <origin xyz="0 -0.029 0" rpy="0 -0 0 "/>
+    <axis   xyz="1 0 0"/>
+    <limit lower="-1.39626" upper="2.0944" effort="0.656248" velocity="7.47998" />
+    <dynamics damping="0.2" friction="0" />
+  </joint>
+  <joint name="rarm-elbow-p" type="revolute">
+    <parent link="rarm-shoulder-r"/>
+    <child  link="rarm-elbow-p"/>
+    <origin xyz="0 0 -0.053" rpy="0 -0 0 "/>
+    <axis   xyz="0 1 0"/>
+    <limit lower="-2.96706" upper="2.96706" effort="0.656248" velocity="7.47998" />
+    <dynamics damping="0.2" friction="0" />
+  </joint>
+  <joint name="rarm-wrist-p" type="revolute">
+    <parent link="rarm-elbow-p"/>
+    <child  link="rarm-wrist-p"/>
+    <origin xyz="0 0 -0.057976" rpy="0 -0 0 "/>
+    <axis   xyz="0 1 0"/>
+    <limit lower="-1.5708" upper="1.5708" effort="0.656248" velocity="7.47998" />
+    <dynamics damping="0.2" friction="0" />
+  </joint>
+  <joint name="rleg-crotch-p" type="revolute">
+    <parent link="torso-link-l4d"/>
+    <child  link="rleg-crotch-p"/>
+    <origin xyz="-0.0645 -0.048 0" rpy="0 -0 0 "/>
+    <axis   xyz="0 1 0"/>
+    <limit lower="-2.35619" upper="2.35619" effort="0.656248" velocity="7.47998" />
+    <dynamics damping="0.2" friction="0" />
+  </joint>
+  <joint name="rleg-crotch-r" type="revolute">
+    <parent link="rleg-crotch-p"/>
+    <child  link="rleg-crotch-r"/>
+    <origin xyz="0 -0.029 0" rpy="0 -0 0 "/>
+    <axis   xyz="1 0 0"/>
+    <limit lower="-1.39626" upper="2.0944" effort="0.656248" velocity="7.47998" />
+    <dynamics damping="0.2" friction="0" />
+  </joint>
+  <joint name="rleg-knee-p" type="revolute">
+    <parent link="rleg-crotch-r"/>
+    <child  link="rleg-knee-p"/>
+    <origin xyz="0 0 -0.053" rpy="0 -0 0 "/>
+    <axis   xyz="0 1 0"/>
+    <limit lower="-2.96706" upper="2.96706" effort="0.656248" velocity="7.47998" />
+    <dynamics damping="0.2" friction="0" />
+  </joint>
+  <joint name="rleg-ankle-p" type="revolute">
+    <parent link="rleg-knee-p"/>
+    <child  link="rleg-ankle-p"/>
+    <origin xyz="0 0 -0.057976" rpy="0 -0 0 "/>
+    <axis   xyz="0 1 0"/>
+    <limit lower="-1.5708" upper="1.5708" effort="0.656248" velocity="7.47998" />
+    <dynamics damping="0.2" friction="0" />
+  </joint>
+</robot>

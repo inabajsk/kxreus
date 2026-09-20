@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>kxreus URDF Viewer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0b0d10; --panel:#14181d; --panel2:#1b2027; --line:#262c33;
+    --text:#dbe2e8; --muted:#7c8894; --accent:#ff8a3d; --accent2:#35c2b0;
+    --danger:#ff5d5d;
+    --mono:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+    --sans:'IBM Plex Sans',-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN",sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:var(--ink);color:var(--text);font-family:var(--sans);overflow:hidden}
+  #stage{position:fixed;inset:0}
+  #view{width:100%;height:100%;display:block}
+
+  #bar{position:fixed;left:0;right:0;top:0;z-index:5;display:flex;align-items:center;gap:14px;
+    padding:10px 16px;background:linear-gradient(180deg,rgba(11,13,16,.92),rgba(11,13,16,.6));
+    border-bottom:1px solid var(--line);flex-wrap:wrap}
+  .kicker{font-family:var(--mono);font-size:11px;letter-spacing:.09em;color:var(--accent);
+    white-space:nowrap;text-transform:uppercase}
+  .kicker b{color:var(--text);font-weight:600}
+  select#robot{font-family:var(--mono);font-size:13px;background:var(--panel2);color:var(--text);
+    border:1px solid var(--line);border-radius:7px;padding:8px 10px;min-width:220px;outline:none}
+  select#robot:focus{border-color:var(--accent)}
+  #status{font-family:var(--mono);font-size:11.5px;color:var(--muted);white-space:nowrap;
+    overflow:hidden;text-overflow:ellipsis}
+  #status .err{color:var(--danger)}
+  #status .ok{color:var(--accent2)}
+
+  #panel{position:fixed;right:14px;top:66px;width:236px;max-height:calc(100% - 100px);
+    background:rgba(20,24,29,.94);border:1px solid var(--line);border-radius:10px;
+    backdrop-filter:blur(6px);display:flex;flex-direction:column;overflow:hidden;z-index:4}
+  #panel .ph{padding:9px 12px;border-bottom:1px solid var(--line);display:flex;
+    justify-content:space-between;align-items:center;font-family:var(--mono);font-size:11px;
+    letter-spacing:.06em;color:var(--muted);text-transform:uppercase}
+  #panel .ph button{font-family:var(--sans);font-size:11px;background:var(--panel2);color:var(--text);
+    border:1px solid var(--line);border-radius:6px;padding:4px 9px;cursor:pointer}
+  #panel .ph button:hover{border-color:var(--accent)}
+  #joints{overflow:auto;padding:8px 12px 12px}
+  .jrow{margin:10px 0}
+  .jrow label{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);
+    font-family:var(--mono);margin-bottom:3px}
+  .jrow label span.v{color:var(--accent2);font-variant-numeric:tabular-nums}
+  .jrow input[type=range]{width:100%;accent-color:var(--accent2)}
+  #joints .empty{color:var(--muted);font-size:12px;padding:6px 0}
+
+  .hint{position:fixed;left:16px;bottom:14px;color:var(--muted);font-size:11.5px;
+    font-family:var(--mono);text-shadow:0 1px 3px #000;z-index:3;max-width:70vw}
+  #spin{position:fixed;inset:0;display:none;align-items:center;justify-content:center;
+    color:var(--accent);font-family:var(--mono);font-size:13px;z-index:6;background:rgba(11,13,16,.55)}
+
+  @media(max-width:560px){
+    #panel{width:180px;right:8px;top:58px}
+    select#robot{min-width:150px}
+    .kicker{display:none}
+  }
+</style>
+</head>
+<body>
+  <div id="bar">
+    <div class="kicker">kxreus <b>URDF Viewer</b> · Phase 2</div>
+    <select id="robot"></select>
+    <div id="status">起動中…</div>
+  </div>
+
+  <div id="stage"><canvas id="view"></canvas></div>
+
+  <div id="panel">
+    <div class="ph"><span>Joints</span><button id="reset">Reset</button></div>
+    <div id="joints"><div class="empty">読み込み中…</div></div>
+  </div>
+
+  <div class="hint">ドラッグ=回転 / ホイール=ズーム / 右ドラッグ=パン</div>
+  <div id="spin">loading model…</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/examples/jsm/controls/OrbitControls.js": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/controls/OrbitControls.js",
+    "three/examples/jsm/loaders/GLTFLoader.js": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/GLTFLoader.js",
+    "three/examples/jsm/loaders/DRACOLoader.js": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/DRACOLoader.js",
+    "three/examples/jsm/loaders/ColladaLoader.js": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/ColladaLoader.js",
+    "three/examples/jsm/loaders/STLLoader.js": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/STLLoader.js",
+    "urdf-loader": "https://cdn.jsdelivr.net/npm/urdf-loader@0.13.1/src/URDFLoader.js"
+  }
+}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
+import URDFLoader from 'urdf-loader';
+
+// このビューアは kxreus/rcb4robotconfig.l が定義するロボット群を、
+// urdfs/ から生成した URDF + Draco圧縮 glTF で表示する(フェーズ2)。
+// meshes は生成パイプライン側で .dae -> .glb(Draco) に変換済み --
+// 元の COLLADA は一切ここには置かない(帯域節約のため)。
+const MODELS_BASE = 'models';
+
+// フェーズ1でファームウェアが対応済みの5種を先頭に、残り47種をその後に。
+const FEATURED = ['kxrl4t', 'kxrl4d', 'kxrl6', 'kxrl2g', 'kxra6g'];
+const ALL_ROBOTS = [
+  'kxra6g','kxra7g','kxrdw4a6h2m','kxrkamakiri','kxrl2g','kxrl2l2a6h2','kxrl2l2a6h2m',
+  'kxrl2l2a7h2','kxrl2l5a3h2gr','kxrl2l5a4h2g','kxrl2l6a6h2','kxrl2l6a6h2g','kxrl2l6a6h2m',
+  'kxrl2l6a7h2','kxrl2l6a7h2m','kxrl2l7a7w','kxrl2makabe','kxrl2makabelc','kxrl2makabelcw',
+  'kxrl2makabels','kxrl2semi2022s','kxrl2t2l6a7h2d405','kxrl2t2l6a7h2yprb','kxrl2w2l5a4h2',
+  'kxrl2w2l6a5h2','kxrl2w2l6a6h2','kxrl2w2l6a7h2w','kxrl4b1','kxrl4b2sn','kxrl4b4','kxrl4c',
+  'kxrl4c2','kxrl4c3','kxrl4ct2a7h2','kxrl4d','kxrl4d1','kxrl4d2','kxrl4l3a3','kxrl4n','kxrl4r',
+  'kxrl4r2a3','kxrl4r2a3gl','kxrl4r2l3','kxrl4t','kxrl6','kxrmw4a6h2','kxrmw4a6h2m','kxrmw4a7h2',
+  'kxrmw4a7h2g','kxrmw4a7h2m','kxrow4a6h2m','kxrroboset4',
+];
+
+const $ = (s) => document.querySelector(s);
+
+// ---------- select box ----------
+const sel = $('#robot');
+function addOption(name, label) {
+  const o = document.createElement('option');
+  o.value = name; o.textContent = label;
+  sel.appendChild(o);
+}
+const og1 = document.createElement('optgroup'); og1.label = 'フェーズ1 実装済み(5種)';
+sel.appendChild(og1);
+FEATURED.forEach((n) => { const o = document.createElement('option'); o.value = n; o.textContent = n; og1.appendChild(o); });
+const og2 = document.createElement('optgroup'); og2.label = `その他(52種中 ${ALL_ROBOTS.length - FEATURED.length}種)`;
+sel.appendChild(og2);
+ALL_ROBOTS.filter((n) => !FEATURED.includes(n)).forEach((n) => { const o = document.createElement('option'); o.value = n; o.textContent = n; og2.appendChild(o); });
+
+const params = new URLSearchParams(location.search);
+sel.value = ALL_ROBOTS.includes(params.get('robot')) ? params.get('robot') : 'kxrl4t';
+
+// ---------- three.js ----------
+const canvas = $('#view');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, logarithmicDepthBuffer: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0b0d10);
+const camera = new THREE.PerspectiveCamera(50, 1, 0.01, 1000);
+camera.up.set(0, 0, 1);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+scene.add(new THREE.HemisphereLight(0xffffff, 0x33261a, 1.15));
+const dir = new THREE.DirectionalLight(0xffffff, 2.0);
+dir.position.set(3, -2, 5);
+scene.add(dir);
+const ground = new THREE.GridHelper(4, 20, 0x3a4550, 0x1c222a);
+ground.rotation.x = Math.PI / 2;
+scene.add(ground);
+
+function resize() {
+  const w = canvas.clientWidth, h = canvas.clientHeight;
+  if (w && h && (canvas.width !== w || canvas.height !== h)) {
+    renderer.setSize(w, h, false);
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+  }
+}
+function animate() {
+  resize();
+  controls.update();
+  renderer.render(scene, camera);
+  requestAnimationFrame(animate);
+}
+animate();
+
+function frame(obj) {
+  const box = new THREE.Box3().setFromObject(obj);
+  if (box.isEmpty()) return;
+  const c = box.getCenter(new THREE.Vector3());
+  const s = box.getSize(new THREE.Vector3());
+  const r = Math.max(s.x, s.y, s.z) || 1;
+  controls.target.copy(c);
+  camera.position.set(c.x + r * 1.3, c.y - r * 1.6, c.z + r * 1.1);
+  camera.near = r / 100;
+  camera.far = r * 60;
+  camera.updateProjectionMatrix();
+  ground.position.set(c.x, c.y, box.min.z);
+  ground.scale.setScalar(Math.max(1, r * 2.2));
+}
+
+// ---------- URDF + Draco glTF loading ----------
+const dracoLoader = new DRACOLoader();
+dracoLoader.setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/libs/draco/');
+
+let current = null;
+function clearModel() {
+  if (current) {
+    scene.remove(current);
+    current.traverse((o) => { if (o.geometry) o.geometry.dispose(); });
+    current = null;
+  }
+}
+
+function setStatus(html, cls) {
+  $('#status').innerHTML = cls ? `<span class="${cls}">${html}</span>` : html;
+}
+
+function buildJoints(robot) {
+  const box = $('#joints');
+  box.innerHTML = '';
+  const names = Object.keys(robot.joints).filter((n) => robot.joints[n].jointType !== 'fixed');
+  if (!names.length) { box.innerHTML = '<div class="empty">可動関節なし</div>'; return; }
+  names.forEach((name) => {
+    const j = robot.joints[name];
+    const lo = Number.isFinite(j.limit?.lower) ? j.limit.lower : -Math.PI;
+    const hi = Number.isFinite(j.limit?.upper) ? j.limit.upper : Math.PI;
+    const row = document.createElement('div'); row.className = 'jrow';
+    const label = document.createElement('label');
+    label.innerHTML = `<span>${name}</span><span class="v">${j.angle.toFixed(2)}</span>`;
+    const input = document.createElement('input');
+    input.type = 'range'; input.min = lo; input.max = hi; input.step = (hi - lo) / 200 || 0.01;
+    input.value = j.angle;
+    input.addEventListener('input', () => {
+      robot.setJointValue(name, parseFloat(input.value));
+      label.querySelector('.v').textContent = parseFloat(input.value).toFixed(2);
+    });
+    row.appendChild(label); row.appendChild(input);
+    box.appendChild(row);
+  });
+}
+
+function loadRobot(name) {
+  history.replaceState(null, '', `?robot=${name}`);
+  setStatus(`読み込み中: ${name} …`);
+  $('#spin').style.display = 'flex';
+  const manager = new THREE.LoadingManager();
+  const loader = new URDFLoader(manager);
+  loader.packages = (pkg) => `${MODELS_BASE}/${pkg}`;
+  // 元は STL/COLLADA 用の既定ローダーだが、このビューア向けにパイプライン側で
+  // 全メッシュを Draco 圧縮 glTF(.glb)へ変換済みなので、拡張子に関わらず
+  // 常に GLTFLoader(+DRACOLoader)で読む。
+  loader.loadMeshCb = (path, _mgr, done) => {
+    const gl = new GLTFLoader(manager);
+    gl.setDRACOLoader(dracoLoader);
+    gl.load(path, (g) => {
+      g.scene.traverse((o) => { if (o.isMesh) { o.material.metalness = 0; o.material.roughness = 0.85; } });
+      done(g.scene);
+    }, undefined, (err) => done(null, err));
+  };
+  const t0 = performance.now();
+  loader.load(`${MODELS_BASE}/${name}/urdf/${name}.urdf`, (robot) => {
+    clearModel();
+    current = robot;
+    scene.add(robot);
+    frame(robot);
+    buildJoints(robot);
+    const ms = Math.round(performance.now() - t0);
+    manager.onLoad = () => {
+      $('#spin').style.display = 'none';
+      const nMesh = current.children.length ? countMeshes(current) : 0;
+      setStatus(
+        `${name} · ${nMesh} メッシュ · ${ms}ms · source: ${MODELS_BASE}/${name}/urdf/${name}.urdf`,
+        'ok',
+      );
+    };
+    setTimeout(() => { $('#spin').style.display = 'none'; }, 4000);
+  }, undefined, (err) => {
+    $('#spin').style.display = 'none';
+    setStatus(`読み込み失敗: ${name} (${err?.message || err})`, 'err');
+    console.error(err);
+  });
+}
+function countMeshes(obj) {
+  let n = 0;
+  obj.traverse((o) => { if (o.isMesh) n++; });
+  return n;
+}
+
+sel.addEventListener('change', () => loadRobot(sel.value));
+$('#reset').addEventListener('click', () => { if (current) loadRobot(sel.value); });
+
+loadRobot(sel.value);
+</script>
+</body>
+</html>
