@@ -5,7 +5,10 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 mkdir -p policies
 
-ROBOTS=(kxrl4d kxrl4t kxrl2g kxrl6)
+# Sourced from kxr_rl.robots.DEFAULT_ROBOTS rather than listed here, so this
+# script never needs editing again when that tuple grows.
+mapfile -t ROBOTS < <(uv run python -c \
+  "from kxr_rl.robots import DEFAULT_ROBOTS; print('\n'.join(DEFAULT_ROBOTS))")
 for robot in "${ROBOTS[@]}"; do
   for mode in walk getup; do
     # Newest run directory for this task, whatever it was named.

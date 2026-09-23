@@ -66,10 +66,26 @@ def mjcf_path(name: str) -> Path:
 def home_path(name: str) -> Path:
   return MJCF_ROOT / name / "home.json"
 
-# The four asked for explicitly. Any other directory under kxreus/urdfs with at
-# least one leg (an "lleg"/"rleg" limb with >=1 joint) also works untouched --
-# see `discover_robots()` -- this tuple is just the default training set.
-DEFAULT_ROBOTS: tuple[str, ...] = ("kxrl4d", "kxrl4t", "kxrl2g", "kxrl6")
+# Every kxreus robot that passes both robot/measure_home.py (finds a stance
+# where its support limbs actually carry the load) and check.py (that stance
+# holds under zero action -- no drift, no tip-over, no torso contact, no
+# self-penetration) as of 2026-09-23, out of the 51 leg-type candidates under
+# kxreus/urdfs (kxrkamakiri has no legs; the makabe family and kxrl2w2l6a6h2
+# fail measure_home's own contact check; kxrl2l7a7w, kxrl2t2l6a7h2yprb,
+# kxrl2w2l5a4h2, kxrl2w2l6a5h2, kxrl2w2l6a7h2w, kxrl4b1, kxrl4c2, kxrl4c3 and
+# kxrl4r2l3 stand but then fall, self-penetrate or rest on the torso once
+# held). Any OTHER directory under kxreus/urdfs with at least one leg also
+# works untouched -- see `discover_robots()` -- this tuple is just the
+# default training set, now every robot known to actually stand.
+DEFAULT_ROBOTS: tuple[str, ...] = (
+  "kxra6g", "kxra7g", "kxrdw4a6h2m", "kxrl2g", "kxrl2l2a6h2", "kxrl2l2a6h2m",
+  "kxrl2l2a7h2", "kxrl2l5a3h2gr", "kxrl2l5a4h2g", "kxrl2l6a6h2", "kxrl2l6a6h2g",
+  "kxrl2l6a6h2m", "kxrl2l6a7h2", "kxrl2l6a7h2m", "kxrl2semi2022s",
+  "kxrl2t2l6a7h2d405", "kxrl4b2sn", "kxrl4b4", "kxrl4c", "kxrl4ct2a7h2",
+  "kxrl4d", "kxrl4d1", "kxrl4d2", "kxrl4l3a3", "kxrl4n", "kxrl4r", "kxrl4r2a3",
+  "kxrl4r2a3gl", "kxrl4t", "kxrl6", "kxrmw4a6h2", "kxrmw4a6h2m", "kxrmw4a7h2",
+  "kxrmw4a7h2g", "kxrmw4a7h2m", "kxrow4a6h2m", "kxrroboset4",
+)
 
 # All joints across the KXR catalogue share this spec (measured, see
 # walking-hand-rl/walking_hand_rl/robot_cfg.py for the same number on the hand).
