@@ -4,6 +4,7 @@
 (provide :m5models)
 
 (require :utils)
+(require :kxr-stl-cache)
 (require :kxrlinks)
 ;;(require :read-stl)
 ;;(require :read-wrl)
@@ -480,7 +481,7 @@
     b))
 
 (defun d405-head-link-org (&key (front t))
-  (let ((bs (stl2eus "stls/radxahead_asm_rev2.stl" :scale 1000.0))
+  (let ((bs (kxr-stl2eus-cached "stls/radxahead_asm_rev2.stl" :scale 1000.0))
 	;; (wrl2eus "stls/radxahead_asm_rev2.wrl" 1000.0)
 	(lc (make-cascoords :pos #f(36 9 26)))
 	(rc (make-cascoords :pos #f(36 -9 26)))	
@@ -567,7 +568,7 @@
 (in-package "USER")
 
 (defun d405-echos-link-heavy (&key (front t) (depth 19))
-  (let ((bs (stl2eus "catkin_ws_src/kxr_pkgs/kxr_models/meshes/D405_earhead_module/base_link.STL"))
+  (let ((bs (kxr-stl2eus-cached "catkin_ws_src/kxr_pkgs/kxr_models/meshes/D405_earhead_module/base_link.STL"))
 	(lc (make-cascoords :pos #f(36 9 26)))
 	(rc (make-cascoords :pos #f(36 -9 26)))	
 	l)
@@ -648,7 +649,7 @@
     l))
 
 (defun d405-head-link (&key (front t) (depth 19))
-  (let ((bs (stl2eus "stls/radxahead_asm_rev2_no_d405.stl" :scale 1000.0))
+  (let ((bs (kxr-stl2eus-cached "stls/radxahead_asm_rev2_no_d405.stl" :scale 1000.0))
 	;; (wrl2eus "stls/radxahead_asm_rev2_no_d405.wrl" 1000.0)
 	(d405 (kxr-d405-aux depth))
 	(lc (make-cascoords :pos #f(36 9 26)))
@@ -1058,7 +1059,7 @@
 (defun m5stickhead-mount-bodyset (&optional (num 8) &key (front t) (cover t)
 						      (scale (if (> num 9) 1000 1)))
   (let* ((str (m5stickhead-mount-name num))
-	 (base (stl2eus (format nil "~A.~A" str (if (> num 8) "stl" "STL")) :scale scale))
+	 (base (kxr-stl2eus-cached (format nil "~A.~A" str (if (> num 8) "stl" "STL")) :scale scale))
 	 blist)
     (when
 	(> num 6)
@@ -1067,7 +1068,7 @@
 	(send base :rotate -pi/2 :y :world)      
 	)
       (when (and front (< num 10))
-	(setq front (stl2eus (format nil "~A_front.~A" str (if (= num 9) "stl" "STL"))
+	(setq front (kxr-stl2eus-cached (format nil "~A_front.~A" str (if (= num 9) "stl" "STL"))
 			     :scale scale))
 	(send front :translate #f(0 22.5 16))
 	(send base :assoc front)
@@ -1076,7 +1077,7 @@
 	  (send front :locate #f(0 4 0)))
 	(push front blist))
       (when cover
-	(setq cover (stl2eus (format nil "~A_cover.~A" str (if (> num 8) "stl" "STL"))
+	(setq cover (kxr-stl2eus-cached (format nil "~A_cover.~A" str (if (> num 8) "stl" "STL"))
 			     :scale scale))
 	(cond
 	  ((= num 8)

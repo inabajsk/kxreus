@@ -1,0 +1,1 @@
+../atom_common/flash.sh

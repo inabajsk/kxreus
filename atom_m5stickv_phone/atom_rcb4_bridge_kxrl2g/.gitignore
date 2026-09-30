@@ -1,0 +1,7 @@
+# PlatformIO's build tree and downloaded libraries. Hundreds of megabytes,
+# and `pio run` recreates all of it.
+.pio/
+
+# Wi-Fi credentials for wifi_setup.py. Never committed: the firmware
+# image is shareable precisely because the network is not in it.
+tools/.env

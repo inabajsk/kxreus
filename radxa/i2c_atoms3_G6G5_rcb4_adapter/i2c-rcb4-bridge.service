@@ -1,0 +1,15 @@
+[Unit]
+Description=AtomS3 I2C<->RCB4-mini UART bridge daemon (I2C_EE_M1)
+After=multi-user.target
+
+[Service]
+WorkingDirectory=/home/rock/kxreus/radxa/i2c_atoms3_G6G5_rcb4_adapter
+# --busはi2cdetect -lで確認した実際のバス番号に書き換えること(README参照)。
+ExecStart=/usr/bin/python3 /home/rock/kxreus/radxa/i2c_atoms3_G6G5_rcb4_adapter/i2c_rcb4_bridge.py --bus 3
+Restart=always
+RestartSec=2
+# /dev/i2c-N・/dev/ttyRCB4-i2cシンボリックリンク作成のためroot実行。
+User=root
+
+[Install]
+WantedBy=multi-user.target

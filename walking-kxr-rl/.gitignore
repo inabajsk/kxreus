@@ -1,0 +1,19 @@
+# Recreated by the first `uv run` from pyproject.toml/uv.lock -- see this
+# directory's own README ("セットアップコマンドは無い").
+.venv/
+
+# Fetched at a pinned commit by kxr_rl/_bootstrap.py's own ensure_upstream()
+# on first `import kxr_rl` -- has its own nested .git, so this is never
+# something to track here either way.
+.upstream/
+
+__pycache__/
+*.pyc
+
+# train.py's own tensorboard/rsl_rl logs and stdout captures -- tied to
+# whichever machine and run produced them, regenerated every training run.
+logs/
+
+# play.py's own rendered demo videos (plus .b64 copies of the same mp4s) --
+# regenerated from a policy checkpoint any time, not source.
+out/

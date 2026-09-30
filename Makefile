@@ -32,15 +32,15 @@ ifeq ($(ARCHDIR), Linux64)
 COMMONOBJS=utils eus2wrl rcb4sample tiny-xml nn cblaslib mnist\
 	armh7interface eus2mjcf ftdi ics uart humanmodel inertia kxrextentions\
 	rcb4asm rcb4file rcb4interface rcb4robots rcb4lisp rcb4machine\
-	kxranimate kxrdyna kxrbody kxrbodyset kxrlinks kxrmodels kxrviewer m5models \
-	kxrboards 
+	kxranimate kxrdyna kxr-body-minus-holes kxr-stl-cache kxrbody kxrbodyset kxrlinks kxrmodels kxrviewer m5models \
+	kxrboards
 
 endif
 ifeq ($(ARCHDIR), LinuxARM)
 COMMONOBJS=utils eus2wrl rcb4sample tiny-xml \
 	armh7interface eus2mjcf ftdi uart kxrextentions\
 	rcb4asm rcb4file rcb4interface rcb4robots rcb4lisp rcb4machine\
-	kxranimate kxrdyna kxrbody kxrbodyset kxrlinks kxrmodels kxrviewer m5models \
+	kxranimate kxrdyna kxr-body-minus-holes kxr-stl-cache kxrbody kxrbodyset kxrlinks kxrmodels kxrviewer m5models \
 	kxrboards eus2webots vrmlParser wbtNodeSpec vrmlNodeSpec
 endif
 
@@ -113,7 +113,7 @@ libs:
 	sudo install -m 0755 udevs/99-my-m5stack.rules /etc/udev/rules.d/
 	sudo udevadm control --reload-rules && sudo udevadm trigger
 #	sudo apt-get install -y ros-$(ROS_DISTRO)-roseus
-dir:
+dir: check-jskeus
 	mkdir -p $(ARCHDIR)
 	mkdir -p $(LIBDIR)
 	mkdir -p $(OBJDIR)
@@ -151,4 +151,38 @@ build-eus:
 	 patch -p0 < $(PWD)/eus826.patch)
 	(cd $(EUSDIR)/lisp;\
 	make -f Makefile.Linux.thread clean eus0 eus1 eus2 eusg eusx eus eusgl)
+
+#
+# jskeus, built from our own inabajsk forks instead of upstream euslisp/*.
+# Use this while a fix is only merged into our fork and not yet upstream
+# (e.g. a pending PR) -- it clones and builds jskeus/EusLisp from
+# inabajsk's branches instead of waiting for the PR to land.
+#
+JSKEUS_DIR ?= $(HOME)/jskeus
+JSKEUS_GIT_URL ?= git@github.com:inabajsk/jskeus
+JSKEUS_GIT_BRANCH ?= master
+EUS_GIT_URL ?= git@github.com:inabajsk/EusLisp
+EUS_GIT_BRANCH ?= glu-tess-collector
+
+# run as a prerequisite of dir: (and so of every build) -- only actually
+# clones+builds jskeus when $(JSKEUS_DIR) doesn't exist yet, so a normal
+# build with jskeus already present pays just a directory check.
+check-jskeus:
+	@if [ ! -d $(JSKEUS_DIR) ]; then \
+		echo "$(JSKEUS_DIR) not found -- building jskeus from $(JSKEUS_GIT_URL) first"; \
+		$(MAKE) jskeus; \
+	fi
+
+jskeus:
+	if [ ! -d $(JSKEUS_DIR) ]; then \
+		git clone $(JSKEUS_GIT_URL) -b $(JSKEUS_GIT_BRANCH) $(JSKEUS_DIR); \
+	fi
+	$(MAKE) -C $(JSKEUS_DIR) GIT_EUSURL=$(EUS_GIT_URL) GIT_EUSBRANCH=$(EUS_GIT_BRANCH) all
+
+# kxreus's own .so files are built against a specific jskeus core; after
+# (re)building jskeus above, kxreus must be rebuilt from clean or it will
+# crash against the new core's ABI. This runs both steps in order.
+rebuild-with-jskeus: jskeus
+	make clean
+	make
 

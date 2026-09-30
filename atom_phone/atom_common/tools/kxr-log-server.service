@@ -1,0 +1,20 @@
+[Unit]
+Description=kxr field-log server (phone telemetry uploads -- see tools/log_server.py)
+After=network.target
+
+[Service]
+# A plain HTTP server on an ordinary port (8787 by default), with no device
+# access and no privileged calls -- unlike radxa/daemon/atoms3-bridge.service
+# (which needs root for /dev/ttyACM0 and nmcli), this runs as whoever owns
+# the field_logs directory, not root. The three blanks below (this repo's
+# path, that user's name, and their field_logs directory) are filled in by
+# install_log_server_service.sh; this file is only the template, not what
+# actually ends up in /etc/systemd/system.
+WorkingDirectory=__DIR__
+ExecStart=/usr/bin/python3 __DIR__/log_server.py --port 8787 --dir __LOGDIR__
+Restart=always
+RestartSec=2
+User=__USER__
+
+[Install]
+WantedBy=multi-user.target

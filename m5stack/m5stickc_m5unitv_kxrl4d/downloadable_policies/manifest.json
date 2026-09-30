@@ -1,0 +1,12 @@
+[
+  {
+    "name": "walking-kxr-rl (own training)",
+    "file": "kxrl4d_walk_own.bin",
+    "note": "Trained by walking-kxr-rl itself (tools/train_all.py, 700 iterations)."
+  },
+  {
+    "name": "iory/walking-hand-rl reference",
+    "file": "kxrl4d_walk_walking-hand-rl.bin",
+    "note": "Imported from iory/walking-hand-rl's own kxr/policies/kxrl4d_walk.pt."
+  }
+]

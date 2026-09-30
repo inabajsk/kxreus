@@ -1,0 +1,307 @@
+<mujoco model="kxrl4t">
+  <compiler angle="radian" autolimits="true" meshdir="assets" />
+  <option gravity="0 0 -9.81" />
+  <default>
+    <geom contype="2" conaffinity="1" />
+  </default>
+  <asset>
+    <mesh name="torso-link-l4t_mesh_0" file="torso-link-l4t_mesh_0.stl" scale="1 1 1" />
+    <mesh name="torso-link-l4t_mesh_1" file="torso-link-l4t_mesh_1.stl" scale="1 1 1" />
+    <mesh name="torso-link-l4t_mesh_2" file="torso-link-l4t_mesh_2.stl" scale="1 1 1" />
+    <mesh name="torso-link-l4t_mesh_3" file="torso-link-l4t_mesh_3.stl" scale="1 1 1" />
+    <mesh name="torso-link-l4t_mesh_4" file="torso-link-l4t_mesh_4.stl" scale="1 1 1" />
+    <mesh name="torso-link-l4t_mesh_5" file="torso-link-l4t_mesh_5.stl" scale="1 1 1" />
+    <mesh name="torso-link-l4t_mesh_6" file="torso-link-l4t_mesh_6.stl" scale="1 1 1" />
+    <mesh name="torso-link-l4t_mesh_7" file="torso-link-l4t_mesh_7.stl" scale="1 1 1" />
+    <mesh name="torso-link-l4t_mesh_8" file="torso-link-l4t_mesh_8.stl" scale="1 1 1" />
+    <mesh name="torso-link-l4t_mesh_9" file="torso-link-l4t_mesh_9.stl" scale="1 1 1" />
+    <mesh name="torso-link-l4t_mesh_10" file="torso-link-l4t_mesh_10.stl" scale="1 1 1" />
+    <mesh name="torso-link-l4t_mesh_11" file="torso-link-l4t_mesh_11.stl" scale="1 1 1" />
+    <mesh name="torso-link-l4t_mesh_12" file="torso-link-l4t_mesh_12.stl" scale="1 1 1" />
+    <mesh name="torso-link-l4t_mesh_13" file="torso-link-l4t_mesh_13.stl" scale="1 1 1" />
+    <mesh name="torso-link-l4t_mesh_14" file="torso-link-l4t_mesh_14.stl" scale="1 1 1" />
+    <mesh name="torso-link-l4t_mesh_15" file="torso-link-l4t_mesh_15.stl" scale="1 1 1" />
+    <mesh name="torso-link-l4t_mesh_16" file="torso-link-l4t_mesh_16.stl" scale="1 1 1" />
+    <mesh name="torso-link-l4t_mesh_17" file="torso-link-l4t_mesh_17.stl" scale="1 1 1" />
+    <mesh name="torso-link-l4t_mesh_18" file="torso-link-l4t_mesh_18.stl" scale="1 1 1" />
+    <mesh name="torso-link-l4t_mesh_19" file="torso-link-l4t_mesh_19.stl" scale="1 1 1" />
+    <mesh name="torso-link-l4t_mesh_20" file="torso-link-l4t_mesh_20.stl" scale="1 1 1" />
+    <mesh name="torso-link-l4t_mesh_21" file="torso-link-l4t_mesh_21.stl" scale="1 1 1" />
+    <mesh name="torso-link-l4t_mesh_22" file="torso-link-l4t_mesh_22.stl" scale="1 1 1" />
+    <mesh name="torso-link-l4t_mesh_23" file="torso-link-l4t_mesh_23.stl" scale="1 1 1" />
+    <mesh name="torso-link-l4t_mesh_24" file="torso-link-l4t_mesh_24.stl" scale="1 1 1" />
+    <mesh name="torso-link-l4t_mesh_25" file="torso-link-l4t_mesh_25.stl" scale="1 1 1" />
+    <mesh name="torso-link-l4t_mesh_26" file="torso-link-l4t_mesh_26.stl" scale="1 1 1" />
+    <mesh name="torso-link-l4t_mesh_27" file="torso-link-l4t_mesh_27.stl" scale="1 1 1" />
+    <mesh name="torso-link-l4t_mesh_28" file="torso-link-l4t_mesh_28.stl" scale="1 1 1" />
+    <mesh name="torso-link-l4t_mesh_29" file="torso-link-l4t_mesh_29.stl" scale="1 1 1" />
+    <mesh name="torso-link-l4t_mesh_30" file="torso-link-l4t_mesh_30.stl" scale="1 1 1" />
+    <mesh name="torso-link-l4t_mesh_31" file="torso-link-l4t_mesh_31.stl" scale="1 1 1" />
+    <mesh name="torso-link-l4t_mesh_32" file="torso-link-l4t_mesh_32.stl" scale="1 1 1" />
+    <mesh name="torso-link-l4t_mesh_33" file="torso-link-l4t_mesh_33.stl" scale="1 1 1" />
+    <mesh name="torso-link-l4t_mesh_34" file="torso-link-l4t_mesh_34.stl" scale="1 1 1" />
+    <mesh name="torso-link-l4t_mesh_35" file="torso-link-l4t_mesh_35.stl" scale="1 1 1" />
+    <mesh name="torso-link-l4t_mesh_36" file="torso-link-l4t_mesh_36.stl" scale="1 1 1" />
+    <mesh name="torso-link-l4t_mesh_37" file="torso-link-l4t_mesh_37.stl" scale="1 1 1" />
+    <mesh name="head-neck-y_mesh_38" file="head-neck-y_mesh_38.stl" scale="1 1 1" />
+    <mesh name="head-neck-y_mesh_39" file="head-neck-y_mesh_39.stl" scale="1 1 1" />
+    <mesh name="head-neck-y_mesh_40" file="head-neck-y_mesh_40.stl" scale="1 1 1" />
+    <mesh name="head-neck-y_mesh_41" file="head-neck-y_mesh_41.stl" scale="1 1 1" />
+    <mesh name="head-neck-y_mesh_42" file="head-neck-y_mesh_42.stl" scale="1 1 1" />
+    <mesh name="head-neck-y_mesh_43" file="head-neck-y_mesh_43.stl" scale="1 1 1" />
+    <mesh name="head-neck-y_mesh_44" file="head-neck-y_mesh_44.stl" scale="1 1 1" />
+    <mesh name="head-neck-y_mesh_45" file="head-neck-y_mesh_45.stl" scale="1 1 1" />
+    <mesh name="head-neck-y_mesh_46" file="head-neck-y_mesh_46.stl" scale="1 1 1" />
+    <mesh name="head-neck-y_mesh_47" file="head-neck-y_mesh_47.stl" scale="1 1 1" />
+    <mesh name="head-neck-p_mesh_48" file="head-neck-p_mesh_48.stl" scale="1 1 1" />
+    <mesh name="head-neck-p_mesh_49" file="head-neck-p_mesh_49.stl" scale="1 1 1" />
+    <mesh name="head-neck-p_mesh_50" file="head-neck-p_mesh_50.stl" scale="1 1 1" />
+    <mesh name="head-neck-p_mesh_51" file="head-neck-p_mesh_51.stl" scale="1 1 1" />
+    <mesh name="head-neck-p_mesh_52" file="head-neck-p_mesh_52.stl" scale="1 1 1" />
+    <mesh name="head-neck-p_mesh_53" file="head-neck-p_mesh_53.stl" scale="1 1 1" />
+    <mesh name="larm-shoulder-y_mesh_54" file="larm-shoulder-y_mesh_54.stl" scale="1 1 1" />
+    <mesh name="larm-shoulder-y_mesh_55" file="larm-shoulder-y_mesh_55.stl" scale="1 1 1" />
+    <mesh name="larm-shoulder-y_mesh_56" file="larm-shoulder-y_mesh_56.stl" scale="1 1 1" />
+    <mesh name="larm-shoulder-y_mesh_57" file="larm-shoulder-y_mesh_57.stl" scale="1 1 1" />
+    <mesh name="larm-shoulder-y_mesh_58" file="larm-shoulder-y_mesh_58.stl" scale="1 1 1" />
+    <mesh name="larm-shoulder-y_mesh_59" file="larm-shoulder-y_mesh_59.stl" scale="1 1 1" />
+    <mesh name="larm-shoulder-y_mesh_60" file="larm-shoulder-y_mesh_60.stl" scale="1 1 1" />
+    <mesh name="larm-shoulder-y_mesh_61" file="larm-shoulder-y_mesh_61.stl" scale="1 1 1" />
+    <mesh name="larm-shoulder-y_mesh_62" file="larm-shoulder-y_mesh_62.stl" scale="1 1 1" />
+    <mesh name="larm-shoulder-y_mesh_63" file="larm-shoulder-y_mesh_63.stl" scale="1 1 1" />
+    <mesh name="larm-shoulder-r_mesh_64" file="larm-shoulder-r_mesh_64.stl" scale="1 1 1" />
+    <mesh name="larm-shoulder-r_mesh_65" file="larm-shoulder-r_mesh_65.stl" scale="1 1 1" />
+    <mesh name="larm-shoulder-r_mesh_66" file="larm-shoulder-r_mesh_66.stl" scale="1 1 1" />
+    <mesh name="larm-shoulder-r_mesh_67" file="larm-shoulder-r_mesh_67.stl" scale="1 1 1" />
+    <mesh name="larm-shoulder-r_mesh_68" file="larm-shoulder-r_mesh_68.stl" scale="1 1 1" />
+    <mesh name="larm-shoulder-r_mesh_69" file="larm-shoulder-r_mesh_69.stl" scale="1 1 1" />
+    <mesh name="larm-shoulder-r_mesh_70" file="larm-shoulder-r_mesh_70.stl" scale="1 1 1" />
+    <mesh name="larm-shoulder-r_mesh_71" file="larm-shoulder-r_mesh_71.stl" scale="1 1 1" />
+    <mesh name="lleg-crotch-y_mesh_72" file="lleg-crotch-y_mesh_72.stl" scale="1 1 1" />
+    <mesh name="lleg-crotch-y_mesh_73" file="lleg-crotch-y_mesh_73.stl" scale="1 1 1" />
+    <mesh name="lleg-crotch-y_mesh_74" file="lleg-crotch-y_mesh_74.stl" scale="1 1 1" />
+    <mesh name="lleg-crotch-y_mesh_75" file="lleg-crotch-y_mesh_75.stl" scale="1 1 1" />
+    <mesh name="lleg-crotch-y_mesh_76" file="lleg-crotch-y_mesh_76.stl" scale="1 1 1" />
+    <mesh name="lleg-crotch-y_mesh_77" file="lleg-crotch-y_mesh_77.stl" scale="1 1 1" />
+    <mesh name="lleg-crotch-y_mesh_78" file="lleg-crotch-y_mesh_78.stl" scale="1 1 1" />
+    <mesh name="lleg-crotch-y_mesh_79" file="lleg-crotch-y_mesh_79.stl" scale="1 1 1" />
+    <mesh name="lleg-crotch-y_mesh_80" file="lleg-crotch-y_mesh_80.stl" scale="1 1 1" />
+    <mesh name="lleg-crotch-y_mesh_81" file="lleg-crotch-y_mesh_81.stl" scale="1 1 1" />
+    <mesh name="lleg-crotch-r_mesh_82" file="lleg-crotch-r_mesh_82.stl" scale="1 1 1" />
+    <mesh name="lleg-crotch-r_mesh_83" file="lleg-crotch-r_mesh_83.stl" scale="1 1 1" />
+    <mesh name="lleg-crotch-r_mesh_84" file="lleg-crotch-r_mesh_84.stl" scale="1 1 1" />
+    <mesh name="lleg-crotch-r_mesh_85" file="lleg-crotch-r_mesh_85.stl" scale="1 1 1" />
+    <mesh name="lleg-crotch-r_mesh_86" file="lleg-crotch-r_mesh_86.stl" scale="1 1 1" />
+    <mesh name="lleg-crotch-r_mesh_87" file="lleg-crotch-r_mesh_87.stl" scale="1 1 1" />
+    <mesh name="lleg-crotch-r_mesh_88" file="lleg-crotch-r_mesh_88.stl" scale="1 1 1" />
+    <mesh name="lleg-crotch-r_mesh_89" file="lleg-crotch-r_mesh_89.stl" scale="1 1 1" />
+    <mesh name="rarm-shoulder-y_mesh_90" file="rarm-shoulder-y_mesh_90.stl" scale="1 1 1" />
+    <mesh name="rarm-shoulder-y_mesh_91" file="rarm-shoulder-y_mesh_91.stl" scale="1 1 1" />
+    <mesh name="rarm-shoulder-y_mesh_92" file="rarm-shoulder-y_mesh_92.stl" scale="1 1 1" />
+    <mesh name="rarm-shoulder-y_mesh_93" file="rarm-shoulder-y_mesh_93.stl" scale="1 1 1" />
+    <mesh name="rarm-shoulder-y_mesh_94" file="rarm-shoulder-y_mesh_94.stl" scale="1 1 1" />
+    <mesh name="rarm-shoulder-y_mesh_95" file="rarm-shoulder-y_mesh_95.stl" scale="1 1 1" />
+    <mesh name="rarm-shoulder-y_mesh_96" file="rarm-shoulder-y_mesh_96.stl" scale="1 1 1" />
+    <mesh name="rarm-shoulder-y_mesh_97" file="rarm-shoulder-y_mesh_97.stl" scale="1 1 1" />
+    <mesh name="rarm-shoulder-y_mesh_98" file="rarm-shoulder-y_mesh_98.stl" scale="1 1 1" />
+    <mesh name="rarm-shoulder-y_mesh_99" file="rarm-shoulder-y_mesh_99.stl" scale="1 1 1" />
+    <mesh name="rarm-shoulder-r_mesh_100" file="rarm-shoulder-r_mesh_100.stl" scale="1 1 1" />
+    <mesh name="rarm-shoulder-r_mesh_101" file="rarm-shoulder-r_mesh_101.stl" scale="1 1 1" />
+    <mesh name="rarm-shoulder-r_mesh_102" file="rarm-shoulder-r_mesh_102.stl" scale="1 1 1" />
+    <mesh name="rarm-shoulder-r_mesh_103" file="rarm-shoulder-r_mesh_103.stl" scale="1 1 1" />
+    <mesh name="rarm-shoulder-r_mesh_104" file="rarm-shoulder-r_mesh_104.stl" scale="1 1 1" />
+    <mesh name="rarm-shoulder-r_mesh_105" file="rarm-shoulder-r_mesh_105.stl" scale="1 1 1" />
+    <mesh name="rarm-shoulder-r_mesh_106" file="rarm-shoulder-r_mesh_106.stl" scale="1 1 1" />
+    <mesh name="rarm-shoulder-r_mesh_107" file="rarm-shoulder-r_mesh_107.stl" scale="1 1 1" />
+    <mesh name="rleg-crotch-y_mesh_108" file="rleg-crotch-y_mesh_108.stl" scale="1 1 1" />
+    <mesh name="rleg-crotch-y_mesh_109" file="rleg-crotch-y_mesh_109.stl" scale="1 1 1" />
+    <mesh name="rleg-crotch-y_mesh_110" file="rleg-crotch-y_mesh_110.stl" scale="1 1 1" />
+    <mesh name="rleg-crotch-y_mesh_111" file="rleg-crotch-y_mesh_111.stl" scale="1 1 1" />
+    <mesh name="rleg-crotch-y_mesh_112" file="rleg-crotch-y_mesh_112.stl" scale="1 1 1" />
+    <mesh name="rleg-crotch-y_mesh_113" file="rleg-crotch-y_mesh_113.stl" scale="1 1 1" />
+    <mesh name="rleg-crotch-y_mesh_114" file="rleg-crotch-y_mesh_114.stl" scale="1 1 1" />
+    <mesh name="rleg-crotch-y_mesh_115" file="rleg-crotch-y_mesh_115.stl" scale="1 1 1" />
+    <mesh name="rleg-crotch-y_mesh_116" file="rleg-crotch-y_mesh_116.stl" scale="1 1 1" />
+    <mesh name="rleg-crotch-y_mesh_117" file="rleg-crotch-y_mesh_117.stl" scale="1 1 1" />
+    <mesh name="rleg-crotch-r_mesh_118" file="rleg-crotch-r_mesh_118.stl" scale="1 1 1" />
+    <mesh name="rleg-crotch-r_mesh_119" file="rleg-crotch-r_mesh_119.stl" scale="1 1 1" />
+    <mesh name="rleg-crotch-r_mesh_120" file="rleg-crotch-r_mesh_120.stl" scale="1 1 1" />
+    <mesh name="rleg-crotch-r_mesh_121" file="rleg-crotch-r_mesh_121.stl" scale="1 1 1" />
+    <mesh name="rleg-crotch-r_mesh_122" file="rleg-crotch-r_mesh_122.stl" scale="1 1 1" />
+    <mesh name="rleg-crotch-r_mesh_123" file="rleg-crotch-r_mesh_123.stl" scale="1 1 1" />
+    <mesh name="rleg-crotch-r_mesh_124" file="rleg-crotch-r_mesh_124.stl" scale="1 1 1" />
+    <mesh name="rleg-crotch-r_mesh_125" file="rleg-crotch-r_mesh_125.stl" scale="1 1 1" />
+  </asset>
+  <worldbody>
+    <body name="torso-link-l4t" pos="0 0 0">
+      <freejoint name="floating_base" />
+      <inertial pos="0.003315 -2.59506e-10 0.009969" mass="0.358793" diaginertia="0.00114150544 0.00128048899 0.00216000557" quat="0.685738259 0.000226724445 -0.00120953219 -0.727847186" />
+      <geom pos="0.0435 0 0.003" quat="1 0 0 0" group="2" contype="0" conaffinity="0" type="mesh" mesh="torso-link-l4t_mesh_0" name="torso-link-l4t_visual0" />
+      <geom pos="0.0435 0 0.003" quat="1 0 0 0" group="2" contype="0" conaffinity="0" type="mesh" mesh="torso-link-l4t_mesh_1" name="torso-link-l4t_visual1" />
+      <geom pos="0.0435 0 0.003" quat="1 0 0 0" group="2" contype="0" conaffinity="0" type="mesh" mesh="torso-link-l4t_mesh_2" name="torso-link-l4t_visual2" />
+      <geom pos="0.0435 0 0.003" quat="1 0 0 0" group="2" contype="0" conaffinity="0" type="mesh" mesh="torso-link-l4t_mesh_3" name="torso-link-l4t_visual3" />
+      <geom pos="0.0435 0 0.003" quat="1 0 0 0" group="2" contype="0" conaffinity="0" type="mesh" mesh="torso-link-l4t_mesh_4" name="torso-link-l4t_visual4" />
+      <geom pos="0.0435 0 0.003" quat="1 0 0 0" group="2" contype="0" conaffinity="0" type="mesh" mesh="torso-link-l4t_mesh_5" name="torso-link-l4t_visual5" />
+      <geom pos="0.0435 0 0.003" quat="1 0 0 0" group="2" contype="0" conaffinity="0" type="mesh" mesh="torso-link-l4t_mesh_6" name="torso-link-l4t_visual6" />
+      <geom pos="0.0435 0 0.003" quat="1 0 0 0" group="2" contype="0" conaffinity="0" type="mesh" mesh="torso-link-l4t_mesh_7" name="torso-link-l4t_visual7" />
+      <geom pos="0.0435 0 0.003" quat="1 0 0 0" group="2" contype="0" conaffinity="0" type="mesh" mesh="torso-link-l4t_mesh_8" name="torso-link-l4t_visual8" />
+      <geom pos="0.0435 0 0.003" quat="1 0 0 0" group="2" contype="0" conaffinity="0" type="mesh" mesh="torso-link-l4t_mesh_9" name="torso-link-l4t_visual9" />
+      <geom pos="0.0435 0 0.003" quat="1 0 0 0" group="2" contype="0" conaffinity="0" type="mesh" mesh="torso-link-l4t_mesh_10" name="torso-link-l4t_visual10" />
+      <geom pos="0.0435 0 0.003" quat="1 0 0 0" group="2" contype="0" conaffinity="0" type="mesh" mesh="torso-link-l4t_mesh_11" name="torso-link-l4t_visual11" />
+      <geom pos="0.0435 0 0.003" quat="1 0 0 0" group="2" contype="0" conaffinity="0" type="mesh" mesh="torso-link-l4t_mesh_12" name="torso-link-l4t_visual12" />
+      <geom pos="0.0435 0 0.003" quat="1 0 0 0" group="2" contype="0" conaffinity="0" type="mesh" mesh="torso-link-l4t_mesh_13" name="torso-link-l4t_visual13" />
+      <geom pos="0.0435 0 0.003" quat="1 0 0 0" group="2" contype="0" conaffinity="0" type="mesh" mesh="torso-link-l4t_mesh_14" name="torso-link-l4t_visual14" />
+      <geom pos="0.0435 0 0.003" quat="1 0 0 0" group="2" contype="0" conaffinity="0" type="mesh" mesh="torso-link-l4t_mesh_15" name="torso-link-l4t_visual15" />
+      <geom pos="0.0435 0 0.003" quat="1 0 0 0" group="2" contype="0" conaffinity="0" type="mesh" mesh="torso-link-l4t_mesh_16" name="torso-link-l4t_visual16" />
+      <geom pos="0.0435 0 0.003" quat="1 0 0 0" group="2" contype="0" conaffinity="0" type="mesh" mesh="torso-link-l4t_mesh_17" name="torso-link-l4t_visual17" />
+      <geom pos="0.0435 0 0.003" quat="1 0 0 0" group="2" contype="0" conaffinity="0" type="mesh" mesh="torso-link-l4t_mesh_18" name="torso-link-l4t_visual18" />
+      <geom pos="0.0435 0 0.003" quat="1 0 0 0" group="3" type="mesh" mesh="torso-link-l4t_mesh_19" name="torso-link-l4t_collision0" />
+      <geom pos="0.0435 0 0.003" quat="1 0 0 0" group="3" type="mesh" mesh="torso-link-l4t_mesh_20" name="torso-link-l4t_collision1" />
+      <geom pos="0.0435 0 0.003" quat="1 0 0 0" group="3" type="mesh" mesh="torso-link-l4t_mesh_21" name="torso-link-l4t_collision2" />
+      <geom pos="0.0435 0 0.003" quat="1 0 0 0" group="3" type="mesh" mesh="torso-link-l4t_mesh_22" name="torso-link-l4t_collision3" />
+      <geom pos="0.0435 0 0.003" quat="1 0 0 0" group="3" type="mesh" mesh="torso-link-l4t_mesh_23" name="torso-link-l4t_collision4" />
+      <geom pos="0.0435 0 0.003" quat="1 0 0 0" group="3" type="mesh" mesh="torso-link-l4t_mesh_24" name="torso-link-l4t_collision5" />
+      <geom pos="0.0435 0 0.003" quat="1 0 0 0" group="3" type="mesh" mesh="torso-link-l4t_mesh_25" name="torso-link-l4t_collision6" />
+      <geom pos="0.0435 0 0.003" quat="1 0 0 0" group="3" type="mesh" mesh="torso-link-l4t_mesh_26" name="torso-link-l4t_collision7" />
+      <geom pos="0.0435 0 0.003" quat="1 0 0 0" group="3" type="mesh" mesh="torso-link-l4t_mesh_27" name="torso-link-l4t_collision8" />
+      <geom pos="0.0435 0 0.003" quat="1 0 0 0" group="3" type="mesh" mesh="torso-link-l4t_mesh_28" name="torso-link-l4t_collision9" />
+      <geom pos="0.0435 0 0.003" quat="1 0 0 0" group="3" type="mesh" mesh="torso-link-l4t_mesh_29" name="torso-link-l4t_collision10" />
+      <geom pos="0.0435 0 0.003" quat="1 0 0 0" group="3" type="mesh" mesh="torso-link-l4t_mesh_30" name="torso-link-l4t_collision11" />
+      <geom pos="0.0435 0 0.003" quat="1 0 0 0" group="3" type="mesh" mesh="torso-link-l4t_mesh_31" name="torso-link-l4t_collision12" />
+      <geom pos="0.0435 0 0.003" quat="1 0 0 0" group="3" type="mesh" mesh="torso-link-l4t_mesh_32" name="torso-link-l4t_collision13" />
+      <geom pos="0.0435 0 0.003" quat="1 0 0 0" group="3" type="mesh" mesh="torso-link-l4t_mesh_33" name="torso-link-l4t_collision14" />
+      <geom pos="0.0435 0 0.003" quat="1 0 0 0" group="3" type="mesh" mesh="torso-link-l4t_mesh_34" name="torso-link-l4t_collision15" />
+      <geom pos="0.0435 0 0.003" quat="1 0 0 0" group="3" type="mesh" mesh="torso-link-l4t_mesh_35" name="torso-link-l4t_collision16" />
+      <geom pos="0.0435 0 0.003" quat="1 0 0 0" group="3" type="mesh" mesh="torso-link-l4t_mesh_36" name="torso-link-l4t_collision17" />
+      <geom pos="0.0435 0 0.003" quat="1 0 0 0" group="3" type="mesh" mesh="torso-link-l4t_mesh_37" name="torso-link-l4t_collision18" />
+      <body name="head-neck-y" pos="0.0645 0 0.053472" quat="1 0 0 0">
+        <joint name="head-neck-y" pos="0 0 0" axis="0 0 1" type="hinge" range="-2.96706 2.96706" />
+        <inertial pos="0 1.22056e-18 0.023093" mass="0.037398" diaginertia="3.83428903e-05 4.59744081e-05 6.29647016e-05" quat="0.70721607 0.70699725 0.000398937383 -0.000398984311" />
+        <geom pos="0.0645 0 0.053472" quat="1 0 0 0" group="2" contype="0" conaffinity="0" type="mesh" mesh="head-neck-y_mesh_38" name="head-neck-y_visual0" />
+        <geom pos="0.0645 0 0.053472" quat="1 0 0 0" group="2" contype="0" conaffinity="0" type="mesh" mesh="head-neck-y_mesh_39" name="head-neck-y_visual1" />
+        <geom pos="0.0645 0 0.053472" quat="1 0 0 0" group="2" contype="0" conaffinity="0" type="mesh" mesh="head-neck-y_mesh_40" name="head-neck-y_visual2" />
+        <geom pos="0.0645 0 0.053472" quat="1 0 0 0" group="2" contype="0" conaffinity="0" type="mesh" mesh="head-neck-y_mesh_41" name="head-neck-y_visual3" />
+        <geom pos="0.0645 0 0.053472" quat="1 0 0 0" group="2" contype="0" conaffinity="0" type="mesh" mesh="head-neck-y_mesh_42" name="head-neck-y_visual4" />
+        <geom pos="0.0645 0 0.053472" quat="1 0 0 0" group="3" type="mesh" mesh="head-neck-y_mesh_43" name="head-neck-y_collision0" />
+        <geom pos="0.0645 0 0.053472" quat="1 0 0 0" group="3" type="mesh" mesh="head-neck-y_mesh_44" name="head-neck-y_collision1" />
+        <geom pos="0.0645 0 0.053472" quat="1 0 0 0" group="3" type="mesh" mesh="head-neck-y_mesh_45" name="head-neck-y_collision2" />
+        <geom pos="0.0645 0 0.053472" quat="1 0 0 0" group="3" type="mesh" mesh="head-neck-y_mesh_46" name="head-neck-y_collision3" />
+        <geom pos="0.0645 0 0.053472" quat="1 0 0 0" group="3" type="mesh" mesh="head-neck-y_mesh_47" name="head-neck-y_collision4" />
+        <body name="head-neck-p" pos="0 0 0.036" quat="1 0 0 0">
+          <joint name="head-neck-p" pos="0 0 0" axis="0 1 0" type="hinge" range="-2.0944 2.0944" />
+          <inertial pos="0 -1.9699e-18 0.016217" mass="0.010821" diaginertia="1.72006995e-05 3.87549998e-05 5.02507007e-05" quat="0.499913936 0.500048261 -0.500006613 0.500031179" />
+          <geom pos="0 0 0.036" quat="1 0 0 0" group="2" contype="0" conaffinity="0" type="mesh" mesh="head-neck-p_mesh_48" name="head-neck-p_visual0" />
+          <geom pos="0 0 0.036" quat="1 0 0 0" group="2" contype="0" conaffinity="0" type="mesh" mesh="head-neck-p_mesh_49" name="head-neck-p_visual1" />
+          <geom pos="0 0 0.036" quat="1 0 0 0" group="2" contype="0" conaffinity="0" type="mesh" mesh="head-neck-p_mesh_50" name="head-neck-p_visual2" />
+          <geom pos="0 0 0.036" quat="1 0 0 0" group="3" type="mesh" mesh="head-neck-p_mesh_51" name="head-neck-p_collision0" />
+          <geom pos="0 0 0.036" quat="1 0 0 0" group="3" type="mesh" mesh="head-neck-p_mesh_52" name="head-neck-p_collision1" />
+          <geom pos="0 0 0.036" quat="1 0 0 0" group="3" type="mesh" mesh="head-neck-p_mesh_53" name="head-neck-p_collision2" />
+        </body>
+      </body>
+      <body name="larm-shoulder-y" pos="0.0435 0.0645 -0.003" quat="1 0 0 0">
+        <joint name="larm-shoulder-y" pos="0 0 0" axis="0 0 1" type="hinge" range="-1.91986 1.91986" />
+        <inertial pos="-6.93889e-18 0.018581 2.60209e-18" mass="0.015659" diaginertia="1.78676971e-05 4.34937993e-05 4.94297036e-05" quat="0.707147805 4.75000069e-05 0.00024963636 0.707065709" />
+        <geom pos="0.0435 0.0645 -0.003" quat="1 0 0 0" group="2" contype="0" conaffinity="0" type="mesh" mesh="larm-shoulder-y_mesh_54" name="larm-shoulder-y_visual0" />
+        <geom pos="0.0435 0.0645 -0.003" quat="1 0 0 0" group="2" contype="0" conaffinity="0" type="mesh" mesh="larm-shoulder-y_mesh_55" name="larm-shoulder-y_visual1" />
+        <geom pos="0.0435 0.0645 -0.003" quat="1 0 0 0" group="2" contype="0" conaffinity="0" type="mesh" mesh="larm-shoulder-y_mesh_56" name="larm-shoulder-y_visual2" />
+        <geom pos="0.0435 0.0645 -0.003" quat="1 0 0 0" group="2" contype="0" conaffinity="0" type="mesh" mesh="larm-shoulder-y_mesh_57" name="larm-shoulder-y_visual3" />
+        <geom pos="0.0435 0.0645 -0.003" quat="1 0 0 0" group="2" contype="0" conaffinity="0" type="mesh" mesh="larm-shoulder-y_mesh_58" name="larm-shoulder-y_visual4" />
+        <geom pos="0.0435 0.0645 -0.003" quat="1 0 0 0" group="3" type="mesh" mesh="larm-shoulder-y_mesh_59" name="larm-shoulder-y_collision0" />
+        <geom pos="0.0435 0.0645 -0.003" quat="1 0 0 0" group="3" type="mesh" mesh="larm-shoulder-y_mesh_60" name="larm-shoulder-y_collision1" />
+        <geom pos="0.0435 0.0645 -0.003" quat="1 0 0 0" group="3" type="mesh" mesh="larm-shoulder-y_mesh_61" name="larm-shoulder-y_collision2" />
+        <geom pos="0.0435 0.0645 -0.003" quat="1 0 0 0" group="3" type="mesh" mesh="larm-shoulder-y_mesh_62" name="larm-shoulder-y_collision3" />
+        <geom pos="0.0435 0.0645 -0.003" quat="1 0 0 0" group="3" type="mesh" mesh="larm-shoulder-y_mesh_63" name="larm-shoulder-y_collision4" />
+        <body name="larm-shoulder-r" pos="0 0.04 0" quat="1 0 0 0">
+          <joint name="larm-shoulder-r" pos="0 0 0" axis="1 0 0" type="hinge" range="-1.91986 1.91986" />
+          <inertial pos="0 0 -0.012475" mass="0.036864" diaginertia="2.84986996e-05 8.02245954e-05 9.6499105e-05" quat="0.000159745756 0.707106768 -0.707106744 -0.000214419135" />
+          <geom pos="0 0.04 0" quat="1 0 0 0" group="2" contype="0" conaffinity="0" type="mesh" mesh="larm-shoulder-r_mesh_64" name="larm-shoulder-r_visual0" />
+          <geom pos="0 0.04 0" quat="1 0 0 0" group="2" contype="0" conaffinity="0" type="mesh" mesh="larm-shoulder-r_mesh_65" name="larm-shoulder-r_visual1" />
+          <geom pos="0 0.04 0" quat="1 0 0 0" group="2" contype="0" conaffinity="0" type="mesh" mesh="larm-shoulder-r_mesh_66" name="larm-shoulder-r_visual2" />
+          <geom pos="0 0.04 0" quat="1 0 0 0" group="2" contype="0" conaffinity="0" type="mesh" mesh="larm-shoulder-r_mesh_67" name="larm-shoulder-r_visual3" />
+          <geom pos="0 0.04 0" quat="1 0 0 0" group="3" type="mesh" mesh="larm-shoulder-r_mesh_68" name="larm-shoulder-r_collision0" />
+          <geom pos="0 0.04 0" quat="1 0 0 0" group="3" type="mesh" mesh="larm-shoulder-r_mesh_69" name="larm-shoulder-r_collision1" />
+          <geom pos="0 0.04 0" quat="1 0 0 0" group="3" type="mesh" mesh="larm-shoulder-r_mesh_70" name="larm-shoulder-r_collision2" />
+          <geom pos="0 0.04 0" quat="1 0 0 0" group="3" type="mesh" mesh="larm-shoulder-r_mesh_71" name="larm-shoulder-r_collision3" />
+        </body>
+      </body>
+      <body name="lleg-crotch-y" pos="-0.0435 0.0645 -0.003" quat="1 0 0 0">
+        <joint name="lleg-crotch-y" pos="0 0 0" axis="0 0 1" type="hinge" range="-1.91986 1.91986" />
+        <inertial pos="-6.93889e-18 0.018581 2.60209e-18" mass="0.015659" diaginertia="1.78676971e-05 4.34937993e-05 4.94297036e-05" quat="0.707147805 4.75000069e-05 0.00024963636 0.707065709" />
+        <geom pos="-0.0435 0.0645 -0.003" quat="1 0 0 0" group="2" contype="0" conaffinity="0" type="mesh" mesh="lleg-crotch-y_mesh_72" name="lleg-crotch-y_visual0" />
+        <geom pos="-0.0435 0.0645 -0.003" quat="1 0 0 0" group="2" contype="0" conaffinity="0" type="mesh" mesh="lleg-crotch-y_mesh_73" name="lleg-crotch-y_visual1" />
+        <geom pos="-0.0435 0.0645 -0.003" quat="1 0 0 0" group="2" contype="0" conaffinity="0" type="mesh" mesh="lleg-crotch-y_mesh_74" name="lleg-crotch-y_visual2" />
+        <geom pos="-0.0435 0.0645 -0.003" quat="1 0 0 0" group="2" contype="0" conaffinity="0" type="mesh" mesh="lleg-crotch-y_mesh_75" name="lleg-crotch-y_visual3" />
+        <geom pos="-0.0435 0.0645 -0.003" quat="1 0 0 0" group="2" contype="0" conaffinity="0" type="mesh" mesh="lleg-crotch-y_mesh_76" name="lleg-crotch-y_visual4" />
+        <geom pos="-0.0435 0.0645 -0.003" quat="1 0 0 0" group="3" type="mesh" mesh="lleg-crotch-y_mesh_77" name="lleg-crotch-y_collision0" />
+        <geom pos="-0.0435 0.0645 -0.003" quat="1 0 0 0" group="3" type="mesh" mesh="lleg-crotch-y_mesh_78" name="lleg-crotch-y_collision1" />
+        <geom pos="-0.0435 0.0645 -0.003" quat="1 0 0 0" group="3" type="mesh" mesh="lleg-crotch-y_mesh_79" name="lleg-crotch-y_collision2" />
+        <geom pos="-0.0435 0.0645 -0.003" quat="1 0 0 0" group="3" type="mesh" mesh="lleg-crotch-y_mesh_80" name="lleg-crotch-y_collision3" />
+        <geom pos="-0.0435 0.0645 -0.003" quat="1 0 0 0" group="3" type="mesh" mesh="lleg-crotch-y_mesh_81" name="lleg-crotch-y_collision4" />
+        <body name="lleg-crotch-r" pos="0 0.04 0" quat="1 0 0 0">
+          <joint name="lleg-crotch-r" pos="0 0 0" axis="1 0 0" type="hinge" range="-1.91986 1.91986" />
+          <inertial pos="0 0 -0.012475" mass="0.036864" diaginertia="2.84986996e-05 8.02245954e-05 9.6499105e-05" quat="0.000159745756 0.707106768 -0.707106744 -0.000214419135" />
+          <geom pos="0 0.04 0" quat="1 0 0 0" group="2" contype="0" conaffinity="0" type="mesh" mesh="lleg-crotch-r_mesh_82" name="lleg-crotch-r_visual0" />
+          <geom pos="0 0.04 0" quat="1 0 0 0" group="2" contype="0" conaffinity="0" type="mesh" mesh="lleg-crotch-r_mesh_83" name="lleg-crotch-r_visual1" />
+          <geom pos="0 0.04 0" quat="1 0 0 0" group="2" contype="0" conaffinity="0" type="mesh" mesh="lleg-crotch-r_mesh_84" name="lleg-crotch-r_visual2" />
+          <geom pos="0 0.04 0" quat="1 0 0 0" group="2" contype="0" conaffinity="0" type="mesh" mesh="lleg-crotch-r_mesh_85" name="lleg-crotch-r_visual3" />
+          <geom pos="0 0.04 0" quat="1 0 0 0" group="3" type="mesh" mesh="lleg-crotch-r_mesh_86" name="lleg-crotch-r_collision0" />
+          <geom pos="0 0.04 0" quat="1 0 0 0" group="3" type="mesh" mesh="lleg-crotch-r_mesh_87" name="lleg-crotch-r_collision1" />
+          <geom pos="0 0.04 0" quat="1 0 0 0" group="3" type="mesh" mesh="lleg-crotch-r_mesh_88" name="lleg-crotch-r_collision2" />
+          <geom pos="0 0.04 0" quat="1 0 0 0" group="3" type="mesh" mesh="lleg-crotch-r_mesh_89" name="lleg-crotch-r_collision3" />
+        </body>
+      </body>
+      <body name="rarm-shoulder-y" pos="0.0435 -0.0645 -0.003" quat="1 0 0 0">
+        <joint name="rarm-shoulder-y" pos="0 0 0" axis="0 0 1" type="hinge" range="-1.91986 1.91986" />
+        <inertial pos="-6.93889e-18 0.018581 2.60209e-18" mass="0.015659" diaginertia="1.78676971e-05 4.34937993e-05 4.94297036e-05" quat="0.707147805 4.75000069e-05 0.00024963636 0.707065709" />
+        <geom pos="0.0435 -0.0645 -0.003" quat="1 0 0 0" group="2" contype="0" conaffinity="0" type="mesh" mesh="rarm-shoulder-y_mesh_90" name="rarm-shoulder-y_visual0" />
+        <geom pos="0.0435 -0.0645 -0.003" quat="1 0 0 0" group="2" contype="0" conaffinity="0" type="mesh" mesh="rarm-shoulder-y_mesh_91" name="rarm-shoulder-y_visual1" />
+        <geom pos="0.0435 -0.0645 -0.003" quat="1 0 0 0" group="2" contype="0" conaffinity="0" type="mesh" mesh="rarm-shoulder-y_mesh_92" name="rarm-shoulder-y_visual2" />
+        <geom pos="0.0435 -0.0645 -0.003" quat="1 0 0 0" group="2" contype="0" conaffinity="0" type="mesh" mesh="rarm-shoulder-y_mesh_93" name="rarm-shoulder-y_visual3" />
+        <geom pos="0.0435 -0.0645 -0.003" quat="1 0 0 0" group="2" contype="0" conaffinity="0" type="mesh" mesh="rarm-shoulder-y_mesh_94" name="rarm-shoulder-y_visual4" />
+        <geom pos="0.0435 -0.0645 -0.003" quat="1 0 0 0" group="3" type="mesh" mesh="rarm-shoulder-y_mesh_95" name="rarm-shoulder-y_collision0" />
+        <geom pos="0.0435 -0.0645 -0.003" quat="1 0 0 0" group="3" type="mesh" mesh="rarm-shoulder-y_mesh_96" name="rarm-shoulder-y_collision1" />
+        <geom pos="0.0435 -0.0645 -0.003" quat="1 0 0 0" group="3" type="mesh" mesh="rarm-shoulder-y_mesh_97" name="rarm-shoulder-y_collision2" />
+        <geom pos="0.0435 -0.0645 -0.003" quat="1 0 0 0" group="3" type="mesh" mesh="rarm-shoulder-y_mesh_98" name="rarm-shoulder-y_collision3" />
+        <geom pos="0.0435 -0.0645 -0.003" quat="1 0 0 0" group="3" type="mesh" mesh="rarm-shoulder-y_mesh_99" name="rarm-shoulder-y_collision4" />
+        <body name="rarm-shoulder-r" pos="0 -0.04 0" quat="1 0 0 0">
+          <joint name="rarm-shoulder-r" pos="0 0 0" axis="1 0 0" type="hinge" range="-1.91986 1.91986" />
+          <inertial pos="0 0 -0.012475" mass="0.036864" diaginertia="2.84986996e-05 8.02245954e-05 9.6499105e-05" quat="0.000159745756 0.707106768 -0.707106744 -0.000214419135" />
+          <geom pos="0 -0.04 0" quat="1 0 0 0" group="2" contype="0" conaffinity="0" type="mesh" mesh="rarm-shoulder-r_mesh_100" name="rarm-shoulder-r_visual0" />
+          <geom pos="0 -0.04 0" quat="1 0 0 0" group="2" contype="0" conaffinity="0" type="mesh" mesh="rarm-shoulder-r_mesh_101" name="rarm-shoulder-r_visual1" />
+          <geom pos="0 -0.04 0" quat="1 0 0 0" group="2" contype="0" conaffinity="0" type="mesh" mesh="rarm-shoulder-r_mesh_102" name="rarm-shoulder-r_visual2" />
+          <geom pos="0 -0.04 0" quat="1 0 0 0" group="2" contype="0" conaffinity="0" type="mesh" mesh="rarm-shoulder-r_mesh_103" name="rarm-shoulder-r_visual3" />
+          <geom pos="0 -0.04 0" quat="1 0 0 0" group="3" type="mesh" mesh="rarm-shoulder-r_mesh_104" name="rarm-shoulder-r_collision0" />
+          <geom pos="0 -0.04 0" quat="1 0 0 0" group="3" type="mesh" mesh="rarm-shoulder-r_mesh_105" name="rarm-shoulder-r_collision1" />
+          <geom pos="0 -0.04 0" quat="1 0 0 0" group="3" type="mesh" mesh="rarm-shoulder-r_mesh_106" name="rarm-shoulder-r_collision2" />
+          <geom pos="0 -0.04 0" quat="1 0 0 0" group="3" type="mesh" mesh="rarm-shoulder-r_mesh_107" name="rarm-shoulder-r_collision3" />
+        </body>
+      </body>
+      <body name="rleg-crotch-y" pos="-0.0435 -0.0645 -0.003" quat="1 0 0 0">
+        <joint name="rleg-crotch-y" pos="0 0 0" axis="0 0 1" type="hinge" range="-1.91986 1.91986" />
+        <inertial pos="-6.93889e-18 0.018581 2.60209e-18" mass="0.015659" diaginertia="1.78676971e-05 4.34937993e-05 4.94297036e-05" quat="0.707147805 4.75000069e-05 0.00024963636 0.707065709" />
+        <geom pos="-0.0435 -0.0645 -0.003" quat="1 0 0 0" group="2" contype="0" conaffinity="0" type="mesh" mesh="rleg-crotch-y_mesh_108" name="rleg-crotch-y_visual0" />
+        <geom pos="-0.0435 -0.0645 -0.003" quat="1 0 0 0" group="2" contype="0" conaffinity="0" type="mesh" mesh="rleg-crotch-y_mesh_109" name="rleg-crotch-y_visual1" />
+        <geom pos="-0.0435 -0.0645 -0.003" quat="1 0 0 0" group="2" contype="0" conaffinity="0" type="mesh" mesh="rleg-crotch-y_mesh_110" name="rleg-crotch-y_visual2" />
+        <geom pos="-0.0435 -0.0645 -0.003" quat="1 0 0 0" group="2" contype="0" conaffinity="0" type="mesh" mesh="rleg-crotch-y_mesh_111" name="rleg-crotch-y_visual3" />
+        <geom pos="-0.0435 -0.0645 -0.003" quat="1 0 0 0" group="2" contype="0" conaffinity="0" type="mesh" mesh="rleg-crotch-y_mesh_112" name="rleg-crotch-y_visual4" />
+        <geom pos="-0.0435 -0.0645 -0.003" quat="1 0 0 0" group="3" type="mesh" mesh="rleg-crotch-y_mesh_113" name="rleg-crotch-y_collision0" />
+        <geom pos="-0.0435 -0.0645 -0.003" quat="1 0 0 0" group="3" type="mesh" mesh="rleg-crotch-y_mesh_114" name="rleg-crotch-y_collision1" />
+        <geom pos="-0.0435 -0.0645 -0.003" quat="1 0 0 0" group="3" type="mesh" mesh="rleg-crotch-y_mesh_115" name="rleg-crotch-y_collision2" />
+        <geom pos="-0.0435 -0.0645 -0.003" quat="1 0 0 0" group="3" type="mesh" mesh="rleg-crotch-y_mesh_116" name="rleg-crotch-y_collision3" />
+        <geom pos="-0.0435 -0.0645 -0.003" quat="1 0 0 0" group="3" type="mesh" mesh="rleg-crotch-y_mesh_117" name="rleg-crotch-y_collision4" />
+        <body name="rleg-crotch-r" pos="0 -0.04 0" quat="1 0 0 0">
+          <joint name="rleg-crotch-r" pos="0 0 0" axis="1 0 0" type="hinge" range="-1.91986 1.91986" />
+          <inertial pos="0 0 -0.012475" mass="0.036864" diaginertia="2.84986996e-05 8.02245954e-05 9.6499105e-05" quat="0.000159745756 0.707106768 -0.707106744 -0.000214419135" />
+          <geom pos="0 -0.04 0" quat="1 0 0 0" group="2" contype="0" conaffinity="0" type="mesh" mesh="rleg-crotch-r_mesh_118" name="rleg-crotch-r_visual0" />
+          <geom pos="0 -0.04 0" quat="1 0 0 0" group="2" contype="0" conaffinity="0" type="mesh" mesh="rleg-crotch-r_mesh_119" name="rleg-crotch-r_visual1" />
+          <geom pos="0 -0.04 0" quat="1 0 0 0" group="2" contype="0" conaffinity="0" type="mesh" mesh="rleg-crotch-r_mesh_120" name="rleg-crotch-r_visual2" />
+          <geom pos="0 -0.04 0" quat="1 0 0 0" group="2" contype="0" conaffinity="0" type="mesh" mesh="rleg-crotch-r_mesh_121" name="rleg-crotch-r_visual3" />
+          <geom pos="0 -0.04 0" quat="1 0 0 0" group="3" type="mesh" mesh="rleg-crotch-r_mesh_122" name="rleg-crotch-r_collision0" />
+          <geom pos="0 -0.04 0" quat="1 0 0 0" group="3" type="mesh" mesh="rleg-crotch-r_mesh_123" name="rleg-crotch-r_collision1" />
+          <geom pos="0 -0.04 0" quat="1 0 0 0" group="3" type="mesh" mesh="rleg-crotch-r_mesh_124" name="rleg-crotch-r_collision2" />
+          <geom pos="0 -0.04 0" quat="1 0 0 0" group="3" type="mesh" mesh="rleg-crotch-r_mesh_125" name="rleg-crotch-r_collision3" />
+        </body>
+      </body>
+    </body>
+  </worldbody>
+</mujoco>
