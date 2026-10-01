@@ -252,6 +252,27 @@
       (send f :id (append (send f :id) (list  (nth (nth 1 (send f :id))
 						   '(:-x :-y :x :y))))))
     b))
+
+(defun make-chamfer-cylinder (radius height c &rest args
+			      &key (segments 12) (top c) (bottom c)
+				&allow-other-keys)
+  "MAKE-CHAMFER-CYLINDER radius height c (:segments 12) :color :name"
+  (setq radius (float radius) height (float height))
+  (let* ((ps
+	  (append
+	   (list (float-vector 0 0 height))
+	   (if top
+	       (list (float-vector (- radius top) 0 height)
+		     (float-vector radius 0 (- height top)))
+	       (list (float-vector radius 0 height)))
+	   (if bottom
+	       (list (float-vector radius 0 bottom)
+		     (float-vector (- radius bottom) 0 0))
+	       (list (float-vector radius 0 0)))
+	   (list (float-vector 0 0 0))))
+	 )
+    (make-solid-of-revolution ps :segments segments)))
+
 #|
 (defmethod object
     (:bodies
@@ -265,6 +286,7 @@
        (t nil)))
   )
 |#
+
 (defmethod cascaded-coords
     ;;(:all-descendants ()
     ;;(append descendants (send-all descendants :all-descendants)))

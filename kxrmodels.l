@@ -1191,7 +1191,7 @@
 			     :battery-stand wheel-battery-stand :lidar lidar
 			     )))
      (:l6  (setq body-link (kxr-l6-body-link :neck neck-jf :backpack backpack)))
-     (:l6base (setq body-link (kxr-l6-body-link :neck neck-jf :backpack nil :magmodule t)))
+     (:l6base (setq body-link (kxr-l6-body-link :neck t :backpack nil :magmodule t :torso t :torso-origin t)))
      (:t1l6base (setq body-link (kxr-l6-body-link :neck t :backpack nil :magmodule nil
 						  :torso-origin t)))
      (:mw4base
@@ -1565,9 +1565,9 @@
      (send j :put :rotor-inertia rotor-inertia)
      j))
   (:push-joint
-   (&optional limb i-str axis min max &rest args &key parent-link child-link &allow-other-keys &aux j)
+   (&optional limb i-str axis min max &rest args &key parent-link child-link (parent-name :joint-coord) &allow-other-keys &aux j)
    (if (and (null parent-link) jlst) (setq parent-link (send (car jlst) :child-link)))
-   (setq j (send* self :create-joint limb i-str axis min max
+   (setq j (send* self :create-joint limb i-str axis min max :parent-name parent-name
 		  :parent-link parent-link :child-link child-link args))
    (push (send j :child-link) lst)
    (push j jlst)

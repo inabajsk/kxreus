@@ -229,6 +229,9 @@
     (setq mesh-dir (rcb4eus-file (format nil "eusurdf/meshes/~A" name-str))))
   (let* ((links (send robot :links))
          (joints (send robot :joint-list)))
+    ;; ジョイント名を先に登録して元の名前を優先させる(リンクと同名の
+    ;; 場合はリンク側に"_2"等が付く)。
+    (dolist (j joints) (eus-name-string j))
     (dolist (l links) (dump-link-mesh-stl l mesh-dir))
     (with-open-file (strm outfile :direction :output :if-exists :supersede)
       (format strm "<?xml version=\"1.0\"?>~%")

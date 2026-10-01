@@ -624,6 +624,8 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
     (tiny-xml::dump (apply #'mjcf-world-xml :names names args)
 		    (format nil "mjcfs/~A.xml" fname))))
 
+(format t ";; (mjcf-dump-objects)~%")
+
 (defun numbering-same-objects (objs)
   (let* ((names (send-all objs :name))
 	 name-clist nc)
@@ -634,6 +636,8 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
        (t (send o :name (format nil "~A_~A" (send o :name) (cdr nc)))
 	  (rplacd nc (1+ (cdr nc)))))
       )))
+
+(format t ";; (mjcf-world-xml)~%")
 
 (defun mjcf-world-xml
     (&rest args &key (timestep 0.001) (iterations 50) names

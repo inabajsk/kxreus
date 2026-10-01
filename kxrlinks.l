@@ -481,8 +481,8 @@
     (kxr-link-create (send b0 :bodies) :joint-coord (get b0 :joint-coord))))
 
 (defun kxr-l4tr-body-link (&key (neck t) neck-align torso (backpack t) magmodule neck-origin
-				battery-box)
-  (let* ((b0 (kxr-l4tr-bodyset :neck torso :backpack backpack :magmodule magmodule))
+			     battery-box)
+  (let* ((b0 (kxr-l4tr-bodyset :neck torso :backpack backpack :magmodule magmodule :shoulder-servo t))
 	 h (blist (send b0 :bodies)) l)
     (when neck
       (if neck-align
@@ -663,18 +663,20 @@
     (dolist (n (list :lleg :rleg :joint-coord :mbase)) (send l :assoc (get l n)))
     l))
 
-(defun kxr-l6-body-link (&key neck backpack magmodule torso-origin
-			      (offset (float-vector 0 0 3)))
+(defun kxr-l6-body-link (&key neck backpack magmodule torso-origin torso
+			   (offset (float-vector 0 0 3)))
   (let (bs)
-    (setq bs (kxr-l6-bodyset :neck neck :backpack backpack :magmodule magmodule))
+    (setq bs (kxr-l6-bodyset :neck neck :backpack backpack :magmodule magmodule :torso torso))
     (cond
      ((and torso-origin (get bs :torso))
       (send bs :translate (v- (v- offset) (send (get bs :torso) :worldpos)) :world)
       (setq l (kxr-link-create bs)))
      (t (setq l (kxr-link-create bs))))
-    (when (get bs :torso)
-      (setf (get l :torso) (get bs :torso))
-      (send l :assoc (get l :torso)))
+    (dolist (p '(:neck :torso :lmarm :rmarm :larm :rarm :lleg :rleg :joint-coord
+		 :lleg0 :rleg0 :lleg1 :rleg1 :lleg2 :rleg2))
+      (when (get bs p)
+	(setf (get l p) (get bs p))
+	(send l :assoc (get l p))))
     l))
 
 (defun kxr-l2-neck-base-link (&key base-b (servo t) rotate dummy pitch apply-list horn)
