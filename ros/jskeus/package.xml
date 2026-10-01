@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<!-- thin wrapper of inabajsk/jskeus in JSKEUS_DIR, see ../euslisp/package.xml -->
+<package>
+  <name>jskeus</name>
+  <version>9.99.0</version>
+  <description>wrapper of inabajsk/jskeus built in JSKEUS_DIR for kxreus</description>
+  <maintainer email="inaba_m@global.kawasaki.com">Masayuki Inaba</maintainer>
+  <license>BSD</license>
+  <buildtool_depend>catkin</buildtool_depend>
+  <build_depend>euslisp</build_depend>
+  <run_depend>euslisp</run_depend>
+</package>

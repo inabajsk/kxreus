@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<!-- thin wrapper so that roseus is built against $(JSKEUS_DIR) (inabajsk/jskeus
+     + inabajsk/EusLisp) instead of the apt euslisp/jskeus. Installed into the
+     roseus workspace by "make roseus" in kxreus. -->
+<package>
+  <name>euslisp</name>
+  <version>9.99.0</version>
+  <description>wrapper of inabajsk/EusLisp built in JSKEUS_DIR for kxreus</description>
+  <maintainer email="inaba_m@global.kawasaki.com">Masayuki Inaba</maintainer>
+  <license>BSD</license>
+  <buildtool_depend>catkin</buildtool_depend>
+</package>

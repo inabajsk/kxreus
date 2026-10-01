@@ -8,6 +8,10 @@ How to install:
 5) make libs
     ;; setup usb drivers
 6) make
+7) make roseus   (optional)
+    ;; build roseus from jsk-ros-pkg/jsk_roseus against ~/jskeus (inabajsk/jskeus)
+    ;; into ~/roseus_ws, instead of the apt ros-*-euslisp/jskeus.
+    ;; then: source ~/roseus_ws/devel/setup.bash; roseus
 7) make gen
     ;; generate typical robot models into kxreus/models directory
 8) connect USB dual adapter to PC

@@ -1,0 +1,5 @@
+# kxreus: use @JSKEUS_DIR@ (overrides the apt euslisp env hook of the same name)
+export ARCHDIR=@ARCHDIR@
+export EUSDIR="@JSKEUS_DIR@/eus"
+export LD_LIBRARY_PATH="$EUSDIR/$ARCHDIR/lib:$LD_LIBRARY_PATH"
+export PATH="$EUSDIR/$ARCHDIR/bin:$PATH"

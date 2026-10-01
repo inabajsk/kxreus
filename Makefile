@@ -113,7 +113,7 @@ libs:
 	sudo install -m 0755 udevs/99-my-m5stack.rules /etc/udev/rules.d/
 	sudo udevadm control --reload-rules && sudo udevadm trigger
 #	sudo apt-get install -y ros-$(ROS_DISTRO)-roseus
-dir: check-jskeus
+dir: check-jskeus check-roseus
 	mkdir -p $(ARCHDIR)
 	mkdir -p $(LIBDIR)
 	mkdir -p $(OBJDIR)
@@ -185,4 +185,52 @@ jskeus:
 rebuild-with-jskeus: jskeus
 	make clean
 	make
+
+#
+# roseus built against $(JSKEUS_DIR) (inabajsk/jskeus) instead of the apt
+# ros-$(ROS_DISTRO)-euslisp/jskeus. jsk_roseus is cloned into a catkin
+# workspace $(ROSEUS_WS) together with thin euslisp/jskeus wrapper packages
+# (ros/euslisp, ros/jskeus) that point EUSDIR at $(JSKEUS_DIR)/eus, so that
+# roseus.so is compiled with our eus.h and bin/roseus runs our irteusgl.
+# After make roseus:
+#   source $(ROSEUS_WS)/devel/setup.bash; roseus
+# -fpermissive: inabajsk/EusLisp eus_proto.h prototypes defun() strictly, and
+# roseus.cpp/eustf.cpp still pass (pointer (*)()) casts, an error in C++.
+#
+ROS_DISTRO ?= $(firstword $(notdir $(wildcard /opt/ros/one /opt/ros/noetic /opt/ros/melodic)))
+ROS_SETUP ?= /opt/ros/$(ROS_DISTRO)/setup.bash
+ROSEUS_WS ?= $(HOME)/roseus_ws
+ROSEUS_GIT_URL ?= https://github.com/jsk-ros-pkg/jsk_roseus
+ROSEUS_GIT_BRANCH ?= master
+
+roseus: check-jskeus
+	@if [ ! -f $(ROS_SETUP) ]; then \
+		echo "$(ROS_SETUP) not found -- install ROS (noetic/one) first"; exit 1; \
+	fi
+	mkdir -p $(ROSEUS_WS)/src
+	if [ ! -d $(ROSEUS_WS)/src/jsk_roseus ]; then \
+		git clone $(ROSEUS_GIT_URL) -b $(ROSEUS_GIT_BRANCH) $(ROSEUS_WS)/src/jsk_roseus; \
+	fi
+	rm -rf $(ROSEUS_WS)/src/kxreus_euslisp
+	cp -r $(PWD)/ros $(ROSEUS_WS)/src/kxreus_euslisp
+	bash -c 'source $(ROS_SETUP) && cd $(ROSEUS_WS) && \
+		rosdep install -r -y -i --from-paths src/jsk_roseus/roseus --ignore-src --skip-keys "euslisp jskeus"; \
+		catkin init && \
+		catkin config --extend /opt/ros/$(ROS_DISTRO) --cmake-args -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS=-fpermissive -DJSKEUS_DIR=$(JSKEUS_DIR) && \
+		catkin build euslisp jskeus roseus'
+	@echo "roseus built with $(JSKEUS_DIR). Use: source $(ROSEUS_WS)/devel/setup.bash; roseus"
+
+# run as a prerequisite of dir: (and so of every build), like check-jskeus --
+# builds roseus only when $(ROSEUS_WS)/devel/bin/roseus doesn't exist yet.
+# Skipped (not an error) when ROS is not installed.
+check-roseus: check-jskeus
+	@if [ ! -f $(ROS_SETUP) ]; then \
+		echo "$(ROS_SETUP) not found -- skip building roseus"; \
+	elif [ ! -x $(ROSEUS_WS)/devel/bin/roseus ]; then \
+		echo "$(ROSEUS_WS)/devel/bin/roseus not found -- building roseus with $(JSKEUS_DIR) first"; \
+		$(MAKE) roseus; \
+	fi
+
+clean-roseus:
+	rm -rf $(ROSEUS_WS)/build $(ROSEUS_WS)/devel $(ROSEUS_WS)/logs
 
