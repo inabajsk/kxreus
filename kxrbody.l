@@ -155,7 +155,8 @@
 	  (rcb4eus-dump-structure-atomically fname gl::aglvertices)
 	  ;;(send gl::aglvertices :transform cds)
 	  (send self :assoc gl::aglvertices)
-	  (setf (get gl::aglvertices :face-color) (get self :face-color))
+	  (when (and (get gl::aglvertices :face-color) (get self :face-color))
+	    (setf (get gl::aglvertices :face-color) (get self :face-color)))
 	  ))))
   (:change-visual
    (&optional (v :fine))

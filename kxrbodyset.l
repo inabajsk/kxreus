@@ -940,13 +940,17 @@
     (when (and (null backpack) neck) ;; center half body
       (cond
        (top-plate
-	(setq to (kxr-l2-body-bodyset :backpack nil :torso t :neck-front neck-front))
+	(setq to (kxr-l2-body-bodyset :backpack nil :torso t :neck-front neck-front
+				      :shoulder-servo t
+				      ))
 	(send to :locate (send (get b1f :origin) :worldpos) :world)
 	(when back-pack-rotate
 	  (send to :rotate pi/2 :z :world))
 	(setq blist (append blist (send to :bodies))))
        (t
-	(setq to (kxr-l2-body-bodyset :backpack nil :torso t :neck-front neck-front))	
+	(setq to (kxr-l2-body-bodyset :backpack nil :torso t :neck-front neck-front
+				      :shoulder-servo t
+				      ))	
 	(send to :translate #f(0 0 -16) :world)	
 	(setq blist (append (send to :bodies) (cdr blist)))
 	)))
@@ -996,11 +1000,14 @@
       (setf (get l :back-pack-top) bc))
     (setf (get l :neck) (get b3 :joint-coord))
     (when to
-      (setf (get l :torso) (get to :neck)))
+      (setf (get l :torso) (get to :neck))
+      (setf (get l :larm) (get to :larm))
+      (setf (get l :rarm) (get to :rarm))
+      )
     (setf (get l :joint-coord) (get b1f :origin))
     (setf (get l :front-neck) (get b3 :joint-coord))
     (setf (get l :back-neck) (get b1f :joint-coord))
-    (dolist (p (list :torso :joint-coord :back-panel :back-pack-top
+    (dolist (p (list :torso :joint-coord :back-panel :back-pack-top :larm :rarm
 		     :neck :front-neck :back-neck))
       (when (get l p) (send l :assoc (get l p))))
     l))
@@ -2178,8 +2185,8 @@
     (send s :assoc b)
     (kxr-bodyset-create (list s b) c)))
 
-(defun kxr-l6-bodyset (&key neck (backpack t) magmodule no-upper-body)
-  (let* ((b0 (kxr-l4tr-bodyset :rotate t :neck neck :backpack backpack :magmodule magmodule))
+(defun kxr-l6-bodyset (&key neck (backpack t) magmodule no-upper-body torso)
+  (let* ((b0 (kxr-l4tr-bodyset :rotate t :neck neck :backpack backpack :magmodule magmodule :torso torso))
 	 (ml (kxr-l4tr-crotch-p-bodyset))
 	 (mr (kxr-l4tr-crotch-p-bodyset))
 	 (h (if magmodule -77 -3)) c l)
@@ -2188,33 +2195,53 @@
     (send mr :rotate pi :z)
     (send mr :locate (float-vector 0 (- (+ 10.5 64.5)) h) :world)
     (setq blist (append (send b0 :bodies) (send ml :bodies) (send mr :bodies)))
+    #|
     (dolist (b (cdr blist)) (send (car blist) :assoc b))
     (dolist (b (list ml mr)) (send (car blist) :assoc (get b :joint-coord)))
     (dolist (b (list :rarm :rleg :larm :lleg :rmarm :lmarm))
       (if (get b0 b)
 	  (send (car blist) :assoc (get b0 b))))
+    |#
     (setq l (kxr-bodyset-create blist))
-    (setf (get l :larm) (get b0 :rarm))
-    (setf (get l :rarm) (get b0 :rleg))
-    (setf (get l :lleg0) (get b0 :rarm))
-    (setf (get l :rleg0) (get b0 :rleg))
-    (setf (get l :lmarm) (get ml :joint-coord))
-    (setf (get l :rmarm) (get mr :joint-coord))
-    (setf (get l :lleg1) (get ml :joint-coord))
-    (setf (get l :rleg1) (get mr :joint-coord))
-    (setf (get l :lleg) (get b0 :larm))
-    (setf (get l :rleg) (get b0 :lleg))
-    (setf (get l :lleg2) (get b0 :larm))
-    (setf (get l :rleg2) (get b0 :lleg))
-    ;;
-    (setf (get l :neck) (get b0 :back-pack-top))
-    (setf (get l :torso) (get b0 :torso))
+    (cond
+      (torso
+       (setf (get l :lleg0) (get b0 :rleg0))
+       (setf (get l :rleg0) (get b0 :rleg1))
+       (setf (get l :lmarm) (get ml :joint-coord))
+       (setf (get l :rmarm) (get mr :joint-coord))
+       (setf (get l :lleg1) (get ml :joint-coord))
+       (setf (get l :rleg1) (get mr :joint-coord))
+       (setf (get l :lleg) (get b0 :rleg0))
+       (setf (get l :rleg) (get b0 :lleg1))
+       (setf (get l :lleg2) (get b0 :lleg0))
+       (setf (get l :rleg2) (get b0 :lleg1))
+       ;;
+       (setf (get l :larm) (get b0 :larm))
+       (setf (get l :rarm) (get b0 :rarm))
+       (setf (get l :neck) (get b0 :back-pack-top))
+       (setf (get l :torso) (get b0 :torso)))
+      (t
+       (setf (get l :larm) (get b0 :rarm))
+       (setf (get l :rarm) (get b0 :rleg))
+       (setf (get l :lleg0) (get b0 :rarm))
+       (setf (get l :rleg0) (get b0 :rleg))
+       (setf (get l :lmarm) (get ml :joint-coord))
+       (setf (get l :rmarm) (get mr :joint-coord))
+       (setf (get l :lleg1) (get ml :joint-coord))
+       (setf (get l :rleg1) (get mr :joint-coord))
+       (setf (get l :lleg) (get b0 :larm))
+       (setf (get l :rleg) (get b0 :lleg))
+       (setf (get l :lleg2) (get b0 :larm))
+       (setf (get l :rleg2) (get b0 :lleg))
+       ;;
+       (setf (get l :neck) (get b0 :back-pack-top))
+       (setf (get l :torso) (get b0 :torso))))
     (dolist (a '(:neck :torso :larm :rarm :lleg :rleg :lmarm :rmarm
-		       :lleg0 :rleg0 :lleg1 :rleg1 :lleg2 :rleg2))
+		 :lleg0 :rleg0 :lleg1 :rleg1 :lleg2 :rleg2))
       (if (get l a) (send l :assoc (get l a))))
     l))
 
-(defun kxr-l4tr-bodyset (&key rotate neck (backpack t) magmodule battery-box)
+(defun kxr-l4tr-bodyset (&key rotate neck (backpack t) magmodule battery-box torso)
   (let* ((b0 (kxr-battery-torso-bodyset :wide nil :half nil
 					:battery-box battery-box
 					:backpack (if magmodule nil backpack)
@@ -2257,15 +2284,28 @@
 		     (send bcrf :bodies)
 		     (send bcrb :bodies)
 		     blist)))
-    (setf (get l :joint-coord) (get mm :joint-coord))
-    (setf (get l :larm) (get bclf :joint-coord))
-    (setf (get l :rarm) (get bcrf :joint-coord))
-    (setf (get l :lleg) (get bclb :joint-coord))
-    (setf (get l :rleg) (get bcrb :joint-coord))
-    (setf (get l :neck) (get b0 :neck))
-    (setf (get l :torso) (get b0 :torso))
-    (setf (get l :back-pack-top) c)
-    (dolist (a '(:neck :torso :larm :rarm :lleg :rleg :back-pack-top :joint-coord))
+    (cond
+      (torso
+       (setf (get l :lleg0) (get bclf :joint-coord))
+       (setf (get l :rleg0) (get bcrf :joint-coord))
+       (setf (get l :lleg1) (get bclb :joint-coord))
+       (setf (get l :rleg1) (get bcrb :joint-coord))
+       (setf (get l :larm) (get b0 :rarm))
+       (setf (get l :rarm) (get b0 :larm))
+       (setf (get l :neck) (get b0 :neck))
+       (setf (get l :torso) (get b0 :torso))
+       (setf (get l :back-pack-top) c))
+      (t
+       (setf (get l :joint-coord) (get mm :joint-coord))
+       (setf (get l :larm) (get bclf :joint-coord))
+       (setf (get l :rarm) (get bcrf :joint-coord))
+       (setf (get l :lleg) (get bclb :joint-coord))
+       (setf (get l :rleg) (get bcrb :joint-coord))
+       (setf (get l :neck) (get b0 :neck))
+       (setf (get l :torso) (get b0 :torso))
+       (setf (get l :back-pack-top) c)))
+    (dolist (a '(:neck :torso :larm :rarm :lleg :rleg :back-pack-top :joint-coord
+		 :lleg0 :rleg0 :lleg1 :rleg1))
       (if (get l a) (send l :assoc (get l a))))
     l))
 

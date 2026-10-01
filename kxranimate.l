@@ -53,7 +53,7 @@
        "kxrl4r"	      "kxrl4ct2a7h2"
        "kxrl4r2a3" 	"kxrl4r2a3gl" 	"kxrl4r2l3"
        "kxrdw4a6h2m"	 "kxrow4a6h2m"	 "kxrmw4a7h2m"	 
-       "kxrl2semi2022s"	 "kxrl2l2a6h2m"	 "kxrl2g"
+       "kxrl2semi2022s"	 ;; "kxrl2l2a6h2m"	 "kxrl2g"
        "kxrl2l5a4h2g"	 "kxrl2w2l5a4h2"	 "kxrl2w2l6a5h2"	 "kxrl2w2l6a6h2"
        "kxrl2w2l6a7h2w"	 "kxrl2l6a6h2m"	 "kxrl2l6a7h2"	 "kxrl2t2l6a7h2yprb"
        "kxrl2t2l6a7h2d405"	 "kxrl2l7a7w"	 "kxrkamakiri"	 "kxrl2makabe"

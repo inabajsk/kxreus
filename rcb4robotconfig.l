@@ -1315,7 +1315,7 @@ nil
      )
     (("kxrl6")		;; 18
      (:body :l6 :type :l6 :arm :j3 :marm :j3 :leg :j3
-	    :backpack t :board :armh7)
+      :backpack t :board :armh7)
      (2 :rarm-shoulder-y -1)    (3 :larm-shoulder-y -1)
      (4 :rarm-shoulder-p -1)    (5 :larm-shoulder-p -1)
      (6 :rarm-elbow-p 1)        (7 :larm-elbow-p 1)
@@ -1327,13 +1327,14 @@ nil
      (18 :rleg-knee-p -1)       (19 :lleg-knee-p -1)
      )
     (("kxrl6a6h2m")
-     (:body :l6base :type :l6 :leg0 :j3-3m :leg1 :j3-3m :leg2 :j3-3m
-	    :head :d405eyes
-	    :shoulder :pry-cross :shoulder-front t :shoulder-low t :flat-shoulder nil
-	    :elbow :angle :wrist :cross-pr :upper-arm-length 38 
-	    :gripper t :gripper-straight t :gripper-axis :y
-	    :project-file "kxrl6"
-	    )
+     (:body :l6base ;; :type :l6
+      :leg0 :j3-3m :leg1 :j3-3m :leg2 :j3-3m
+      :head :d405eyes
+      :shoulder :pry-cross :shoulder-front t :shoulder-low t :flat-shoulder nil
+      :elbow :angle :wrist :cross-pr :upper-arm-length 38 
+      :gripper t :gripper-straight t :gripper-axis :y
+      :project-file "kxrl6"
+      )
      (2 :rarm-shoulder-p 1)      (3 :larm-shoulder-p -1)
      (4 :rarm-shoulder-r 1)     (5 :larm-shoulder-r 1)
      (6 :rarm-elbow-p 1)        (7 :larm-elbow-p 1)
@@ -1356,13 +1357,13 @@ nil
      )
     (("kxrt1l6a6h2m")
      (:body :t1l6base :leg0 :j3-3m :leg1 :j3-3m :leg2 :j3-3m
-	    :head :d405eyes
-	    :shoulder :pry-cross :shoulder-front t :shoulder-low t :flat-shoulder nil
-	    :elbow :angle :wrist :cross-pr :upper-arm-length 38 
-	    :gripper t :gripper-straight t :gripper-axis :y
-	    :torso :y
-	    :project-file "kxrl6"
-	    )
+      :head :d405eyes
+      :shoulder :pry-cross :shoulder-front t :shoulder-low t :flat-shoulder nil
+      :elbow :angle :wrist :cross-pr :upper-arm-length 38 
+      :gripper t :gripper-straight t :gripper-axis :y
+      :torso :y
+      :project-file "kxrl6"
+      )
      (2 :rarm-shoulder-p 1)      (3 :larm-shoulder-p -1)
      (4 :rarm-shoulder-r 1)     (5 :larm-shoulder-r 1)
      (6 :rarm-elbow-p 1)        (7 :larm-elbow-p 1)
@@ -3186,7 +3187,7 @@ nil
      (30 :head-neck-y -1)     (32 :head-neck-p 1)
      )
     ("kxrl2l5a3" ;; 16
-     (:body :l2l5 :type :l2 :neck-jf :b :sole t)
+     (:body :l2l5 :type :l2 :neck-jf :b :sole t :head :h0)
      (2 :rarm-shoulder-p 1)   (3 :larm-shoulder-p -1)
      (4 :rarm-shoulder-r -1)  (5 :larm-shoulder-r 1)
      (6 :rarm-elbow-p 1)      (7 :larm-elbow-p 1)
