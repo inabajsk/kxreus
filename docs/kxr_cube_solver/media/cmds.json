@@ -1,0 +1,142 @@
+{
+ "state": "DRLUUBFBRBLURRLRUBLRDDFDLFUFUFFDBRDUBRUFLLFDDBFLUBLRBD",
+ "solution": [
+  "D2",
+  "R'",
+  "D'",
+  "F2",
+  "B",
+  "D",
+  "R2",
+  "D2",
+  "R'",
+  "F2",
+  "D'",
+  "F2",
+  "U'",
+  "B2",
+  "L2",
+  "U2",
+  "D",
+  "R2",
+  "U"
+ ],
+ "phases": [
+  [
+   "initDemo",
+   "(send *ri* :hold)(init-pose)"
+  ],
+  [
+   "startDemo",
+   "(grasp :rarm)(grasp :larm)"
+  ],
+  [
+   "lookAt D",
+   "(release :larm)(angle :rarm 95)"
+  ],
+  [
+   "lookAt U",
+   "(angle :rarm -90)"
+  ],
+  [
+   "lookAt L",
+   "(angle :rarm 0)(grasp :larm)(release :rarm)(angle :larm 90)"
+  ],
+  [
+   "lookAt R",
+   "(angle :larm -90)"
+  ],
+  [
+   "lookAt B",
+   "(grasp :rarm)(release :larm)(angle :larm 0)(grasp :larm)(release :rarm)(angle :larm -90)"
+  ],
+  [
+   "lookAt F",
+   "(angle :larm 90)"
+  ],
+  [
+   "finishScan",
+   "(grasp :rarm)(release :larm)(angle :larm 0)(grasp :larm)"
+  ],
+  [
+   "solve D2",
+   "(release :larm)(angle :larm -90)(grasp :larm)(angle :larm 90)"
+  ],
+  [
+   "solve R'",
+   "(release :larm)(angle :larm 0)(grasp :larm)(angle :rarm -90)"
+  ],
+  [
+   "solve D'",
+   "(release :rarm)(angle :rarm 0)(grasp :rarm)(angle :larm -90)"
+  ],
+  [
+   "solve F2",
+   "(release :larm)(angle :larm 0)(angle :rarm -90)(grasp :larm)(release :rarm)(angle :rarm 0)(grasp :rarm)(release :larm)(angle :larm -90)(grasp :larm)(angle :larm 90)"
+  ],
+  [
+   "solve B",
+   "(release :larm)(angle :larm 0)(grasp :larm)(release :rarm)(angle :rarm -90)(grasp :rarm)(release :larm)(angle :rarm 90)(grasp :larm)(release :rarm)(angle :rarm 0)(grasp :rarm)(angle :larm 90)"
+  ],
+  [
+   "solve D",
+   "(release :larm)(angle :larm 0)(angle :rarm -90)(grasp :larm)(release :rarm)(angle :rarm 0)(grasp :rarm)(angle :larm 90)"
+  ],
+  [
+   "solve R2",
+   "(release :larm)(angle :larm 0)(grasp :larm)(release :rarm)(angle :rarm -90)(grasp :rarm)(angle :rarm 90)"
+  ],
+  [
+   "solve D2",
+   "(release :rarm)(angle :rarm 0)(grasp :rarm)(release :larm)(angle :larm -90)(grasp :larm)(angle :larm 90)"
+  ],
+  [
+   "solve R'",
+   "(release :larm)(angle :larm 0)(grasp :larm)(angle :rarm -90)"
+  ],
+  [
+   "solve F2",
+   "(release :rarm)(angle :rarm 90)(grasp :rarm)(release :larm)(angle :rarm 0)(grasp :larm)(release :larm)(angle :larm -90)(grasp :larm)(angle :larm 90)"
+  ],
+  [
+   "solve D'",
+   "(release :larm)(angle :larm 0)(angle :rarm 90)(grasp :larm)(release :rarm)(angle :rarm 0)(grasp :rarm)(angle :larm -90)"
+  ],
+  [
+   "solve F2",
+   "(release :larm)(angle :larm 0)(angle :rarm -90)(grasp :larm)(release :rarm)(angle :rarm 0)(grasp :rarm)(release :larm)(angle :larm -90)(grasp :larm)(angle :larm 90)"
+  ],
+  [
+   "solve U'",
+   "(release :larm)(angle :larm 0)(angle :rarm -90)(grasp :larm)(release :rarm)(angle :rarm 0)(grasp :rarm)(angle :larm -90)"
+  ],
+  [
+   "solve B2",
+   "(release :larm)(angle :larm 0)(angle :rarm -90)(grasp :larm)(release :rarm)(angle :rarm 0)(grasp :rarm)(release :larm)(angle :larm -90)(grasp :larm)(angle :larm 90)"
+  ],
+  [
+   "solve L2",
+   "(release :rarm)(angle :larm -90)(grasp :rarm)(release :larm)(angle :larm 0)(grasp :larm)(release :rarm)(angle :rarm -90)(grasp :rarm)(angle :rarm 90)"
+  ],
+  [
+   "solve U2",
+   "(release :larm)(angle :rarm 0)(grasp :larm)(release :larm)(angle :larm -90)(grasp :larm)(angle :larm 90)"
+  ],
+  [
+   "solve D",
+   "(release :larm)(angle :larm 0)(grasp :larm)(release :rarm)(angle :rarm -90)(grasp :rarm)(release :larm)(angle :rarm 90)(grasp :larm)(release :rarm)(angle :rarm 0)(grasp :rarm)(angle :larm 90)"
+  ],
+  [
+   "solve R2",
+   "(release :rarm)(angle :larm -90)(grasp :rarm)(release :larm)(angle :larm 0)(grasp :larm)(release :rarm)(angle :rarm -90)(grasp :rarm)(angle :rarm 90)"
+  ],
+  [
+   "solve U",
+   "(release :larm)(angle :rarm -90)(grasp :larm)(release :rarm)(angle :rarm 0)(grasp :rarm)(angle :larm 90)"
+  ],
+  [
+   "finishDemo",
+   "(release :larm)(angle :larm 0)(grasp :larm)(init-pose)"
+  ]
+ ]
+}
