@@ -523,6 +523,9 @@
          (joints (send robot :joint-list))
          (root-coords (send (car links) :worldcoords))
          (classname (format nil "~A-robot" name-str)))
+    ;; ジョイント名を先に登録して元の名前を優先させる(リンクと同名の
+    ;; 場合はリンク側に"_2"等が付く)。
+    (dolist (j joints) (eus-name-string j))
     (with-open-file
         (strm outfile :direction :output :if-exists :supersede)
       (format strm ";; generation method: native (eus2native-collada.l) -- generated~%")
