@@ -1,0 +1,86 @@
+[
+ {
+  "name": "sim_list",
+  "title_ja": "iPhone: ロボットの一覧",
+  "caption_ja": "KXR 36・KHR 43・JSK 42 体をグループごとに一覧。名前で探せる。右上は BVH の画面へ",
+  "platform": "iOS Simulator (iPhone 16 Pro, iOS 26.3)",
+  "what": "起動直後の一覧（KXR）"
+ },
+ {
+  "name": "sim_robot",
+  "title_ja": "iPhone: ロボットの 3D と関節",
+  "caption_ja": "kxrl2l6a6h2 を SceneKit で表示。下の欄の関節のスライダーで角度を変えられる（姿勢・動作・接続の欄もある）",
+  "platform": "iOS Simulator (iPhone 16 Pro, iOS 26.3)",
+  "what": "-open kxrl2l6a6h2"
+ },
+ {
+  "name": "sim_physics",
+  "title_ja": "iPhone: 物理（ODE）で立つ",
+  "caption_ja": "物理オン・サーボオンで kxrl2l6a6h2 が床の上に立つ。左上に経過時間・接触点の数・1 コマの計算時間",
+  "platform": "iOS Simulator (iPhone 16 Pro, iOS 26.3)",
+  "what": "-open kxrl2l6a6h2 -physics 1（約 23 秒後）"
+ },
+ {
+  "name": "sim_bvh_all",
+  "title_ja": "iPhone: BVH → KXR（4 体を並べて比較）",
+  "caption_ja": "mocopi greeting1 のコマ 232。左から棒人形・関節名・GMR・GMR+QP。GMR は腕と胴が衝突して赤（8 組, −20 mm）, GMR+QP は衝突なし。重心と支持多角形は緑",
+  "platform": "iOS Simulator (iPhone 16 Pro, iOS 26.3)",
+  "what": "-bvh mocopi/greeting1 -robot kxr -method all -frame 231"
+ },
+ {
+  "name": "sim_bvh_rikiya",
+  "title_ja": "iPhone: rikiya A01 → KXR",
+  "caption_ja": "rikiya rbvh_a/A01 のコマ 62。GMR は胴が赤（衝突）, GMR+QP は衝突なし（全体で衝突のコマ 100% → 2%）",
+  "platform": "iOS Simulator (iPhone 16 Pro, iOS 26.3)",
+  "what": "-bvh rikiya/rbvh_a/A01 -robot kxr -method all -frame 61"
+ },
+ {
+  "name": "sim_bvh_motion",
+  "title_ja": "iPhone: BVH をロボットの動作として再生",
+  "caption_ja": "ロボットの画面の「動作」で mocopi greeting1 を GMR + QP で移して再生（946 コマを先に計算, 衝突 7% → 0%）",
+  "platform": "iOS Simulator (iPhone 16 Pro, iOS 26.3)",
+  "what": "-open kxrl2l6a6h2 -bvhmotion mocopi/greeting1 -method gmrqp（物理オフ）"
+ },
+ {
+  "name": "desk_main",
+  "title_ja": "デスクトップ版: 1 つのウィンドウ",
+  "caption_ja": "左にロボットの一覧, 中央に 3D, 右に物理と関節・姿勢・動作・接続の欄（Compose Desktop + OpenGL）",
+  "platform": "Mac (Compose Desktop, Intel Iris Plus 655)",
+  "what": "-open kxrl2l6a6h2"
+ },
+ {
+  "name": "desk_physics",
+  "title_ja": "デスクトップ版: 物理 + 動作",
+  "caption_ja": "物理オンで kxrl2l6a6h2 が XL2G_102_微細歩行後 を繰り返す。左上に経過時間・接触点・計算時間",
+  "platform": "Mac (Compose Desktop)",
+  "what": "-open kxrl2l6a6h2 -physics 1 -motion 1 -tab 2"
+ },
+ {
+  "name": "desk_bvh_all",
+  "title_ja": "デスクトップ版: BVH → KXR（4 体）",
+  "caption_ja": "mocopi greeting1 のコマ 232。GMR の衝突のリンクが赤, GMR+QP は衝突なし（GMR 衝突 8, −20 mm → QP 衝突なし 2 mm）",
+  "platform": "Mac (Compose Desktop)",
+  "what": "-bvh mocopi/greeting1 -robot kxr -method all -frame 231"
+ },
+ {
+  "name": "desk_bvh_khr",
+  "title_ja": "デスクトップ版: BVH → KHR（khr20h2）",
+  "caption_ja": "mocopi greeting1 を khr20h2 に移す。左から棒人形・GMR・GMR+QP（全体で衝突 1% → 0%）",
+  "platform": "Mac (Compose Desktop)",
+  "what": "-bvh mocopi/greeting1 -robot khr20h2 -method gmrqp -frame 231"
+ },
+ {
+  "name": "desk_live",
+  "title_ja": "デスクトップ版: 接続（live）",
+  "caption_ja": "接続の欄で ws://localhost:8766/ の live.py につながり「受信中」。EusLisp から送った関節角でロボットが動く",
+  "platform": "Mac (Compose Desktop)",
+  "what": "-open kxrl2l6a6h2 -tab 3 -live ws://localhost:8766/（live.py に reset-pose を送り続けた）"
+ },
+ {
+  "name": "eus_bvh_qp",
+  "title_ja": "kxreus（irteusgl）: BVH パネルと GMR + QP",
+  "caption_ja": "EusLisp の EusView デモ（eusview.l）。mocopi greeting1 を KXR に移し, 関節名・GMR・GMR+QP を並べる。GMR の衝突のリンクが赤（衝突 16, −20 mm）, GMR+QP は衝突なし。下は BVH パネル",
+  "platform": "Mac (jskeus irteusgl + XQuartz)",
+  "what": "eusview.l → (eusview \"kxrl2l6a6h2\") → BVH パネル, robot KXR, joint names / GMR / QP ON, mocopi greeting1 を 0.5x で再生中のフレーム 230（ビューアと BVH パネルの 2 つのウィンドウを縦に並べた）"
+ }
+]

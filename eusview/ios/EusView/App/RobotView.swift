@@ -250,7 +250,10 @@ struct RobotView: View {
     .navigationTitle(model.name)
     .navigationBarTitleDisplayMode(.inline)
     .onDisappear { st.shutdown(); st.live.disconnect(); st.cancelBVH() }
-    .onAppear { if UserDefaults.standard.string(forKey: "bvhmotion") != nil { tab = 2; st.launchBVH() } }
+    .onAppear {
+      if UserDefaults.standard.string(forKey: "bvhmotion") != nil { tab = 2; st.launchBVH() }
+      else if !RobotState.launchDone, UserDefaults.standard.string(forKey: "physics") == "1" { RobotState.launchDone = true; st.setPhysics(true) }   // 起動の引数 -physics 1 (確認用)
+    }
     .sheet(isPresented: $bvhPicker) {
       BVHMotionPicker { e, method in bvhPicker = false; st.playBVH(e, method: method) }
     }

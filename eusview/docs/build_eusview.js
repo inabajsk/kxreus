@@ -148,6 +148,27 @@ function video(s, name, x, y, w, h, opt) {
     s.addText(`動画: ${name}（作成中）`, { x, y, w, h: bh, shape: pres.shapes.ROUNDED_RECTANGLE, rectRadius: 0.06, fill: { color: "1B2433" }, color: "8FA3C8", fontSize: 14, align: "center", valign: "middle", isTextBox: true, objectName: nm("video-missing") });
   }
 }
+const SHOTS = path.join(MED, "shots");
+const SHOTJ = fs.existsSync(path.join(SHOTS, "shots.json")) ? JSON.parse(fs.readFileSync(path.join(SHOTS, "shots.json"))) : [];
+const shotOf = (n) => (Array.isArray(SHOTJ) ? SHOTJ : SHOTJ.shots || []).find((m) => m.name === n) || {};
+/** 画面の画像を枠に縦横比を保って置く（なければ枠だけ）。下に説明 */
+function shot(s, name, x, y, w, h, opt) {
+  const o = opt || {};
+  const capH = o.noCaption ? 0 : 0.42;
+  const bh = h - capH;
+  const f = ["png", "jpg"].map((e) => path.join(SHOTS, `${name}.${e}`)).find((f) => fs.existsSync(f));
+  if (f) {
+    let pw = 16, ph = 9;
+    if (f.endsWith(".png")) [pw, ph] = pngSize(f);
+    let vw = w, vh = (w * ph) / pw;
+    if (vh > bh) { vh = bh; vw = (bh * pw) / ph; }
+    const vx = x + (w - vw) / 2;
+    s.addImage({ path: f, x: vx, y, w: vw, h: vh, objectName: nm("shot-" + name) });
+    if (!o.noCaption) para(s, o.caption || shotOf(name).caption_ja || shotOf(name).title_ja || "", x, y + vh + 0.05, w, capH - 0.05, { fontSize: 10.5, color: C.accent6, align: "center" });
+  } else {
+    s.addText(`画面: ${name}（準備中）`, { x, y, w, h: bh, shape: pres.shapes.ROUNDED_RECTANGLE, rectRadius: 0.06, fill: { color: HEX.lt2 }, color: HEX.accent6, fontSize: 12, align: "center", valign: "middle", isTextBox: true, objectName: nm("shot-missing") });
+  }
+}
 const box = (s, x, y, w, h, t, sub, fill, tc, fs1) => s.addText([{ text: t, options: { bold: true, fontSize: fs1 || 14, breakLine: true } }, { text: sub, options: { fontSize: 11 } }],
   { x, y, w, h, shape: pres.shapes.ROUNDED_RECTANGLE, rectRadius: 0.08, fill: { color: fill }, color: tc || C.text1, valign: "middle", margin: 0.1, isTextBox: true, objectName: nm("box") });
 const arrow = (s, x1, y1, x2, y2) => s.addShape(pres.shapes.LINE, { x: x1, y: y1, w: x2 - x1 || 0.001, h: y2 - y1 || 0.001, flipV: y2 < y1, line: { color: HEX.accent6, width: 1.5, endArrowType: "triangle" }, objectName: nm("arrow") });
@@ -171,13 +192,14 @@ section("タイトル");
     s.addText(b, { x: xs[i] + 0.2, y: 1.55, w: 2.5, h: 0.9, fontSize: 36, bold: true, color: c, valign: "bottom", margin: 0, isTextBox: true, fit: "shrink", objectName: nm("stat") });
     s.addText(l, { x: xs[i] + 0.2, y: 2.5, w: 2.5, h: 0.85, fontSize: 12, color: C.accent6, valign: "top", margin: 0, isTextBox: true, objectName: nm("statlbl") });
   });
-  head(s, 0.6, 3.8, 6, "1", "全体像と共通のソフトウェア", C.text1);
-  head(s, 0.6, 4.3, 6, "2", "4 つの環境の開発環境とインストール", C.accent2);
-  head(s, 0.6, 4.8, 6, "3", "使い方（画面・動作・live）", C.accent3);
-  head(s, 6.9, 3.8, 6, "4", "ODE による物理の実装", C.accent4);
-  head(s, 6.9, 4.3, 6, "5", "物理パラメータを変えると（動画）", C.accent1);
-  head(s, 6.9, 4.8, 6, "6", "まとめ", C.accent6);
-  para(s, "ロボットは EusLisp で JSON に書き出して共通に使い、iPhone・Mac・Android はネイティブアプリ、Ubuntu は kxreus のデモ（irteusgl）で動かす。物理は ODE の同じ C の層（odesim.cpp）を全部の環境で使う。", 0.6, 5.55, 12.1, 1.2, { fontSize: 14, color: C.accent6, italic: true });
+  head(s, 0.6, 3.75, 6, "1", "全体像と共通のソフトウェア", C.text1);
+  head(s, 0.6, 4.2, 6, "2", "4 つの環境の開発環境とインストール", C.accent2);
+  head(s, 0.6, 4.65, 6, "3", "使い方（スマートフォン・統合ウインドウ）", C.accent3);
+  head(s, 0.6, 5.1, 6, "4", "ODE による物理の実装", C.accent4);
+  head(s, 6.9, 3.75, 6, "5", "物理パラメータを変えると（動画）", C.accent1);
+  head(s, 6.9, 4.2, 6, "6", "BVH の変換と移し替え（GMR + 全身 QP）", C.accent5);
+  head(s, 6.9, 4.65, 6, "7", "まとめ", C.accent6);
+  para(s, "ロボットは EusLisp で JSON に書き出して共通に使い、iPhone・Mac・Android はネイティブアプリ、Ubuntu は統合ウインドウのデスクトップ版と kxreus のデモ（irteusgl）で動かす。物理（odesim）と全身 QP（wbqp）は同じ C/C++ の層を全部の環境で使う。", 0.6, 5.65, 12.1, 1.1, { fontSize: 13.5, color: C.accent6, italic: true });
 }
 
 // =====================================================================
@@ -418,6 +440,38 @@ section("3. 使い方");
   video(s, "android_motion", 7.9, 1.35, 4.85, 5.5);
 }
 {
+  const s = slide("CONTENT", "スマートフォンの画面 — iPhone", "同じアプリを iOS シミュレータ（iPhone 16 Pro）で撮ったもの。Android（Pixel 7a）の画面は「2. 開発環境」の動画を参照。");
+  shot(s, "sim_list", 0.6, 1.3, 2.95, 5.35);
+  shot(s, "sim_robot", 3.65, 1.3, 2.95, 5.35);
+  shot(s, "sim_physics", 6.7, 1.3, 2.95, 5.35);
+  shot(s, "sim_bvh_motion", 9.75, 1.3, 2.95, 5.35);
+}
+{
+  const s = slide("CONTENT", "統合ウインドウ — Ubuntu デスクトップ版", "1 つのウインドウに 一覧・3D・物理・関節 / 姿勢 / 動作 / 接続・BVH をまとめた。Kotlin（Compose Desktop）で Android 版とコードを共有。画面は Mac で撮ったもの。");
+  shot(s, "desk_main", 0.6, 1.3, 7.6, 5.6);
+  code(s, [
+    "# Ubuntu",
+    "sudo apt install openjdk-17-jdk cmake g++ \\",
+    "  libode-dev pkg-config fakeroot fonts-noto-cjk",
+    "cd ~/kxreus/eusview/desktop",
+    "make native   # ODE + odesim + wbqp (JNI)",
+    "make run      # 起動",
+    "make deb      # .deb（JRE・データ・アイコン）",
+  ].join("\n"), 8.45, 1.3, 4.3, 2.45, 11);
+  bullets(s, [
+    "左: ロボットの一覧（KXR / KHR / JSK, 検索）・BVH・表示",
+    "右: 3D（マウスで回転・移動・拡大）、物理・サーボ・置き直す、関節 / 姿勢 / 動作 / 接続",
+    "3D は OpenGL で描いて画面に出す（Mac と Linux で同じ作り）",
+    "Mac で KXR 50〜54 コマ/秒。Ubuntu の実機では未確認",
+  ], 8.45, 3.95, 4.3, 2.9, 12);
+}
+{
+  const s = slide("CONTENT", "統合ウインドウ — 物理・BVH・live", "どれも同じ 1 つのウインドウの中で切り替える。");
+  shot(s, "desk_physics", 0.6, 1.3, 3.95, 5.6);
+  shot(s, "desk_bvh_khr", 4.7, 1.3, 3.95, 5.6);
+  shot(s, "desk_live", 8.8, 1.3, 3.95, 5.6);
+}
+{
   const s = slide("CONTENT", "動作の再生 — RCB4 エミュレーションの関節角の列", "KXR・KHR のプロジェクト（Heart-to-Heart 4 の .h4p）の動作テーブルを、kxreus の RCB4 エミュレータで実際に動かして得た関節角。");
   video(s, "motion_kxr_walk", 0.6, 1.35, 6.0, 5.5);
   video(s, "motion_khr_greet", 6.75, 1.35, 6.0, 5.5);
@@ -608,7 +662,188 @@ vslide("物理で歩く — 動作の関節角をサーボの目標に", "kxrl2l
 }
 
 // =====================================================================
-section("6. まとめ");
+section("6. BVH の変換と移し替え");
+{
+  const s = slide("SECTION", "BVH の変換と移し替え（GMR + 全身 QP）");
+  s.addText("人の動き（BVH）をアプリ用に変換し、関節名・GMR でロボットに移し、全身 QP で自己衝突・可動範囲・重心を直す", { placeholder: "body" });
+  tile(s, 0.9, 2.75, "6", C.accent5, 1.2);
+}
+{
+  const s = slide("CONTENT", "BVH の変換 — convert_bvh.py", "Python の標準ライブラリだけ。~/kxreus/bvh（421 本・417 MB）→ eusview/bvh/cache/（93 MB, 約 4 分）。LAFAN1・SFU は非商用・改変禁止なので、BVH も変換したものも git には入れない。");
+  table(s, [["種類", "本数", "関節", "fps", "長さ", "単位", "変換後"],
+    ["lafan1", "77", "22", "30", "4.6 時間", "cm", "71.8 MB"],
+    ["mocopi", "9", "27", "24", "8.1 分", "cm", "5.7 MB"],
+    ["rikiya", "300", "18", "15〜30", "33.6 分", "inch", "8.0 MB"],
+    ["sfu", "15", "25", "120 → 30", "3.7 分", "inch", "1.1 MB"],
+    ["tum-kitchen", "20", "28", "25", "24.4 分", "mm（Z が上）", "6.7 MB"]],
+    0.6, 1.3, 7.2, [1.4, 0.7, 0.7, 1.0, 1.1, 1.3, 1.0], 11.5, { rowH: 0.4 });
+  code(s, [
+    "python3 eusview/bvh/convert_bvh.py      # 全部",
+    "python3 eusview/bvh/convert_bvh.py --kinds mocopi sfu",
+    "",
+    "# .ebvh = \"EBVH\" + ヘッダの長さ + JSON のヘッダ",
+    "#   （関節・親・OFFSET・チャンネルの順・fps・照合値）",
+    "#   + コマ: 位置 int32（0.1 mm）, 回転 int16（0.01°）",
+    "# index.json: 種類ごとのファイル・コマ数・秒数",
+  ].join("\n"), 0.6, 4.0, 7.2, 2.85, 11);
+  bullets(s, [
+    "回転: 関節のローカル = T(位置)·R(ch1)·R(ch2)·R(ch3)（チャンネルの順は何でも可）",
+    "位置: 位置のチャンネルがあればその値（OFFSET を置き換える, Blender と同じ）。jskeus は「足す」ので lafan1 の腰が 2 倍の高さになる",
+    "上の軸: Y が上 → Z が上（jskeus の rikiya-bvh-robot-model と同じ回転）、tum は Z が上のまま",
+    "単位: 背の高さが 1.7 m に近い mm / cm / inch / m を種類ごとに選ぶ",
+    "床: 全コマのいちばん低い点を z = 0 に。30 fps を超えるものは間引く",
+    "確認: アプリ（Swift / Kotlin）の順運動学と 421 本で 0.009 mm 以内。jskeus の load-mcd と sfu で 0.0005 inch 以内",
+  ], 8.1, 1.3, 4.65, 5.6, 11.5);
+}
+{
+  const s = slide("CONTENT", "ロボットへの移し替え — 2 つの方法", "表 eusview/bvh/retarget_tables.json を iPhone・Mac・Android・デスクトップが共有。kxreus 版（eusview-retarget.l）は同じ考え方を EusLisp で。");
+  box(s, 0.6, 1.3, 2.6, 1.3, "BVH の骨格", "関節のローカルの回転\n腰の位置・向き", C.background2);
+  box(s, 3.8, 1.3, 4.0, 1.3, "方法 1: 関節名で対応", "kxreus bvh-demo.l の :copy-state-to と同じ。\n肩・肘・股・膝… の回転を\n<limb>-<joint>-r/p/y に写す", C.accent2, C.background1);
+  box(s, 3.8, 2.8, 4.0, 1.3, "方法 2: GMR", "体節ごとに縮めた手首・肘・足首・膝の\n位置と向きを目標に、手足ごとの IK", C.accent1, C.background1);
+  box(s, 8.4, 2.8, 4.35, 1.3, "方法 2 + 全身 QP（wbqp）", "自己衝突・関節の可動範囲・\n重心が足の上、を満たすように直す", C.accent4, C.background1);
+  arrow(s, 3.2, 1.95, 3.8, 1.95); arrow(s, 3.2, 2.2, 3.8, 3.45); arrow(s, 7.8, 3.45, 8.4, 3.45);
+  table(s, [["種類", "写す BVH の関節（左腕・左脚の例）", "r, p, y ←", "注意"],
+    ["rikiya", "LeftCollar / LeftShoulder / LeftElbow / LeftWrist, LeftHip / LeftKnee / LeftAnkle", "w[2], w[0], w[1]", "軸が負なら反転して持ち越す（bvh-demo.l）"],
+    ["mocopi", "l_up_arm / l_low_arm / l_hand, l_up_leg / l_low_leg / l_foot", "w[2], w[0], w[1]", "6 チャンネルの関節は回転の 3 つだけ"],
+    ["sfu", "LeftShoulder（鎖骨）/ LeftArm / LeftForeArm, LeftUpLeg / LeftLeg / LeftFoot", "w[2], w[0], w[1]", ""],
+    ["lafan1", "LeftShoulder / LeftArm / LeftForeArm, LeftUpLeg / LeftLeg / LeftFoot", "w[0], w[1], w[2]", "初期姿勢が回っているので「コマ 0 との差 + reset-pose」"],
+    ["tum-kitchen", "（kxreus に :copy-state-to がない）", "—", "GMR だけ"]],
+    0.6, 4.35, 12.15, [1.3, 5.6, 1.6, 3.65], 10.5, { rowH: 0.42 });
+}
+{
+  const s = slide("CONTENT", "GMR の手順（小さなロボット向けに簡単にしたもの）", "GMR: Araujo, Ze ほか（2025）「Retargeting Matters: General Motion Retargeting for Humanoid Motion Tracking」。体の部位の対応・部位ごとのスケール・IK で人の動きを移す。");
+  const steps = [
+    ["1", "部位の対応", "腰・胸・頭、左右の肩・肘・手首、股・膝・足首を、人（BVH）とロボット（関節名 <limb>-<joint>）で対応させる"],
+    ["2", "体節ごとのスケール", "肩→肘→手首、股→膝→足首の長さの比で、人の位置を縮める（胸・腰から見た向きはそのまま）"],
+    ["3", "腰", "向き = 人の骨盤の回転（コマ 0 との差）、水平 = s_leg × 人の腰、高さ = 低い方の足首を床に"],
+    ["4", "手足ごとの IK", "減衰付き最小二乗（λ 0.05, 1 コマ 10 回まで, 1 回 20° まで, 可動範囲で切る）。重み: 手首・足首 1, 肘・膝 0.3, 足の向き 0.6"],
+    ["5", "解き直し", "目標から手足の長さの 15% より離れたら reset-pose から解き直して近い方を使う"],
+    ["6", "胴と頭", "向きだけを合わせる。手首の向きは合わせない（手首の関節は reset-pose に弱く引く）"],
+  ];
+  steps.forEach(([n, t, d], i) => {
+    const y = 1.3 + i * 0.92;
+    tile(s, 0.6, y + 0.1, n, [C.accent1, C.accent2, C.accent3, C.accent4, C.accent5, C.accent6][i]);
+    para(s, [{ text: t, options: { bold: true, fontSize: 14, breakLine: true } }, { text: d, options: { fontSize: 12, color: C.accent6 } }], 1.2, y, 7.0, 0.85);
+  });
+  shot(s, "sim_bvh_all", 8.5, 1.3, 4.25, 5.6);
+}
+{
+  const s = slide("CONTENT", "全身 QP（wbqp）の定式化 — mc_rtc と同じ考え方", "コードは自前（C++17 の標準ライブラリだけ）。mc_rtc の Tasks（タスクの重み付き最小二乗 + 不等式制約）と CollisionConstraint（速度ダンパ）の考え方を、小さなロボット向けに。");
+  code(s, [
+    "変数 x = [ dp(3), dω(3), dq(n), s ≥ 0 ]   ルートの並進・回転, 関節角の変化, 緩め",
+    "",
+    "最小化   Σ w_i² ‖J_i x − e_i‖²  +  w_reg ‖x‖²  +  w_slack ‖s‖²",
+    "",
+    "制約     q_lo + 2° ≤ q + dq ≤ q_hi − 2°            関節の可動範囲",
+    "         |q + dq − q_prev| ≤ v_max · dt            関節の速さ",
+    "         z(足の裏の頂点) ≥ 0                        床より上",
+    "         nᵀ(J_a − J_b) x + s ≥ −ξ (d − d_s)         自己衝突（速度ダンパ）",
+    "         mᵀ(c + J_c x)_xy ≤ b − margin + s          重心が支持多角形の中",
+    "",
+    "1 コマに逐次 QP を 3 回（ヤコビアンは解析的に: 軸 × (点 − 関節)）",
+  ].join("\n"), 0.6, 1.3, 7.6, 4.1, 11.5);
+  table(s, [["タスク", "誤差", "重み"],
+    ["関節角を GMR に", "q_ref − q", "1"],
+    ["手首の位置", "(p* − p) / L", "2"],
+    ["浮いた足の位置・向き", "(p* − p) / L, log", "3 / 1"],
+    ["床に着いた足を止める", "止めた位置・向きとの差", "30 / 10"],
+    ["ルートの向き・位置", "log(R_ref Rᵀ), Δp / L", "2 / 0.5"],
+    ["緩め", "s", "1e6"]],
+    8.45, 1.3, 4.3, [1.75, 1.75, 0.8], 10.5, { rowH: 0.42 });
+  bullets(s, [
+    "L = 脚の長さ（KXR 0.212 m, KHR 0.296 m, sample-robot 0.713 m）で割り、ロボットの大きさによらない重みにする",
+    "解けないときは前のコマの答えを使う（実際には「解けない」は 0 件）",
+  ], 0.6, 5.6, 12.15, 1.25, 12);
+}
+{
+  const s = slide("CONTENT", "制約の中身 — 自己衝突・重心・接地", "パラメータは名前で変えられる（wbqp_set_param）。値は既定。");
+  head(s, 0.6, 1.3, 6.0, "A", "自己衝突（カプセル）", C.accent1);
+  bullets(s, [
+    "リンクのメッシュの頂点の主成分から作る。箱の形の部品は断面を 1×1 / 2×1 / 2×2 に分け、頂点の 80% を覆う半径（KXR 46 個, KHR 36 個）",
+    "調べない組: 木で 2 つ以内のリンク、関節角 0 と reset-pose で当たっている組（KXR 879 組を調べる）",
+    "影響の距離 0.15 L より近い組だけ、近い順に 24 組。d_s = 0.01 L, ξ = 0.5",
+  ], 0.6, 1.8, 6.0, 2.5, 11.5);
+  head(s, 6.85, 1.3, 5.9, "B", "重心と支持多角形", C.accent4);
+  bullets(s, [
+    "足の裏 = 足のリンクのいちばん低い頂点の凸包（8 頂点まで）",
+    "支持多角形 = 支える足の裏の凸包を 余裕 だけ内側に。重心の床への投影がその中",
+    "質量・重心は JSON の physics（eusdyna と同じ作り方）",
+    "ZMP の制約も試したが、先読みなしでは発散したので既定はオフ",
+  ], 6.85, 1.8, 5.9, 2.5, 11.5);
+  head(s, 0.6, 4.4, 12.15, "C", "接地と先読み", C.accent2);
+  bullets(s, [
+    "参照（GMR）の足の裏の高さ < 0.04 L で着く、> 0.08 L で離れる（ヒステリシス）。着いた足は水平にして、その位置で止める",
+    "8 コマ先までずっと着いている足だけで支える（片足を上げる前に、重心を残る足に移しておく）",
+    "止めた足と参照の足のずれ δ だけ、手・浮いた足・ルートの目標もずらす（足がすべらない分、全体が参照からずれる）",
+  ], 0.6, 4.9, 12.15, 1.95, 11.5);
+}
+{
+  const s = slide("CONTENT", "QP を解く — Goldfarb–Idnani 法と共通の C の層", "QP ソルバは Goldfarb & Idnani（1983）の双対有効制約法を論文から書いた（LGPL・GPL のコードは使っていない）。3000 個のでたらめな QP で、有効制約の全組み合わせの答えと一致。");
+  code(s, [
+    "WbQP *h = wbqp_create();",
+    "wbqp_add_link(h, parent, rest12);           // リンク（根元から）",
+    "wbqp_add_link_vertices(h, i, xyz, nv);      // カプセルを作る頂点",
+    "wbqp_set_link_mass(h, i, mass, com);",
+    "wbqp_add_joint(h, link, type, axis, lo, hi, vmax);",
+    "wbqp_set_hand(h, 0, link, offset);  wbqp_set_foot(h, 0, link);",
+    "wbqp_finalize(h, reset_pose, 1);            // 当たっている組を除く",
+    "",
+    "for (each frame)",
+    "  wbqp_solve(h, q_ref, root_ref, contact, support,",
+    "             NULL, q_out, root_out, &diag);",
+    "wbqp_eval(h, q, root, support, &ev, flags, poly, 32);  // 違反の表示",
+  ].join("\n"), 0.6, 1.3, 7.3, 4.3, 11);
+  table(s, [["環境", "呼び方"],
+    ["iPhone・Mac", "Swift（ブリッジ）WholeBodyQP.swift"],
+    ["Android・デスクトップ", "Kotlin（JNI）WholeBodyQp.kt"],
+    ["kxreus（irteusgl）", "EusLisp（defforeign）eusview-qp.l"]],
+    8.2, 1.3, 4.55, [1.9, 2.65], 11, { rowH: 0.48 });
+  bullets(s, [
+    "Swift と Kotlin の答えの差: 関節角 0.0002° 以下、ルート 0.001 mm 以下",
+    "時間: Mac 0.3〜1.6 ms/コマ、iPhone 0.85 ms/コマ（lafan1 dance1 × KXR 3945 コマを 3.8 秒）",
+    "表示: 衝突のリンクは赤、可動範囲の端は橙、重心の球と床の投影、支持多角形（緑 = 中, 赤 = 外）",
+  ], 8.2, 3.45, 4.55, 3.4, 11.5);
+}
+{
+  const s = slide("CONTENT", "QP の前と後 — 違反の割合と追従のずれ", "Mac の qptest（全部のコマ）。前 → 後 = GMR → GMR + QP。判定はカプセル（少し太め）なので「GMR の衝突」は実際より多めに出る。");
+  table(s, [["BVH × ロボット", "コマ", "QP ms/コマ", "自己衝突", "可動範囲の端", "重心が外", "関節のずれ 平均 / 95%"],
+    ["mocopi greeting1 × KXR", "946", "0.65", "7.1% → 0%", "0 → 0", "0 → 0", "1.1° / 5.4°"],
+    ["rikiya A01 × KXR", "131", "0.81", hl("100% → 1.5%"), "0 → 0", "0 → 0", "3.2° / 13.5°"],
+    ["sfu Walking × KXR", "1173", "0.63", "46% → 3.6%", "0 → 0", "0 → 0", "3.5° / 16°"],
+    ["lafan1 dance1 × KXR", "3945", "1.35", "89% → 12%", "3.0% → 0", "11% → 19%（増）", "29° / 115°"],
+    ["rikiya A01 × KHR", "131", "0.37", "7.6% → 0%", "0 → 0", "2.3% → 0", "5.1° / 17°"],
+    ["sfu Walking × KHR", "1173", "0.39", "0 → 0", "0 → 0", hl("9.8% → 0"), "5.0° / 17°"],
+    ["lafan1 dance1 × KHR", "3945", "0.65", "42% → 16%", "27% → 0", "24% → 6%", "24° / 98°"],
+    ["lafan1 fallAndGetUp1 × KHR", "5047", "0.76", "45% → 19%", "31% → 0", "49% → 11%", "34° / 125°"]],
+    0.6, 1.3, 12.15, [3.0, 0.8, 1.2, 1.75, 1.6, 1.75, 2.05], 11, { rowH: 0.46 });
+  bullets(s, [
+    "可動範囲の端に来るコマは全部 0 に。歩く・挨拶では自己衝突と重心の違反がほぼなくなり、関節のずれは数度",
+    "lafan1 の踊り・転んで起きる動きは、手をつく・寝転ぶ・跳ぶので「足の裏で支える」前提に合わない。腕が体をすり抜ける参照では局所の QP は反対側に引っかかる",
+  ], 0.6, 5.65, 12.15, 1.25, 11.5);
+}
+{
+  const s = slide("CONTENT", "物理（ODE）で再生すると倒れにくくなるか", "関節角の列をサーボの目標にして再生（アプリの既定のサーボ）。腰の傾きが 60° を超えたら「倒れた」。左: デスクトップ版の BVH の画面（棒人形・関節名・GMR・GMR+QP と違反の表示）。");
+  shot(s, "desk_bvh_all", 0.6, 1.3, 6.4, 5.6);
+  table(s, [["BVH", "KXR GMR → +QP", "KHR GMR → +QP"],
+    ["mocopi greeting1", "0.6 → 0.6 秒", hl("0.8 秒 → 倒れない")],
+    ["rikiya A01（歩く）", hl("0.3 秒 → 倒れない"), hl("0.1 秒 → 倒れない")],
+    ["sfu Walking", "0.5 → 5.9 秒", "0.6 → 0.9 秒"],
+    ["lafan1 dance1", "5.2 → 0.0 秒（悪化）", "5.3 → 21 秒"]],
+    7.25, 1.3, 5.5, [1.9, 1.8, 1.8], 11, { rowH: 0.5 });
+  bullets(s, [
+    "立つ・ゆっくり歩く動きでは倒れにくくなった",
+    "KXR の挨拶は最初に急におじぎするので、重心の位置だけの制約では足りない（動きの勢い = ZMP が要る）",
+    "kxreus 版（EusLisp の GMR）でも同じ QP で: greeting1 × KHR 衝突 27% → 0.2%、rikiya × KHR 重心 21% → 0%",
+  ], 7.25, 4.0, 5.5, 2.85, 11.5);
+}
+{
+  const s = slide("CONTENT", "BVH の画面 — iPhone と kxreus（irteusgl）", "左: iPhone（シミュレータ）で rikiya A01 × KXR。右: kxreus の EusView（irteusgl, Mac の XQuartz）で greeting1 × KXR、GMR の衝突は赤、QP は衝突なし。");
+  shot(s, "sim_bvh_rikiya", 0.6, 1.3, 2.95, 5.35);
+  shot(s, "eus_bvh_qp", 3.85, 1.3, 8.9, 5.6);
+}
+
+// =====================================================================
+section("7. まとめ");
 {
   const s = slide("CONTENT", "これまでの経過と残っていること", "日付はすべて 2026-10-05。BVH の再生は 4 つの環境とも入れた（Ubuntu 版は Mac の XQuartz で確認）。GitHub は inabajsk/kxreus（master, eusview/。初めは inabajsk/mnist の cuda-backend で作った）。");
   table(s, [["", "状態"],
@@ -616,12 +851,14 @@ section("6. まとめ");
     ["Mac（Mac Catalyst）", "~/Applications に入れて確認"],
     ["Ubuntu（kxreus の EusView）", "Mac の XQuartz で確認。Ubuntu の実機では未確認"],
     ["Android（Pixel 7a）", "ビルド・インストール・表示・動作・物理・live を確認（物理の計算 1.5〜6 ms/コマ）。2 本指の操作は未確認"],
+    ["デスクトップ版（統合ウインドウ）", "Mac で確認（Compose Desktop）。Ubuntu の実機では未確認"],
+    ["BVH・GMR・全身 QP", "4 環境 + kxreus で再生・移し替え・QP。lafan1 の踊り・寝転ぶ動きは QP でも違反が残る"],
     ["ロボット", "121 体（KXR 36・KHR 43・JSK 42）。KHR の -cad 版は元のファイルがなく未対応"],
     ["物理", "eusdyna の作り方 + 摩擦・接触点・CFM を調整。自分どうしの当たりは未対応"]],
-    0.6, 1.35, 12.1, [3.4, 8.7], 13, { rowH: 0.62 });
+    0.6, 1.35, 12.1, [3.4, 8.7], 12, { rowH: 0.52 });
   bullets(s, [
-    "次の候補: Ubuntu 実機での確認、ロボットどうしの当たり、実機 KXR の関節角を live で映す、AR 表示",
-  ], 0.6, 5.9, 12.1, 0.9, 13);
+    "次の候補: Ubuntu 実機での確認、ZMP（先読み）を入れた QP、ロボットどうしの当たり、実機 KXR の関節角を live で映す",
+  ], 0.6, 6.15, 12.1, 0.75, 13);
 }
 {
   const s = slide("TITLE_DARK", "まとめ");
@@ -629,9 +866,10 @@ section("6. まとめ");
     "jskeus・kxreus のロボット 121 体を JSON にし、iPhone・Mac・Android のアプリと Ubuntu の kxreus デモで同じように表示できるようにした",
     "KXR・KHR の動作は RCB4 エミュレーションの関節角の列で再生し、EusLisp からの live でも動かせる",
     "物理は eusdyna と同じ考え方の ODE の C の層を全環境で共有。摩擦 0.8・接触点 4・関節 CFM 1e-5 で、立っていて滑らず歩けば進む",
+    "BVH は関節名か GMR でロボットに移し、全身 QP で自己衝突・可動範囲・重心を直す。歩く・挨拶はほぼ違反なし、物理でも倒れにくくなった",
   ];
   s.addText(T.map((t, i) => ({ text: t, options: { bullet: true, breakLine: i < T.length - 1, paraSpaceAfter: 6 } })),
-    { x: 0.8, y: 3.85, w: 11.7, h: 3.15, fontSize: 17, color: "CADCFC", valign: "top", margin: 0, isTextBox: true, objectName: "conclusion" });
+    { x: 0.8, y: 3.85, w: 11.7, h: 3.15, fontSize: 15.5, color: "CADCFC", valign: "top", margin: 0, isTextBox: true, objectName: "conclusion" });
 }
 
 (async () => {

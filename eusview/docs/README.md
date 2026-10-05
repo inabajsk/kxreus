@@ -2,7 +2,7 @@
 
 - `eusview.pptx` : EusView（iPhone / Mac / Ubuntu / Android, ODE, BVH）の開発と使い方のスライド
 - `build_eusview.js` : スライドを作るスクリプト（pptxgenjs）
-- `eusview_media/` : スライドに入れる動画（mp4）と表紙の画像（png）, `media.json`（動画の一覧と説明）。
+- `eusview_media/` : スライドに入れる動画（mp4）と表紙の画像（png）, `media.json`（動画の一覧と説明）。`eusview_media/shots/` は画面の写真（png）と `shots.json`（名前・説明・撮ったときの起動の引数）。
   `../ios/tools/make-videos.py` で作る（`../ios/tools/rendervideo.swift`, 物理の比較など）
 - `logs/eusview_media/` : 動画を作ったときのログ（記録用）
 

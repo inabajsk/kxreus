@@ -389,6 +389,8 @@ final class BVHPlayer: ObservableObject {
   private var time = 0.0          // モーションの中の時刻 (秒)
   private var last = Date()
   private var lastRoot: SIMD3<Float>?
+  /// 起動の引数 -frame <n>: そのコマで止める (確認用. GMR+QP がそのコマまで計算されてから)
+  private var launchFrame = UserDefaults.standard.string(forKey: "frame").flatMap { Int($0) }
 
   init(list: [BVHEntry], start: Int, auto: Bool) {
     self.list = list
@@ -555,6 +557,11 @@ final class BVHPlayer: ObservableObject {
     let now = Date()
     let dt = now.timeIntervalSince(last)
     last = now
+    if let lf = launchFrame {
+      guard let m = motion, m.frames > 0, rt != nil else { return }
+      if let c = qpCache, figQP != nil, c.count <= min(lf, m.frames - 1), qpProgress != nil { return }
+      launchFrame = nil; playing = false; seek(lf); resetCamera(); return
+    }
     guard playing, let m = motion, m.frames > 0 else { return }
     time += min(dt, 0.1) * speed
     let n = Int(time * m.fps)
