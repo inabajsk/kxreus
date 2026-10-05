@@ -1,0 +1,8 @@
+.venv/
+firmware/.pio/
+__pycache__/
+*.pt
+snapshots/
+factory_backup/
+weights/
+rec/
