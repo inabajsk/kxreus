@@ -43,7 +43,8 @@ EusView demo (eusview.l, like the EusView iPhone/Mac app):
     ;; EusView panel: choose a robot from KXR / KHR / JSK menus (or type a name)
     ;; robot panel: poses, project motions (RCB4 emulation), physics, servo, live, joint sliders
     ;; physics: kxrdyna.l if found, else eusview-physics.l (ODE via libeusviewode.so)
-    ;; physics / servo buttons are toggles; a chosen motion repeats until stop
+    ;; physics / servo / live buttons are toggles; a chosen motion repeats until stop
+    ;; live: starts eusview-live.py (python3) if no relay runs, shows ws://<LAN IP>:8766/ for the iPhone
     ;; KHR3 projects: projects/Hello_khr3, Hello_khr3sl5a3h2 ("khr3semi" robots use the latter)
     ;; Japanese labels (motion names, status) with Xft: eusview-xft.l
     ;; (also used by kxrviewer.l robot-control-panel for the motion menus; falls back to the

@@ -5378,7 +5378,8 @@ EusView パネル: KXR / KHR / JSK のメニューでロボットを選ぶ．
   ロボットは (kxr-make-robot name :model nil) で作る(models/ にファイルを書かない)．
   モーションは rcb4-interface の :emulate-motion-code でキーフレームを求めてから
   実時間で補間して表示する(サーボ命令に入っていないサーボは今の角度のまま)．
-live: python3 eusview-live.py を動かし，iPhone の EusView の「接続」で
-  ws://<PC の IP>:8766/ につなぐと，関節角がアプリへ送られる．
+live: トグル(live: off / ON)．中継 eusview-live.py が動いていなければ python3 で自動起動し
+  (ログ ~/.cache/eusview-live.log, quit で止める)，iPhone の EusView の「接続」に入れる
+  アドレス ws://<この PC の IP>:8766/ と，つながっている iPhone の台数をパネルに出す．
 アイコンから起動したときの出力は ~/.cache/eusview.log．
 

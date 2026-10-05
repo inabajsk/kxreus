@@ -3,11 +3,20 @@
 live.py : EusLisp から iPhone の EusView へ関節角を中継する (標準ライブラリだけ)
   EusLisp → TCP 8767 に JSON を 1 行ずつ送る   {"angles": [...]} / {"pose": "reset-pose"} / {"root": [...]}
   iPhone  ← WebSocket 8766 (EusView の「接続」で ws://<この Mac の IP>:8766/ )
-  $ python3 eusview-live.py   (kxreus, eusview.l の live ボタン)
+  $ python3 eusview-live.py [ws_port tcp_port]   (kxreus eusview.l の live ボタンが自動で起動する)
+  EusLisp には {"relay":"eusview-live","clients":n}（つながっている iPhone の台数）を変わるたびに返す
 """
 import asyncio, base64, hashlib, json, struct, sys
 
 clients = set()
+eus_writers = set()   # EusLisp connections: told {"relay":"eusview-live","clients":n} on every change
+
+
+def tell_eus():
+    msg = (json.dumps({'relay': 'eusview-live', 'clients': len(clients)}) + '\n').encode()
+    for w in list(eus_writers):
+        try: w.write(msg)
+        except Exception: eus_writers.discard(w)
 
 
 async def ws_handler(reader, writer):
@@ -21,6 +30,7 @@ async def ws_handler(reader, writer):
                   f'Sec-WebSocket-Accept: {acc}\r\n\r\n').encode())
     await writer.drain()
     clients.add(writer)
+    tell_eus()
     print('iPhone connected', writer.get_extra_info('peername'), flush=True)
     try:
         while True:  # iPhone から来るフレームは読み捨てる (切断の検出のため)
@@ -36,6 +46,7 @@ async def ws_handler(reader, writer):
     except Exception:
         pass
     clients.discard(writer)
+    tell_eus()
     print('iPhone disconnected', flush=True)
 
 
@@ -48,6 +59,8 @@ def frame(text):
 
 async def eus_handler(reader, writer):
     print('EusLisp connected', flush=True)
+    eus_writers.add(writer)
+    tell_eus()
     while line := await reader.readline():
         s = line.decode(errors='replace').strip()
         if not s: continue
@@ -55,7 +68,8 @@ async def eus_handler(reader, writer):
         except Exception: print('not JSON:', s[:80], flush=True); continue
         for c in list(clients):
             try: c.write(frame(s)); await c.drain()
-            except Exception: clients.discard(c)
+            except Exception: clients.discard(c); tell_eus()
+    eus_writers.discard(writer)
     print('EusLisp disconnected', flush=True)
 
 

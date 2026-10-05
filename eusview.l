@@ -44,11 +44,14 @@
 ;;;                                 今の姿勢で床に置く。姿勢・スライダー・モーションはサーボの目標になる。
 ;;;                                 状態の行に経過時間・接触点の数・腰の位置
 ;;;     servo: on / OFF             トグル。サーボ on / off（脱力）（eusview-physics.l のとき）
-;;;     live                        関節角を EusView アプリへ送る（eusview-live.py が中継, 下を参照）
+;;;     live: off / ON              トグル。関節角を EusView アプリへ送る（eusview-live.py が中継, 下を参照）
 ;;;     関節のスライダー
 ;;;
-;;;   live: PC で  python3 eusview-live.py  を動かし、iPhone の EusView の「接続」で
-;;;         ws://<PC の IP>:8766/ につなぐ。アプリでも同じロボットを選んでおく。
+;;;   live: 中継（TCP 8767 / WebSocket 8766）が動いていなければ kxreus の eusview-live.py を
+;;;         python3 でバックグラウンドに起動する（ログ ~/.cache/eusview-live.log, quit で止める。
+;;;         ほかで動いている中継があればそれを使う）。パネルに iPhone に入れるアドレス
+;;;         「ws://<この PC の LAN の IP>:8766/」と、つながっている iPhone の台数（eusview-live.py のとき）
+;;;         を出す。iPhone の EusView の「接続」にそのアドレスを入れ、アプリでも同じロボットを選ぶ。
 ;;;         送り先は環境変数 EUSVIEW_LIVE_HOST（既定 localhost）, EUSVIEW_LIVE_PORT（既定 8767）。
 ;;;
 ;;;   変数: *eusview-kxr-model*  kxr-make-robot の :model（既定 nil = kxr-robot をそのまま作る,
@@ -158,7 +161,11 @@
     ("live: connected to ~A:~A" . "live: ~A:~A につながりました")
     ("live: cannot connect to ~A:~A (run python3 eusview-live.py)" .
      "live: ~A:~A につながりません（python3 eusview-live.py を動かす）")
-    ("live: closed" . "live: 切りました")
+    ("live: closed" . "live: off（切りました）")
+    ("live: no python3 (install python3 to relay to the iPhone)" .
+     "live: python3 がありません（iPhone への中継 eusview-live.py には python3 が要ります）")
+    ("live: no ~A" . "live: ~A がありません")
+    ("live: started the relay ~A (pid ~A, log ~A)" . "live: 中継 ~A を起動しました（pid ~A, ログ ~A）")
     ("live: send failed (closed)" . "live: 送れませんでした（切りました）")
     ("robot names printed in the terminal (~A + JSK ~A)" . "ロボット名の一覧を端末に出しました（~A + JSK ~A）")
     ("stop" . "止めました")
@@ -695,20 +702,133 @@
 ;;;
 ;;; live: the angles to the EusView app through eusview-live.py (TCP, one JSON per line)
 ;;;
+(defvar *eusview-live-relay-pid* nil) ;; pid of the eusview-live.py this EusView started
+(defvar *eusview-live-clients* nil)   ;; iPhones connected to the relay (nil: unknown, old live.py)
+(defvar *eusview-live-addr* nil)      ;; ws://<LAN IP>:8766/
+(defvar *eusview-live-ws-port* 8766)
+
+(defun eusview-shell-line (cmd)
+  "first line of the output of the shell command cmd (or nil)"
+  (let ((f (format nil "/tmp/eusview-~A.out" (unix:getpid))) l)
+    (unix:system (format nil "(~A) > ~A 2>/dev/null" cmd f))
+    (when (probe-file f)
+      (with-open-file (in f) (setq l (read-line in nil nil)))
+      (unix:system (format nil "rm -f ~A" f)))
+    (if (and l (> (length (string-trim " " l)) 0)) (string-trim " " l))))
+
+(defun eusview-lan-ip ()
+  "IPv4 address of this PC on the LAN (Linux: ip route / hostname -I, macOS: ipconfig getifaddr)"
+  (eusview-shell-line
+   (concatenate string
+    "ip route get 1 2>/dev/null | awk '{for(i=1;i<=NF;i++) if($i==\"src\") {print $(i+1); exit}}' | grep . || "
+    "hostname -I 2>/dev/null | awk '{print $1}' | grep . || "
+    "ipconfig getifaddr en0 || ipconfig getifaddr en1 || ipconfig getifaddr en2")))
+
+(defun eusview-live-open (host port)
+  (let ((s (eusview-protect
+            (make-client-socket-stream (make-socket-address :domain af_inet :host host :port port)))))
+    (if (streamp s) s nil)))
+
+(defun eusview-live-start-relay (port)
+  "start kxreus eusview-live.py in the background (log ~/.cache/eusview-live.log); pid or nil"
+  (let ((py (eusview-shell-line "command -v python3"))
+        (script (format nil "~A/eusview-live.py" *rcb4eus-dir*))
+        (log (format nil "~A/.cache/eusview-live.log" (unix:getenv "HOME"))) pid)
+    (cond
+     ((null py) (eusview-message "live: no python3 (install python3 to relay to the iPhone)") nil)
+     ((not (probe-file script)) (eusview-message "live: no ~A" script) nil)
+     (t
+      (unix:system (format nil "mkdir -p ~A/.cache" (unix:getenv "HOME")))
+      (setq pid (eusview-shell-line
+                 (format nil "nohup ~A ~A ~A ~A < /dev/null > ~A 2>&1 & echo $!"
+                         py script *eusview-live-ws-port* port log)))
+      (setq pid (and pid (read-from-string pid)))
+      (when (integerp pid)
+        (eusview-message "live: started the relay ~A (pid ~A, log ~A)" script pid log))
+      (if (integerp pid) pid nil)))))
+
+(defun eusview-live-stop-relay ()
+  (when *eusview-live-relay-pid*
+    (unix:system (format nil "kill ~A 2>/dev/null" *eusview-live-relay-pid*))
+    (format t ";; eusview: live relay (pid ~A) stopped~%" *eusview-live-relay-pid*)
+    (setq *eusview-live-relay-pid* nil)))
+
 (defun eusview-live-connect ()
   (let* ((host (or (unix:getenv "EUSVIEW_LIVE_HOST") "localhost"))
          (port (read-from-string (or (unix:getenv "EUSVIEW_LIVE_PORT") "8767")))
-         (s (eusview-protect
-             (make-client-socket-stream (make-socket-address :domain af_inet :host host :port port)))))
+         (s (eusview-live-open host port)))
+    ;; no relay running: start kxreus eusview-live.py (only for this PC) and wait up to 5 s
+    (when (and (null s) (member host '("localhost" "127.0.0.1") :test #'equal)
+               (null *eusview-live-relay-pid*))
+      (setq *eusview-live-relay-pid* (eusview-live-start-relay port))
+      (when *eusview-live-relay-pid*
+        (dotimes (i 25)
+          (if (setq s (eusview-live-open host port)) (return))
+          (funcall *eusview-orig-usleep* 200000))))
     (cond
-     ((streamp s) (setq *eusview-live* s *eusview-live-last* nil)
-      (eusview-message "live: connected to ~A:~A" host port) t)
+     (s
+      (setq *eusview-live* s *eusview-live-last* nil *eusview-live-clients* nil)
+      (setq *eusview-live-addr*
+            (format nil "ws://~A:~A/" (or (eusview-lan-ip) "<this PC's IP>") *eusview-live-ws-port*))
+      (pushnew 'eusview-live-poll *timer-job*)
+      (funcall *eusview-orig-usleep* 100000)
+      (eusview-live-poll)
+      (eusview-live-show)
+      t)
      (t (setq *eusview-live* nil)
         (eusview-message "live: cannot connect to ~A:~A (run python3 eusview-live.py)" host port)
         nil))))
+
+(defun eusview-live-show ()
+  (let ((str (if *eusview-live*
+                 (format nil (if (eusview-ja-p)
+                                 "live: ON  iPhone の EusView の「接続」に ~A を入れる~A"
+                               "live: ON  enter ~A in Connect of EusView on the iPhone~A")
+                         *eusview-live-addr*
+                         (cond ((null *eusview-live-clients*) "")
+                               ((eusview-ja-p) (format nil "（つながっている iPhone: ~A 台）" *eusview-live-clients*))
+                               (t (format nil " (iPhones connected: ~A)" *eusview-live-clients*))))
+               "")))
+    (when *eusview-panel* (send *eusview-panel* :status-item :value str))
+    (format t ";; eusview: ~A~%" str)
+    (if *eusview-robot-panel* (eusview-protect (send *eusview-robot-panel* :show-live str)))
+    (eusview-update-toggles)))
+
+(defun eusview-string-index (sub str)
+  (let ((n (length sub)))
+    (dotimes (i (1+ (- (length str) n)) nil)
+      (if (string= sub (subseq str i (+ i n))) (return-from eusview-string-index i)))))
+(defun eusview-live-poll ()
+  "read the relay's {\"relay\":\"eusview-live\",\"clients\":n} lines (timer job)"
+  (when *eusview-live*
+    (let ((changed nil))
+      (eusview-protect
+       (while (select-stream (list *eusview-live*) 0.001) ;; 0.0 waits forever
+         (let ((l (read-line *eusview-live* nil nil)) k)
+           (cond
+            ((null l) (setq *eusview-live* nil) (return))
+            ((setq k (eusview-string-index "\"clients\":" l))
+             (let ((n (let ((v nil))   ;; digits after "clients": ("0}" reads as a symbol)
+                        (dotimes (i (- (length l) k 10))
+                          (let ((c (elt l (+ k 10 i))))
+                            (cond ((and (>= c #\0) (<= c #\9)) (setq v (+ (* 10 (or v 0)) (- c #\0))))
+                                  ((and v (not (= c #\space))) (return)))))
+                        v)))
+               (when (and (integerp n) (not (equal n *eusview-live-clients*)))
+                 (setq *eusview-live-clients* n changed t))))))))
+      (cond
+       ((null *eusview-live*)
+        (setq *timer-job* (remove 'eusview-live-poll *timer-job*))
+        (eusview-message "live: send failed (closed)")
+        (eusview-update-toggles))
+       (changed (eusview-live-show))))))
+
 (defun eusview-live-close ()
   (when *eusview-live* (eusview-protect (close *eusview-live*)))
-  (setq *eusview-live* nil)
+  (setq *eusview-live* nil *eusview-live-clients* nil)
+  (setq *timer-job* (remove 'eusview-live-poll *timer-job*))
+  (if *eusview-robot-panel* (eusview-protect (send *eusview-robot-panel* :show-live "")))
+  (eusview-update-toggles)
   (eusview-message "live: closed"))
 (defun eusview-num (x)
   (let ((v (/ (round (* x 100.0)) 100.0))) (format nil "~A" (if (= v 0) 0 v))))
@@ -736,7 +856,8 @@
                        (finish-output *eusview-live*)
                        t))
           (setq *eusview-live* nil)
-          (eusview-message "live: send failed (closed)"))))))
+          (eusview-message "live: send failed (closed)")
+          (eusview-update-toggles))))))
 
 ;;;
 ;;; panels
@@ -783,14 +904,14 @@
   (:quit (&rest args) (eusview-quit)))
 
 (defclass eusview-robot-panel :super x::panel
-  :slots (robot sliders physics-item servo-item playing-item))
+  :slots (robot sliders physics-item servo-item live-item playing-item live-info))
 (defmethod eusview-robot-panel
   (:create
    (r &rest args)
    (let* ((joints (eusview-joints r)) (ncol (if (> (length joints) 50) 3 2))
           (has-motion (and *eusview-ri* (send *eusview-ri* :project-file)))
           (nmotion-rows (if has-motion 2 0))
-          (rows (+ 3 nmotion-rows (ceiling (/ (float (length joints)) ncol))))
+          (rows (+ 4 nmotion-rows (ceiling (/ (float (length joints)) ncol))))
           (width (* ncol 600)))
      (setq robot r sliders nil)
      (send-super* :create :width width :height (min 1000 (+ 20 (* rows 34)))
@@ -804,8 +925,9 @@
      ;; toggles: the label shows the state
      (setq physics-item (send self :create-item x::button-item "physics: off" self :physics))
      (setq servo-item (send self :create-item x::button-item "servo: on " self :servo))
-     (send self :create-item x::button-item "live" self :live)
+     (setq live-item (send self :create-item x::button-item "live: off" self :live))
      (setq playing-item (send self :create-item x::xft-label-item "" :width (- width 20)))
+     (setq live-info (send self :create-item x::xft-label-item "" :width (- width 20)))
      (when (and (not has-motion) (not (string= *eusview-group* "JSK")))
        (send playing-item :value
              (format nil (if (eusview-ja-p) "動作のプロジェクトが見つかりません（探した場所: ~A）"
@@ -844,7 +966,10 @@
      (send physics-item :label (if on "physics: ON " "physics: off"))
      (send physics-item :redraw)
      (send servo-item :label (if (and (eq on :ode) (not (send *evp* :servo))) "servo: OFF" "servo: on "))
-     (send servo-item :redraw)))
+     (send servo-item :redraw)
+     (send live-item :label (if *eusview-live* "live: ON " "live: off"))
+     (send live-item :redraw)))
+  (:show-live (str) (send live-info :value str))
   (:physics (&rest args) (if (eusview-physics-on-p) (eusview-physics-stop) (eusview-physics-start)))
   (:servo (&rest args) (eusview-servo-toggle))
   (:live (&rest args) (if *eusview-live* (eusview-live-close) (if (eusview-live-connect) (eusview-live-send t))))
@@ -905,6 +1030,7 @@
   (let ((ret (eusview-protect
               (setq *eusview-robot-panel* (instance eusview-robot-panel :create *eusview-robot*))
               (send *eusview-robot-panel* :move 620 120)
+              (if *eusview-live* (eusview-live-show) (eusview-update-toggles))
               t)))
     (unless (eq ret t)
       (setq *eusview-robot-panel* nil)
@@ -929,6 +1055,7 @@
   (setq *eusview-running* nil)
   (if (eusview-physics-on-p) (eusview-physics-stop))
   (if *eusview-live* (eusview-live-close))
+  (eusview-live-stop-relay)
   (dolist (w (list *eusview-robot-panel* *eusview-panel*))
     (if w (eusview-protect (send w :destroy))))
   (setq *eusview-robot-panel* nil *eusview-panel* nil)
