@@ -1,0 +1,725 @@
+;;;
+;;; eusview.l : EusView デモ（irteusgl / roseus で動く版）
+;;;	2026.10.5
+;;;
+;;;  iPhone / Mac の EusView アプリ（ロボットの形・姿勢・モーション・物理）と同じことを
+;;;  irtviewer と EusLisp の X パネルで行うデモ。kxreus の部品を使う:
+;;;    ロボットの生成     (kxr-make-robot name :model nil)  rcb4robots.l, *kxr-body-config-alist*
+;;;    モーション         rcb4-interface の RCB4 エミュレーション (:emulate-motion-code)
+;;;                       projects/Hello_<project>/*.h4p のモーション表（:set-project-file）
+;;;    モーションのメニュー  panel :create-2d-menu-buttons（kxrviewer.l, robot-control-panel と同じ）
+;;;    物理               kxrdyna.l / odedyna.l（ODE, libeusode があるときだけ）
+;;;
+;;; 使い方:
+;;;   cd ~/kxreus
+;;;   irteusgl eusview.l "(eusview)"      ;; roseus eusview.l "(eusview)" でもよい
+;;;   (eusview "kxrl4t")                  ;; 最初に出すロボットを指定
+;;;   make eusview                        ;; 同じ（端末から）
+;;;   make eusview-desktop                ;; デスクトップとアプリ一覧のアイコン（Ubuntu）を作る。
+;;;                                       ;; クリックで eusview.sh が起動（出力は ~/.cache/eusview.log）
+;;;   make eusview-desktop EUSVIEW_TERMINAL=true  ;; 端末（REPL）つきで起動するアイコン
+;;;   ./eusview.sh [name]                 ;; irteusgl / roseus を探して起動（ROS や ~/jskeus/bashrc.eus も見る）
+;;;   パネルの表示は ASCII だけ（X のフォントに日本語がない）。日本語のモーション名は端末に出る。
+;;;
+;;;   EusView ウィンドウ（パネル）:
+;;;     KXR / KHR / JSK のメニュー  ロボットを選ぶ（KXR/KHR は kxreus, JSK は $EUSDIR/models と irteus/demo）
+;;;     name:                       ロボット名を入れて Enter（kxreus の (kxr-all-robot-names) のどれでも,
+;;;                                 JSK のモデル名, .l ファイルのパス）
+;;;     list all                    kxreus で作れるロボット名を端末に表示
+;;;   ロボットのパネル（ロボットごと）:
+;;;     zero / reset-pose / init-pose ...   そのロボットにある姿勢
+;;;     motion 0- / 30- ...         プロジェクトのモーション表（RCB4 のエミュレーションで再生）
+;;;     stop                        再生を止める
+;;;     physics                     ODE（kxrdyna）の上で動かす / 止める
+;;;     live                        関節角を EusView アプリへ送る（eusview-live.py が中継, 下を参照）
+;;;     関節のスライダー
+;;;
+;;;   live: PC で  python3 eusview-live.py  を動かし、iPhone の EusView の「接続」で
+;;;         ws://<PC の IP>:8766/ につなぐ。アプリでも同じロボットを選んでおく。
+;;;         送り先は環境変数 EUSVIEW_LIVE_HOST（既定 localhost）, EUSVIEW_LIVE_PORT（既定 8767）。
+;;;
+;;;   変数: *eusview-kxr-model*  kxr-make-robot の :model（既定 nil = kxr-robot をそのまま作る,
+;;;                               models/ にファイルを書かない。:auto にすると models/*.l を使う）
+;;;         *eusview-fps*        再生のフレーム数 / 秒
+;;;
+(require :rcb4robots)
+(require :kxrviewer) ;; panel :create-2d-menu-buttons
+
+(defvar *eusview-kxr-robots*
+  '("kxrl2l5a3h2" "kxrl2l6a6h2" "kxrl4t" "kxrl4r" "kxrl4d" "kxrl6" "kxra6g"
+    "kxrl2l2a6h2m" "kxrl2l5a3" "kxrl2l5a3h2g" "kxrl2l5a4h2g" "kxrl2l5a6h2m0" "kxrl2l6a4"
+    "kxrl2l6a5h2" "kxrl2l6a6" "kxrl2l6a6h2g" "kxrl2l6a6h2n" "kxrl2l6a7" "kxrl2l6a7h2"
+    "kxrl2l6a7h2n" "kxrl2l6a7h2w" "kxrl2w2l5a3h2" "kxrl2w2l5a4h2" "kxrl2w2l6a4h2"
+    "kxrl2w2l6a5h2" "kxrl2w2l6a7h2w" "kxrl4l2a6h2m" "kxrl4nh4" "kxrl4r2a3" "kxrl4r2a3g"
+    "kxrl4rh" "kxrl4tm" "kxrmw4a6h2m" "kxrt1l2l2d7h2m" "kxrt1l2l2e7h2m" "kxrt1l2l2w7h2m"))
+(defvar *eusview-khr-robots*
+  '("khr3" "khr3sl5a3h2" "khr20" "khr20h2" "khr22" "khr22h2" "khr23oh" "khr23semi1"
+    "khr23semi2" "khr23semi3" "khr23semi4" "khr24semis3" "khr3semi" "khr3semi2" "khr3semi3"
+    "khr3semi4" "khranzaifly" "khranzaifly5" "khrh2ganzaiflys" "khrl5a3h2" "khrl5a3h2g"
+    "khrl5a3h2wg" "khrl5a4h2g" "khrl5a4h2wg" "khrl6a3h2" "khrl6a3h2g" "khrl6a3h2m"
+    "khrl6a3h2wg" "khrl6a4h2" "khrl6a4h2g" "khrl6a4h2wg" "khrnishio" "khrt1l5a3h2g"
+    "khrt1l5a3h2wg" "khrt1l5a4h2g" "khrt1l5a4h2wg" "khrt1l6a3h2" "khrt1l6a3h2g"
+    "khrt1l6a3h2m" "khrt1l6a3h2wg" "khrt1l6a4h2" "khrt1l6a4h2g" "khrt1l6a4h2wg"))
+;; JSK: $EUSDIR/models/<name>-robot.l (darwin.l) と irteus/demo のロボット
+(defvar *eusview-demo-robots*
+  '(("sample-robot" "irteus/demo/sample-robot-model.l" sample-robot)
+    ("sample-arm" "irteus/demo/sample-arm-model.l" sarmclass)
+    ("sample-hand" "irteus/demo/sample-hand-model.l" sample-hand)
+    ("sample-multidof-arm" "irteus/demo/sample-multidof-arm-model.l" sample-multidof-arm-robot)))
+(defvar *eusview-jsk-robots*
+  '("sample-robot" "sample-arm" "sample-hand" "sample-multidof-arm"
+    "akira" "akira2" "akira3" "ape" "ape3" "bishamon" "chibikaz" "darwin" "h3" "h3s" "h4" "h6" "h7"
+    "hanzou" "hanzous" "human" "igoid" "igoid2" "igoid3" "ikuo-haru" "jrob1" "kaz" "kaz2" "kaz3"
+    "kuma" "macket" "macra" "miharu" "millennium" "patra" "penguin" "saizo" "tama" "tamaii" "taro"
+    "tot" "zero"))
+;; KHR のプロジェクトは kxreus にないことが多いので、ここも探す（Hello_<project>/*.h4p）
+(defvar *eusview-project-dirs*
+  (list (format nil "~A/prog/rcb4eus/projects" (unix:getenv "HOME"))))
+
+(defvar *eusview-kxr-model* nil)
+(defvar *eusview-fps* 30)
+(defvar *eusview-menu-rows* 25)
+(defvar *eusview-max-motion-sec* 30.0)
+
+(defvar *eusview-viewer* nil)
+(defvar *eusview-panel* nil)
+(defvar *eusview-robot-panel* nil)
+(defvar *eusview-old-panels* nil)
+(defvar *eusview-robot* nil)
+(defvar *eusview-ri* nil)
+(defvar *eusview-name* nil)
+(defvar *eusview-group* nil)
+(defvar *eusview-playing* nil)
+(defvar *eusview-stop* nil)
+(defvar *eusview-physics* nil)
+(defvar *eusview-running* nil)
+(defvar *eusview-live* nil)
+(defvar *eusview-live-last* nil)
+(defvar *eusview-live-time* 0)
+
+;;;
+;;; errors: an error in one robot must not kill the panel
+;;;
+(defvar *eusview-last-error* nil)
+(defun eusview-error-handler (code msg1 form &optional msg2)
+  (let ((s (format nil "~A~A~A" msg1 (if msg2 (format nil " ~A" msg2) "")
+                   (if form (format nil " in ~S" form) ""))))
+    (if (> (length s) 300) (setq s (subseq s 0 300)))
+    (setq *eusview-last-error* s)
+    (format *error-output* ";; eusview: error: ~A~%" s)
+    (throw :eusview-error :error)))
+(defmacro eusview-protect (&rest body)
+  `(catch :eusview-error
+     (let ((*error-handler* 'eusview-error-handler))
+       ,@body)))
+
+(defun eusview-message (fmt &rest args)
+  (let ((s (apply #'format nil fmt args)))
+    (format t ";; eusview: ~A~%" s)
+    ;; X fonts of the panel have no Japanese: drop non-ASCII characters (motion names)
+    (when (and *eusview-panel* (send *eusview-panel* :status-item))
+      (send *eusview-panel* :status-item :value (remove-if #'(lambda (c) (> c 127)) s)))
+    s))
+
+(defun eusview-now-ms ()
+  (let ((tv (unix:gettimeofday)))
+    (+ (* 1000.0 (car tv)) (/ (cadr tv) 1000.0))))
+
+(defun eusview-group-of (name)
+  (cond
+   ((member name *eusview-jsk-robots* :test #'string=) "JSK")
+   ((and (>= (length name) 3) (string= (subseq name 0 3) "khr")) "KHR")
+   ((kxr-body-config name) "KXR")
+   (t "JSK")))
+
+;;;
+;;; viewer (irtviewer) : sends the angles to the app when "live" is on
+;;;
+(defvar *eusview-background* (float-vector 0.85 0.92 1.0))
+(defclass eusview-viewer :super x::irtviewer :slots ())
+(defmethod eusview-viewer
+  ;; rcb4-machine :create-viewer paints it purple: keep the EusView color
+  (:change-background (&rest args) (send-super :change-background *eusview-background*))
+  (:draw-objects
+   (&rest args)
+   (prog1 (send-super* :draw-objects args)
+     (if *eusview-live* (eusview-live-send)))))
+
+(defun eusview-make-viewer ()
+  (unless *eusview-viewer*
+    (setq *eusview-viewer* (instance eusview-viewer :create :title "EusView" :width 600 :height 600
+                                     :draw-floor 500))
+    (send *eusview-viewer* :change-background *eusview-background*)
+    (setq *irtviewer* *eusview-viewer*))
+  *eusview-viewer*)
+
+;;;
+;;; robots
+;;;
+(defun eusview-file-name-p (name)
+  (let ((n (length name)))
+    (and (> n 2) (string= (subseq name (- n 2)) ".l") (probe-file name))))
+(defun eusview-jsk-file (name)
+  (let ((demo (assoc name *eusview-demo-robots* :test #'string=)))
+    (cond
+     (demo (cadr demo))
+     ((eusview-file-name-p name) name)
+     (t (format nil "~A/models/~A.l" (string-right-trim "/" *eusdir*)
+                (if (string= name "darwin") "darwin" (format nil "~A-robot" name)))))))
+
+(defun eusview-make-jsk (name)
+  (let ((demo (assoc name *eusview-demo-robots* :test #'string=))
+        (file (eusview-jsk-file name)) r)
+    (cond
+     (demo (load file) (setq r (instance (symbol-value (caddr demo)) :init)))
+     ((eusview-file-name-p name) ;; a file defining a robot: the last robot-model made by its function
+      (load name)
+      (let ((f (intern (string-upcase (pathname-name (pathname name))) "USER")))
+        (if (fboundp f) (setq r (funcall f)))))
+     ((probe-file file)
+      (load file)
+      (setq r (funcall (intern (string-upcase name) "USER"))))
+     (t (error (format nil "no robot file ~A" file))))
+    (unless (derivedp r robot-model) (error (format nil "~A is not a robot-model" r)))
+    r))
+
+;; servo vector entries not in a servo command keep the current position (the disassembler
+;; fills them with 7500 = 0 deg), like the RCB4 itself
+(defconstant +eusview-keep+ -1)
+(defvar *eusview-cur-sv* nil)
+(defvar *eusview-recording* nil)
+(defun eusview-ri-class (cls)
+  (let ((sub (intern (format nil "EUSVIEW-~A" (send cls :name)))))
+    (unless (boundp sub)
+      (eval `(defclass ,sub :super ,(send cls :name)))
+      (eval `(defmethod ,sub
+               (:servo-vector-to-angle-vector
+                (sv &rest args)
+                (if (and *eusview-recording* *eusview-cur-sv*)
+                    (let ((m (copy-seq *eusview-cur-sv*)))
+                      (dotimes (i (min (length sv) (length m)))
+                        (let ((v (elt sv i)))
+                          (unless (or (= v +eusview-keep+) (>= v #x7fff)) (setf (elt m i) v))))
+                      (setq *eusview-cur-sv* m)
+                      (setq servo-vector (copy-seq m))
+                      (send-super :servo-vector-to-angle-vector m))
+                  (send-super* :servo-vector-to-angle-vector sv args))))))
+    (symbol-value sub)))
+
+(defun eusview-find-project (proj)
+  (dolist (d *eusview-project-dirs*)
+    (let ((dir (format nil "~A/Hello_~A" d proj)))
+      (when (probe-file dir)
+        (let ((f (car (find-files :dir dir :ext "h4p"))))
+          (if (and f (probe-file f)) (return-from eusview-find-project f))))))
+  nil)
+
+(defun eusview-make-ri (r name)
+  (let ((ri (instance (eusview-ri-class (kxr-ri-class name)) :init r :create-viewer nil)))
+    (unless (send ri :project-file)
+      ;; not in kxreus/projects: *eusview-project-dirs*
+      (let* ((proj (or (kxr-body-config-key name :project-file) name))
+             (fn (eusview-find-project proj)) p rm)
+        (when fn
+          (setq p (instance rcb4-project-file :init ri fn))
+          (setq rm (send ri :rcb4machine))
+          (dolist (mc (send p :mcodes)) (send rm :set-rom-table (send mc :number) mc))
+          (send rm :scan-jump-vectors)
+          (setq (ri . project-file) p)
+          (send ri :trim-vector (send p :trim-vector)))))
+    ri))
+
+(defun eusview-select (name)
+  "build robot name (KXR/KHR: kxreus, JSK: models) and show it"
+  (when *eusview-playing* (eusview-message "stop the motion first") (return-from eusview-select nil))
+  (setq name (string-trim " " (string-downcase name)))
+  (when (eusview-physics-on-p) (eusview-physics-stop))
+  (let ((group (eusview-group-of name)) r ri ret)
+    (eusview-message "making ~A (~A) ..." name group)
+    (setq ret
+          (eusview-protect
+           (setq r (if (string= group "JSK") (eusview-make-jsk name)
+                     (kxr-make-robot name :viewer nil :model *eusview-kxr-model*)))
+           (unless r (error (format nil "kxr-make-robot ~A returned nil" name)))
+           t))
+    (unless (eq ret t)
+      (eusview-message "could not make ~A: ~A" name *eusview-last-error*)
+      (return-from eusview-select nil))
+    (when (and (not (string= group "JSK")) (kxr-body-config name))
+      (setq ret (eusview-protect (setq ri (eusview-make-ri r name)) t))
+      (unless (eq ret t)
+        (setq ri nil)
+        (eusview-message "~A: no rcb4-interface (no motions): ~A" name *eusview-last-error*)))
+    (setq *eusview-robot* r *eusview-ri* ri *eusview-name* name *eusview-group* group)
+    (setq *robot* r)
+    (if ri (setq *ri* ri))
+    (eusview-make-viewer)
+    (send *eusview-viewer* :objects (list r))
+    (send *eusview-viewer* :look-all)
+    (send *eusview-viewer* :title (format nil "EusView ~A" name))
+    (when ri ;; the emulator draws into this viewer
+      (send ri :rcb4machine :create-viewer :viewer *eusview-viewer*)
+      (send *eusview-viewer* :change-background *eusview-background*)
+      (send *eusview-viewer* :title (format nil "EusView ~A" name)))
+    (eusview-make-robot-panel)
+    (send *eusview-viewer* :draw-objects)
+    (eusview-message "~A (~A): ~A joints, ~A motions" name group (length (eusview-joints r))
+                     (if (and ri (send ri :project-file)) (length (send ri :project-file :mcodes)) 0))
+    r))
+
+(defun eusview-joints (r)
+  (remove-if-not #'(lambda (j) (or (derivedp j rotational-joint) (derivedp j linear-joint)))
+                 (send r :joint-list)))
+
+(defun eusview-pose-methods (r)
+  (let ((ms (send r :methods)) (ret nil))
+    (dolist (m '(:reset-pose :init-pose :reset-manip-pose :sit-pose :stand-pose))
+      (if (memq m ms) (push m ret)))
+    (dolist (m ms)
+      (let ((s (string m)))
+        (when (and (> (length s) 5) (string= "-POSE" (subseq s (- (length s) 5)))
+                   (not (memq m ret))
+                   (not (substringp "DEF" s)) (not (substringp "SAVE" s))
+                   (not (substringp "ALIST" s)) (not (substringp "PLIST" s))
+                   (< (length ret) 12))
+          (push m ret))))
+    (nreverse ret)))
+
+(defun eusview-pose (pose)
+  (let ((r *eusview-robot*))
+    (when (and r (not *eusview-playing*))
+      (if (eq (eusview-protect
+               (if (eq pose :zero)
+                   (send r :angle-vector (instantiate float-vector (length (send r :angle-vector))))
+                 (send r pose))
+               t) t)
+          (eusview-message "~A ~A" *eusview-name* pose)
+        (eusview-message "~A ~A: ~A" *eusview-name* pose *eusview-last-error*))
+      (eusview-after-move))))
+
+(defun eusview-after-move ()
+  (when (eusview-physics-on-p)
+    (eusview-protect (send *eusview-robot* :send-ode 500) (send *eusview-robot* :wait-ode)))
+  (if *eusview-robot-panel* (send *eusview-robot-panel* :update-sliders))
+  (send *eusview-viewer* :draw-objects))
+
+;;;
+;;; motions: RCB4 emulation (rcb4-interface :emulate-motion-code) -> key frames -> playback
+;;;   The emulator sets the angles of a servo command, sleeps (speed x 10 ms), draws, sleeps again.
+;;;   It is run with unix:usleep replaced and a recorder as its viewer: a key frame is the angles
+;;;   at the first draw after a change, at the time (ms) slept until then (the second sleep of
+;;;   the same command is skipped). Timer waits are sleeps (holds).
+;;;
+(defvar *eusview-rec-time* 0)
+(defvar *eusview-rec-skip* nil)
+(defvar *eusview-rec-keys* nil)
+(defvar *eusview-rec-robot* nil)
+(defvar *eusview-rec-truncated* nil)
+(defvar *eusview-orig-usleep* (symbol-function 'unix:usleep))
+
+(defclass eusview-recorder :super propertied-object :slots (robot))
+(defmethod eusview-recorder
+  (:init (r) (setq robot r) self)
+  (:objects (&rest args) (list robot))
+  (:draw-objects (&rest args) (eusview-rec-frame))
+  (:strings (&rest args) nil)
+  (:nomethod (&rest args) nil))
+
+(defun eusview-rec-frame ()
+  (let ((av (send *eusview-rec-robot* :angle-vector)))
+    (unless (and *eusview-rec-keys* (equal av (cdr (car *eusview-rec-keys*))))
+      (push (cons *eusview-rec-time* (copy-seq av)) *eusview-rec-keys*)
+      (setq *eusview-rec-skip* t))
+    (when (or (> *eusview-rec-time* (* 1000 *eusview-max-motion-sec*))
+              (> (length *eusview-rec-keys*) 3000))
+      (setq *eusview-rec-truncated* t)
+      (throw :eusview-rec-stop nil))))
+
+(defun eusview-rec-usleep (us)
+  (if *eusview-rec-skip* (setq *eusview-rec-skip* nil)
+    (setq *eusview-rec-time* (+ *eusview-rec-time* (/ us 1000.0))))
+  0)
+
+(defvar *eusview-patched* nil)
+(defun eusview-patch-codes (mc)
+  "servo commands: servos not in the id list -> keep; velocity vectors -> max"
+  (unless (memq mc *eusview-patched*)
+    (dolist (a (send mc :acodes))
+      (when (and (consp a) (eq (car a) :servo) (listp (elt a 1)) (>= (length a) 4)
+                 (vectorp (elt a 3)))
+        (let* ((ids (elt a 1)) (sv (copy-seq (elt a 3))))
+          (dotimes (i (length sv))
+            (unless (member i ids) (setf (elt sv i) +eusview-keep+)))
+          (setf (elt a 3) sv)
+          (unless (numberp (elt a 2))
+            (setf (elt a 2) (let ((mx 0)) (dolist (i ids) (setq mx (max mx (elt (elt a 2) i)))) mx))))))
+    ;; timer wait loops "(:sub (:lit 0 128) (:ram (:timer ..)) t) (:jump .. back)": the emulator
+    ;; does not count the timer down (it sleeps when the timer is set) -> drop the jump
+    (let ((prev nil))
+      (dolist (a (send mc :acodes))
+        (when (consp a)
+          (when (and (eq (car a) :jump) prev (eq (car prev) :sub)
+                     (consp (elt prev 2)) (eq (car (elt prev 2)) :ram)
+                     (consp (cadr (elt prev 2))) (eq (car (cadr (elt prev 2))) :timer))
+            (setf (elt a 0) :eusview-nop))
+          (setq prev a))))
+    (push mc *eusview-patched*)))
+
+(defun eusview-record (ri mc)
+  "key frames ((msec . angle-vector) ...) of motion code mc"
+  (let* ((r (send ri :robot)) (rm (send ri :rcb4machine))
+         (vw (rm . vwer)) (ode (get r :ode-ci)))
+    (dolist (m (send ri :project-file :mcodes)) (eusview-patch-codes m))
+    (setq *eusview-rec-keys* nil *eusview-rec-time* 0 *eusview-rec-skip* nil
+          *eusview-rec-robot* r *eusview-rec-truncated* nil)
+    ;; the servo vector of the current angles (servos not in a command keep these values)
+    (setq *eusview-cur-sv*
+          (map integer-vector #'round (send ri :angle-vector-to-servo-vector (send r :angle-vector))))
+    (push (cons 0 (copy-seq (send r :angle-vector))) *eusview-rec-keys*)
+    (setq (rm . vwer) (instance eusview-recorder :init r))
+    (setf (get r :ode-ci) nil)
+    (setq *eusview-recording* t)
+    (setf (symbol-function 'unix:usleep) (symbol-function 'eusview-rec-usleep))
+    (unwind-protect
+        (catch :eusview-rec-stop
+          (send ri :emulate-motion-code mc :loopmax 3000))
+      (setf (symbol-function 'unix:usleep) *eusview-orig-usleep*)
+      (setq *eusview-recording* nil)
+      (setq (rm . vwer) vw)
+      (setf (get r :ode-ci) ode))
+    (reverse *eusview-rec-keys*)))
+
+(defun eusview-interpolate (keys tm)
+  (let ((k keys))
+    (while (and (cdr k) (<= (car (cadr k)) tm)) (setq k (cdr k)))
+    (cond
+     ((null (cdr k)) (cdr (car k)))
+     (t (let* ((t0 (car (car k))) (t1 (car (cadr k)))
+               (a (if (> t1 t0) (/ (- tm t0) (float (- t1 t0))) 1.0)))
+          (midpoint (min 1.0 (max 0.0 a)) (cdr (car k)) (cdr (cadr k))))))))
+
+(defun eusview-play-keys (keys)
+  (let* ((r *eusview-robot*) (tend (car (car (last keys)))) (t0 (eusview-now-ms)) (tm 0))
+    (cond
+     ((eusview-physics-on-p) ;; ODE: send each key frame with its time (kxrdyna :send-ode)
+      (let ((prev 0))
+        (dolist (k (cdr keys))
+          (if *eusview-stop* (return))
+          (send r :angle-vector (copy-seq (cdr k)))
+          (send r :send-ode (max 10 (round (- (car k) prev))))
+          (send r :wait-ode)
+          (setq prev (car k))
+          (send *eusview-viewer* :draw-objects)
+          (x::window-main-one))))
+     (t
+      (while (and (<= tm tend) (not *eusview-stop*))
+        (send r :angle-vector (copy-seq (eusview-interpolate keys tm)))
+        (send *eusview-viewer* :draw-objects)
+        (x::window-main-one)
+        (funcall *eusview-orig-usleep* (round (/ 1000000.0 *eusview-fps*)))
+        (setq tm (- (eusview-now-ms) t0)))
+      (unless *eusview-stop* (send r :angle-vector (copy-seq (cdr (car (last keys))))))))))
+
+(defun eusview-mc-name (mc)
+  (let ((n (send mc :name))) (if (consp n) (cadr n) (format nil "~A" n))))
+
+(defun eusview-play-motion (num)
+  (let* ((ri *eusview-ri*) (mc (and ri (send ri :project-file)
+                                     (find num (send ri :project-file :mcodes)
+                                           :key #'(lambda (m) (send m :number)))))
+         keys ret)
+    (cond
+     ((null mc) (eusview-message "no motion ~A" num))
+     (*eusview-playing* (eusview-message "playing (press stop)"))
+     (t
+      (setq *eusview-playing* t *eusview-stop* nil)
+      (unwind-protect
+          (progn
+            (eusview-message "~A: emulating motion ~A ~A ..." *eusview-name* num (eusview-mc-name mc))
+            (setq ret (eusview-protect (setq keys (eusview-record ri mc)) t))
+            (cond
+             ((not (eq ret t))
+              (eusview-message "motion ~A: ~A" num *eusview-last-error*))
+             ((< (length keys) 2)
+              (eusview-message "motion ~A ~A: no servo command" num (eusview-mc-name mc)))
+             (t
+              (eusview-message "~A: motion ~A ~A (~A keys, ~4,1f s~A)" *eusview-name* num
+                               (eusview-mc-name mc) (length keys) (/ (car (car (last keys))) 1000.0)
+                               (if *eusview-rec-truncated* ", truncated" ""))
+              (setq ret (eusview-protect (eusview-play-keys keys) t))
+              (unless (eq ret t) (eusview-message "motion ~A: ~A" num *eusview-last-error*)))))
+        (setq *eusview-playing* nil)
+        (if *eusview-robot-panel* (send *eusview-robot-panel* :update-sliders))
+        (send *eusview-viewer* :draw-objects))))))
+
+;;;
+;;; physics: kxrdyna.l / odedyna.l (ODE). Only when kxrdyna.l and the libraries are found.
+;;;
+(defun eusview-archdir () (or (unix:getenv "ARCHDIR") "Linux64"))
+(defun eusview-dyna-dir ()
+  "directory of kxrdyna.l (kxreus, *load-path*, ~/prog/rcb4eus)"
+  (dolist (d (append (list (format nil "~A/" *rcb4eus-dir*)) *load-path*
+                     (list (format nil "~A/prog/rcb4eus/" (unix:getenv "HOME")))))
+    (when (and (stringp d) (probe-file (format nil "~A/kxrdyna.l" (string-right-trim "/" d))))
+      (return-from eusview-dyna-dir (string-right-trim "/" d))))
+  nil)
+(defun eusview-physics-check ()
+  "nil if ok, else the reason"
+  (let* ((dir (eusview-dyna-dir)) (arch (eusview-archdir))
+         (eusode1 (and dir (format nil "~A/~A/libeusode.so" dir arch)))
+         (eusode2 (format nil "~A/~A/lib/libeusode.so" (string-right-trim "/" *eusdir*) arch))
+         (ode (format nil "~A/~A/lib/libode.so" (string-right-trim "/" *eusdir*) arch)))
+    (cond
+     ((fboundp 'kxr-dyna-start) nil)
+     ((null dir) "kxrdyna.l not found (kxreus or ~/prog/rcb4eus)")
+     ((not (or (probe-file eusode1) (probe-file eusode2)))
+      (format nil "no libeusode.so (~A or ~A)" eusode1 eusode2))
+     ((not (probe-file ode)) (format nil "no libode.so (~A)" ode))
+     (t nil))))
+(defun eusview-load-dyna ()
+  (unless (fboundp 'kxr-dyna-start)
+    (let ((dir (eusview-dyna-dir)) (cwd (unix:getwd)))
+      (pushnew (format nil "~A/" dir) *load-path* :test #'equal)
+      (unwind-protect
+          (progn (unix:chdir dir) ;; odedyna.l loads ./$ARCHDIR/libeusode.so
+                 (load (format nil "~A/kxrdyna.l" dir)))
+        (unix:chdir cwd))))
+  (fboundp 'kxr-dyna-start))
+(defun eusview-physics-on-p ()
+  (and *eusview-physics* *eusview-robot* (get *eusview-robot* :ode-ci)))
+(defun eusview-physics-start ()
+  (let ((why (eusview-physics-check)) ret)
+    (cond
+     (why (eusview-message "no physics: ~A" why))
+     ((null *eusview-robot*) nil)
+     (t
+      (setq ret
+            (eusview-protect
+             (eusview-load-dyna)
+             (setq *robot* *eusview-robot* *irtviewer* *eusview-viewer*)
+             (if *eusview-ri* (setq *ri* *eusview-ri*))
+             (send *eusview-viewer* :objects (list *eusview-robot*))
+             (setq *loop* t *mm* nil)
+             (dyna-on *eusview-viewer*)
+             (send *dworld* :soft-setting)
+             (d-start)
+             (push-itimer 'kxr-dyna-motion)
+             t))
+      (cond
+       ((eq ret t) (setq *eusview-physics* t) (eusview-message "physics (ODE) started"))
+       (t (eusview-message "could not start physics: ~A" *eusview-last-error*)))))))
+(defun eusview-physics-stop ()
+  (eusview-protect
+   (setq *loop* nil)
+   (setq *timer-job* (remove 'kxr-dyna-motion *timer-job*))
+   (if (boundp '*dworld*) (send *dworld* :stop)))
+  (setq *eusview-physics* nil)
+  (when *eusview-robot*
+    (setf (get *eusview-robot* :ode-ci) nil)
+    (send *eusview-viewer* :objects (list *eusview-robot*))
+    (send *eusview-viewer* :draw-objects))
+  (eusview-message "physics stopped"))
+
+;;;
+;;; live: the angles to the EusView app through eusview-live.py (TCP, one JSON per line)
+;;;
+(defun eusview-live-connect ()
+  (let* ((host (or (unix:getenv "EUSVIEW_LIVE_HOST") "localhost"))
+         (port (read-from-string (or (unix:getenv "EUSVIEW_LIVE_PORT") "8767")))
+         (s (eusview-protect
+             (make-client-socket-stream (make-socket-address :domain af_inet :host host :port port)))))
+    (cond
+     ((streamp s) (setq *eusview-live* s *eusview-live-last* nil)
+      (eusview-message "live: connected to ~A:~A" host port) t)
+     (t (setq *eusview-live* nil)
+        (eusview-message "live: cannot connect to ~A:~A (run python3 eusview-live.py)" host port)
+        nil))))
+(defun eusview-live-close ()
+  (when *eusview-live* (eusview-protect (close *eusview-live*)))
+  (setq *eusview-live* nil)
+  (eusview-message "live: closed"))
+(defun eusview-num (x)
+  (let ((v (/ (round (* x 100.0)) 100.0))) (format nil "~A" (if (= v 0) 0 v))))
+(defun eusview-join (strs)
+  (let ((st (make-string-output-stream 256)) (first t))
+    (dolist (x strs) (unless first (princ "," st)) (princ x st) (setq first nil))
+    (get-output-stream-string st)))
+(defun eusview-live-send (&optional force)
+  (let ((r *eusview-robot*) (now (eusview-now-ms)) av c p m)
+    (when (and r *eusview-live* (or force (> (- now *eusview-live-time*) 30)))
+      (setq av (mapcar #'(lambda (j) (send j :joint-angle)) (eusview-joints r)))
+      (setq c (send (car (send r :links)) :worldcoords))
+      (setq p (scale 0.001 (send c :worldpos)) m (send c :worldrot))
+      (unless (and (not force) (equal (cons p av) *eusview-live-last*))
+        (setq *eusview-live-last* (cons p av) *eusview-live-time* now)
+        (unless (eq t (eusview-protect
+                       (format *eusview-live* "{\"angles\":[~A]}~%" (eusview-join (mapcar #'eusview-num av)))
+                       (format *eusview-live* "{\"root\":[~A]}~%"
+                               (eusview-join
+                                (mapcar #'(lambda (x) (format nil "~A" (/ (round (* x 10000.0)) 10000.0)))
+                                        (append (coerce p cons)
+                                                (list (aref m 0 0) (aref m 0 1) (aref m 0 2)
+                                                      (aref m 1 0) (aref m 1 1) (aref m 1 2)
+                                                      (aref m 2 0) (aref m 2 1) (aref m 2 2))))))
+                       (finish-output *eusview-live*)
+                       t))
+          (setq *eusview-live* nil)
+          (eusview-message "live: send failed (closed)"))))))
+
+;;;
+;;; panels
+;;;
+(defclass eusview-panel :super x::panel :slots (status-item name-item))
+(defmethod eusview-panel
+  (:create
+   (&rest args)
+   (send-super* :create :width 900 :height 80 :title "EusView" args)
+   (send self :create-item x::button-item "quit" self :quit-eusview)
+   (dolist (g (list (list "KXR" *eusview-kxr-robots*) (list "KHR" *eusview-khr-robots*)
+                    (list "JSK" *eusview-jsk-robots*)))
+     (let* ((names (remove-if-not #'(lambda (n) (or (string= (car g) "JSK") (kxr-body-config n)))
+                                  (cadr g)))
+            (i 0) menu)
+       (while names
+         (setq menu (instance x::menu-panel :create))
+         (dotimes (k *eusview-menu-rows*)
+           (when names
+             (send menu :create-item x::button-item (car names) self (list :select (car names)))
+             (pop names)))
+         (send self :create-item x::menu-button-item
+               (format nil "~A ~A-" (car g) (1+ (* i *eusview-menu-rows*))) nil nil :menu menu
+               :border-width 2)
+         (incf i))))
+   (setq name-item (send self :create-item x::text-item "name:" self :select-name
+                         :columns 18 :initial-value ""))
+   (send self :create-item x::button-item "list all" self :list-all)
+   (setq status-item (send self :create-item x::text-item "status:" self :status
+                           :columns 90 :initial-value ""))
+   self)
+  (:status-item (&rest args) (user::forward-message-to status-item args))
+  (:status (&rest args) nil)
+  (:select (sel &rest args) (eusview-select (car sel)))
+  (:select-name (obj val &rest args)
+                (if (and (stringp val) (> (length (string-trim " " val)) 0)) (eusview-select val)))
+  (:list-all (&rest args)
+             (format t ";; kxreus robots (~A): ~A~%" (length (kxr-all-robot-names)) (kxr-all-robot-names))
+             (format t ";; JSK: ~A~%" *eusview-jsk-robots*)
+             (eusview-message "robot names printed in the terminal (~A + JSK ~A)"
+                              (length (kxr-all-robot-names)) (length *eusview-jsk-robots*)))
+  (:quit-eusview (&rest args) (eusview-quit))
+  (:quit (&rest args) (eusview-quit)))
+
+(defclass eusview-robot-panel :super x::panel :slots (robot sliders))
+(defmethod eusview-robot-panel
+  (:create
+   (r &rest args)
+   (let* ((joints (eusview-joints r)) (ncol (if (> (length joints) 50) 3 2))
+          (has-motion (and *eusview-ri* (send *eusview-ri* :project-file)))
+          (nmotion-rows (if has-motion 2 0))
+          (rows (+ 2 nmotion-rows (ceiling (/ (float (length joints)) ncol))))
+          (width (* ncol 600)))
+     (setq robot r sliders nil)
+     (send-super* :create :width width :height (min 1000 (+ 20 (* rows 34)))
+                  :title (format nil "EusView: ~A" (send r :name)) args)
+     (send self :create-item x::button-item "zero" self (list :pose :zero))
+     (dolist (m (eusview-pose-methods r))
+       (send self :create-item x::button-item (string-downcase (string m)) self (list :pose m)))
+     (send self :create-item x::button-item "look-all" self :look-all)
+     (send self :create-item x::button-item "stop" self :stop)
+     (send self :create-item x::button-item "physics" self :physics)
+     (send self :create-item x::button-item "live" self :live)
+     (when has-motion
+       (let ((table (instantiate vector 120)))
+         (dolist (mc (send *eusview-ri* :project-file :mcodes))
+           (if (< -1 (send mc :number) 120) (setf (elt table (send mc :number)) mc)))
+         ;; kxrviewer.l panel :create-2d-menu-buttons (as robot-control-panel " project motion")
+         (send self :create-2d-menu-buttons " motion" :play-motion table 30 :width (- width 20))))
+     (dolist (j joints)
+       (let* ((lin (derivedp j linear-joint))
+              (lim (if lin 500 180))
+              (mn (max (- lim) (send j :min-angle))) (mx (min lim (send j :max-angle))))
+         (if (>= mn mx) (setq mn (- lim) mx lim))
+         (push (cons j (send self :create-item x::slider-item
+                             (format nil "~22A" (send j :name)) self (list :joint j)
+                             :span 150 :value-format "~6,1f" :min mn :max mx
+                             :min-label (let ((x (format nil "~A" (round mn)))) (while (< (length x) 4) (setq x (concatenate string " " x))) x) :max-label (format nil "~4A" (round mx))
+                             :initial-value (min mx (max mn (send j :joint-angle)))))
+               sliders)))
+     (setq sliders (nreverse sliders))
+     self))
+  (:pose (sel &rest args) (eusview-pose (car sel)))
+  (:look-all (&rest args) (send *eusview-viewer* :look-all) (send *eusview-viewer* :draw-objects))
+  (:stop (&rest args) (setq *eusview-stop* t) (eusview-message "stop"))
+  (:physics (&rest args) (if (eusview-physics-on-p) (eusview-physics-stop) (eusview-physics-start)))
+  (:live (&rest args) (if *eusview-live* (eusview-live-close) (if (eusview-live-connect) (eusview-live-send t))))
+  (:play-motion (sel &rest args) (if (numberp (car sel)) (eusview-play-motion (car sel))))
+  (:joint
+   (sel obj val &rest args)
+   (unless *eusview-playing*
+     (eusview-protect
+      (send (car sel) :joint-angle val)
+      (if (eusview-physics-on-p) (send robot :send-ode 100))
+      (send *eusview-viewer* :draw-objects))))
+  (:update-sliders
+   ()
+   (dolist (s sliders)
+     (eusview-protect
+      (let ((mn ((cdr s) . x::min-value)) (mx ((cdr s) . x::max-value)))
+        (send (cdr s) :value (min mx (max mn (send (car s) :joint-angle))))))))
+  (:quit (&rest args) (send self :unmap)))
+
+(defun eusview-make-robot-panel ()
+  ;; the old panel is unmapped, not destroyed (X events for a destroyed window -> BadDrawable)
+  (when *eusview-robot-panel*
+    (eusview-protect (send *eusview-robot-panel* :unmap))
+    (push *eusview-robot-panel* *eusview-old-panels*)
+    (setq *eusview-robot-panel* nil))
+  (let ((ret (eusview-protect
+              (setq *eusview-robot-panel* (instance eusview-robot-panel :create *eusview-robot*))
+              (send *eusview-robot-panel* :move 620 120)
+              t)))
+    (unless (eq ret t)
+      (setq *eusview-robot-panel* nil)
+      (eusview-message "could not make the robot panel: ~A" *eusview-last-error*))))
+
+;;;
+;;; entry
+;;;
+(defun eusview (&optional (name (or (unix:getenv "EUSVIEW_ROBOT") "kxrl2l5a3h2")))
+  "EusView demo: robot chooser (KXR/KHR/JSK), poses, motions, physics, live"
+  (eusview-make-viewer)
+  (unless *eusview-panel*
+    (setq *eusview-panel* (instance eusview-panel :create))
+    (eusview-protect (send *eusview-viewer* :move 0 0) (send *eusview-panel* :move 620 0)))
+  (setq *eusview-running* t)
+  (if name (eusview-select name))
+  t)
+
+(defun eusview-quit ()
+  (setq *eusview-stop* t)
+  (setq *eusview-running* nil)
+  (if (eusview-physics-on-p) (eusview-physics-stop))
+  (if *eusview-live* (eusview-live-close))
+  (dolist (w (list *eusview-robot-panel* *eusview-panel*))
+    (if w (eusview-protect (send w :destroy))))
+  (setq *eusview-robot-panel* nil *eusview-panel* nil)
+  (when *eusview-viewer*
+    (eusview-protect (send *eusview-viewer* :destroy))
+    (setq *eusview-viewer* nil))
+  (x::xflush)
+  (format t ";; eusview: quit~%")
+  (if (get 'eusview :exit-on-quit) (exit))
+  t)
+
+(defun eusview-main (&optional name)
+  "for the desktop launcher (no terminal): run the X events and timer jobs until quit, then exit"
+  (setf (get 'eusview :exit-on-quit) t)
+  (eusview (or name (unix:getenv "EUSVIEW_ROBOT") "kxrl2l5a3h2"))
+  (while *eusview-running*
+    (eusview-protect
+     (x::window-main-one)
+     (dolist (j *timer-job*) (funcall j)))
+    (funcall *eusview-orig-usleep* 10000))
+  (exit))
+
+(provide :eusview)

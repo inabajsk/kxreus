@@ -234,3 +234,61 @@ check-roseus: check-jskeus
 clean-roseus:
 	rm -rf $(ROSEUS_WS)/build $(ROSEUS_WS)/devel $(ROSEUS_WS)/logs
 
+
+#
+# EusView demo (eusview.l): irtviewer + X panels like the EusView iPhone/Mac app
+# (robot chooser KXR/KHR/JSK, poses, project motions by the RCB4 emulation, ODE, live).
+#   make eusview           run it from this terminal (REPL)
+#   make eusview-desktop   Ubuntu: a launcher icon (applications menu + desktop) that runs eusview.sh
+#   make eusview-desktop EUSVIEW_TERMINAL=true   open it in a terminal (with the REPL)
+#   make eusview-desktop-clean
+#
+EUSVIEW_TERMINAL ?= false
+EUSVIEW_OS ?= $(shell /usr/bin/uname -s)
+EUSVIEW_APPS_DIR ?= $(HOME)/.local/share/applications
+EUSVIEW_DESKTOP_FILE = $(EUSVIEW_APPS_DIR)/eusview.desktop
+
+eusview:
+	./eusview.sh $(ROBOT)
+
+eusview-desktop:
+	@if [ "$(EUSVIEW_OS)" != Linux ]; then \
+		echo "eusview-desktop: the freedesktop launcher is for Ubuntu (Linux) -- nothing made on $(EUSVIEW_OS). Run: make eusview"; \
+	else \
+		chmod +x $(PWD)/eusview.sh; \
+		mkdir -p $(EUSVIEW_APPS_DIR); \
+		{ echo "[Desktop Entry]"; \
+		  echo "Type=Application"; \
+		  echo "Version=1.0"; \
+		  echo "Name=EusView"; \
+		  echo "Comment=EusLisp robot viewer (kxreus): KXR/KHR/JSK robots, poses, motions, ODE"; \
+		  echo "Comment[ja]=EusLisp のロボットビューア（kxreus）: KXR/KHR/JSK のロボット・姿勢・モーション・物理"; \
+		  echo "Exec=$(PWD)/eusview.sh"; \
+		  echo "Path=$(PWD)"; \
+		  echo "Icon=$(PWD)/images/eusview.png"; \
+		  echo "Terminal=$(EUSVIEW_TERMINAL)"; \
+		  echo "Categories=Education;Science;Robotics;"; \
+		  echo "StartupNotify=true"; \
+		} > $(EUSVIEW_DESKTOP_FILE); \
+		chmod +x $(EUSVIEW_DESKTOP_FILE); \
+		DESK=$$(xdg-user-dir DESKTOP 2>/dev/null); \
+		if [ -z "$$DESK" ] || [ "$$DESK" = "$(HOME)" ] || [ ! -d "$$DESK" ]; then \
+			for d in "$(HOME)/Desktop" "$(HOME)/デスクトップ"; do [ -d "$$d" ] && DESK="$$d" && break; done; \
+		fi; \
+		if [ -n "$$DESK" ] && [ -d "$$DESK" ] && [ "$$DESK" != "$(HOME)" ]; then \
+			cp $(EUSVIEW_DESKTOP_FILE) "$$DESK/eusview.desktop"; \
+			chmod +x "$$DESK/eusview.desktop"; \
+			if command -v gio >/dev/null 2>&1; then gio set "$$DESK/eusview.desktop" metadata::trusted true 2>/dev/null || true; fi; \
+			echo "eusview-desktop: $$DESK/eusview.desktop"; \
+		else \
+			echo "eusview-desktop: no desktop folder (xdg-user-dir DESKTOP) -- only the applications menu"; \
+		fi; \
+		if command -v update-desktop-database >/dev/null 2>&1; then update-desktop-database $(EUSVIEW_APPS_DIR) 2>/dev/null || true; fi; \
+		if command -v desktop-file-validate >/dev/null 2>&1; then desktop-file-validate $(EUSVIEW_DESKTOP_FILE) || true; fi; \
+		echo "eusview-desktop: $(EUSVIEW_DESKTOP_FILE) (Exec=$(PWD)/eusview.sh)"; \
+		echo "  GNOME: if the icon shows a cross, right-click it -> 'Allow Launching'"; \
+	fi
+
+eusview-desktop-clean:
+	rm -f $(EUSVIEW_DESKTOP_FILE)
+	DESK=$$(xdg-user-dir DESKTOP 2>/dev/null); for d in "$$DESK" "$(HOME)/Desktop" "$(HOME)/デスクトップ"; do [ -n "$$d" ] && rm -f "$$d/eusview.desktop"; done; true

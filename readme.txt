@@ -35,6 +35,17 @@ How to use:
 
 <img src="./images/all-robots.png" height=400px>
 
+EusView demo (eusview.l, like the EusView iPhone/Mac app):
+1) cd kxreus
+2) irteusgl eusview.l "(eusview)"   ;; or roseus eusview.l "(eusview)", or make eusview
+    ;; EusView panel: choose a robot from KXR / KHR / JSK menus (or type a name)
+    ;; robot panel: poses, project motions (RCB4 emulation), physics (kxrdyna, ODE), live, joint sliders
+3) make eusview-desktop
+    ;; Ubuntu: makes an EusView icon on the desktop and in the applications menu
+    ;; (~/.local/share/applications/eusview.desktop -> eusview.sh). Click it to start.
+    ;; make eusview-desktop EUSVIEW_TERMINAL=true : start it in a terminal (REPL)
+    ;; details (Japanese) in kxr-document.txt "50. EusView" and at the top of eusview.l
+
 How to move real robot ex. kxrl2g:
 1) connect USB dual adapter with serial LED from PC to a robot
 2) roseus semi2024

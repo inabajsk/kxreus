@@ -267,6 +267,7 @@ irteusgl rcb4robots.l
 *** 43. meshの削減方法
 *** 48. rcb4robotconfig.lのロボットモデル記述  2023.7.12
 *** 49. kxr-robotset クラスとモジュールロボットを統合　2024.1.8
+*** 50. EusView デモ eusview.l  2026.10.5
 -----------------------------------------------------------------
 -----------------------------------------------------------------
 
@@ -5334,4 +5335,33 @@ robot-modelファイルをmodels/以下に生成する．
 一度生成されたらば，次回以降はこの生成されたrobot-modelファイルを読み込む
 *robot*が生成される．
 
+
+
+-----------------------------------------------------------------
+*** 50. EusView デモ eusview.l  2026.10.5
+-----------------------------------------------------------------
+
+iPhone / Mac の EusView アプリと同じように，ロボットを選んで
+姿勢・モーション・物理を見るデモ．irtviewer と X のパネルで動く．
+
+cd ~/kxreus
+irteusgl eusview.l "(eusview)"     ;; roseus eusview.l "(eusview)" でもよい
+(eusview "kxrl4r")                 ;; 最初に出すロボットを指定
+make eusview                       ;; 端末から起動
+make eusview-desktop               ;; Ubuntu: デスクトップとアプリ一覧に EusView の
+                                   ;; アイコンを作る(クリックで eusview.sh が起動)
+make eusview-desktop EUSVIEW_TERMINAL=true ;; 端末(REPL)つきで起動するアイコン
+make eusview-desktop-clean         ;; アイコンを消す
+
+EusView パネル: KXR / KHR / JSK のメニューでロボットを選ぶ．
+  name: にロボット名((kxr-all-robot-names) のどれか, JSK のモデル名)を入れて Enter．
+ロボットのパネル: 姿勢(zero, reset-pose, init-pose, sit-pose ...)，
+  motion 0- 30- ... (プロジェクトのモーション表を RCB4 のエミュレーションで再生)，
+  stop, physics (kxrdyna.l の ODE, libeusode があるときだけ), live, 関節のスライダー．
+  ロボットは (kxr-make-robot name :model nil) で作る(models/ にファイルを書かない)．
+  モーションは rcb4-interface の :emulate-motion-code でキーフレームを求めてから
+  実時間で補間して表示する(サーボ命令に入っていないサーボは今の角度のまま)．
+live: python3 eusview-live.py を動かし，iPhone の EusView の「接続」で
+  ws://<PC の IP>:8766/ につなぐと，関節角がアプリへ送られる．
+アイコンから起動したときの出力は ~/.cache/eusview.log．
 
