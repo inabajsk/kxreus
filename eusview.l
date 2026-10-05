@@ -31,6 +31,12 @@
 ;;;     name:                       ロボット名を入れて Enter（kxreus の (kxr-all-robot-names) のどれでも,
 ;;;                                 JSK のモデル名, .l ファイルのパス）
 ;;;     list all                    kxreus で作れるロボット名を端末に表示
+;;;     BVH                         BVH のパネルを開く（eusview-bvh.l）: kxreus/bvh/<種類>/*.bvh を骨格で再生。
+;;;                                 auto play: 種類ごとにファイルを順に、最後まで行ったら次の種類へ（stop まで）。
+;;;                                 <種類> 1- 21- ...: 20 件ずつのメニューで選んだファイルを stop まで繰り返す。
+;;;                                 speed（0.5x/1x/2x/4x）, robot: hide / show（ロボットを横に並べる）,
+;;;                                 back to robot。状態の行に「BVH 再生中: 種類/ファイル（フレーム i/n, fps）」。
+;;;                                 BVH の表示中は physics は使えない。live は骨格を送らない
 ;;;   ロボットのパネル（ロボットごと）:
 ;;;     zero / reset-pose / init-pose ...   そのロボットにある姿勢
 ;;;     motion 0- / 20- ...         プロジェクトのモーション表（RCB4 のエミュレーションで再生）。
@@ -62,6 +68,7 @@
 (require :kxrviewer) ;; panel :create-2d-menu-buttons
 (require :eusview-physics) ;; ODE without kxrdyna.l (libeusviewode.so, make eusview-ode)
 (require :eusview-xft)     ;; Japanese labels (motion names, status) with Xft
+(require :eusview-bvh)     ;; BVH playback (kxreus/bvh, the skeleton)
 
 (defvar *eusview-kxr-robots*
   '("kxrl2l5a3h2" "kxrl2l6a6h2" "kxrl4t" "kxrl4r" "kxrl4d" "kxrl6" "kxra6g"
@@ -308,7 +315,7 @@
 (defun eusview-select (name)
   "build robot name (KXR/KHR: kxreus, JSK: models) and show it"
   (when *eusview-playing*
-    (setq *eusview-stop* t *eusview-next-motion* nil)
+    (setq *eusview-stop* t *eusview-next-motion* nil *eusview-bvh-next* nil)
     (eusview-message "stop the motion") (return-from eusview-select nil))
   (setq name (string-trim " " (string-downcase name)))
   (when (eusview-physics-on-p) (eusview-physics-stop))
@@ -332,6 +339,7 @@
     (setq *robot* r)
     (if ri (setq *ri* ri))
     (eusview-make-viewer)
+    (setq *eusview-bvh-mode* nil *eusview-bvh-model* nil)
     (send *eusview-viewer* :objects (list r))
     (send *eusview-viewer* :look-all)
     (send *eusview-viewer* :title (format nil "EusView ~A" name))
@@ -364,6 +372,7 @@
     (nreverse ret)))
 
 (defun eusview-pose (pose)
+  (unless *eusview-playing* (eusview-bvh-leave))
   (let ((r *eusview-robot*))
     (when (and r (not *eusview-playing*))
       (if (eq (eusview-protect
@@ -532,6 +541,7 @@
    (*eusview-playing* ;; called from the event loop of the playback: switch to num
     (setq *eusview-next-motion* num *eusview-stop* t))
    (t
+    (eusview-bvh-leave)
     (setq *eusview-playing* t *eusview-next-motion* num)
     (unwind-protect
         (while *eusview-next-motion*
@@ -541,7 +551,10 @@
       (setq *eusview-playing* nil *eusview-stop* nil)
       (eusview-show-playing "")
       (if *eusview-robot-panel* (send *eusview-robot-panel* :update-sliders))
-      (send *eusview-viewer* :draw-objects)))))
+      (send *eusview-viewer* :draw-objects))
+    ;; BVH chosen while the motion played
+    (when *eusview-bvh-next*
+      (let ((r *eusview-bvh-next*)) (setq *eusview-bvh-next* nil) (apply #'eusview-bvh-request r))))))
 
 (defun eusview-play-motion-loop (num)
   (let* ((ri *eusview-ri*) (mc (and ri (send ri :project-file)
@@ -638,6 +651,9 @@
   (let ((why (eusview-physics-check)) ret)
     (cond
      ((null *eusview-robot*) nil)
+     (*eusview-bvh-mode*
+      (eusview-message (if (eusview-ja-p) "BVH の表示中は physics は使えません（BVH パネルの back to robot で戻す）"
+                         "no physics for BVH (back to robot in the BVH panel)")))
      ((null why) ;; kxrdyna
       (setq ret
             (eusview-protect
@@ -887,6 +903,7 @@
    (setq name-item (send self :create-item x::text-item "name:" self :select-name
                          :columns 18 :initial-value ""))
    (send self :create-item x::button-item "list all" self :list-all)
+   (send self :create-item x::button-item "BVH" self :bvh)
    ;; status line: Xft label (Japanese motion names); without Xft it shows ASCII only
    (setq status-item (send self :create-item x::xft-label-item "" :width 880))
    self)
@@ -901,6 +918,7 @@
              (eusview-message "robot names printed in the terminal (~A + JSK ~A)"
                               (length (kxr-all-robot-names)) (length *eusview-jsk-robots*)))
   (:quit-eusview (&rest args) (eusview-quit))
+  (:bvh (&rest args) (eusview-bvh-open-panel))
   (:quit (&rest args) (eusview-quit)))
 
 (defclass eusview-robot-panel :super x::panel
@@ -972,7 +990,11 @@
   (:show-live (str) (send live-info :value str))
   (:physics (&rest args) (if (eusview-physics-on-p) (eusview-physics-stop) (eusview-physics-start)))
   (:servo (&rest args) (eusview-servo-toggle))
-  (:live (&rest args) (if *eusview-live* (eusview-live-close) (if (eusview-live-connect) (eusview-live-send t))))
+  (:live (&rest args)
+         (if *eusview-live* (eusview-live-close) (if (eusview-live-connect) (eusview-live-send t)))
+         (if (and *eusview-live* *eusview-bvh-mode*)
+             (eusview-message (if (eusview-ja-p) "live: BVH の骨格は送れません（ロボットの角度だけ送ります）"
+                                "live: the BVH skeleton is not sent (only the robot angles)"))))
   (:play-motion (sel &rest args) (if (numberp (car sel)) (eusview-play-motion (car sel))))
   (:joint
    (sel obj val &rest args)
@@ -1056,9 +1078,10 @@
   (if (eusview-physics-on-p) (eusview-physics-stop))
   (if *eusview-live* (eusview-live-close))
   (eusview-live-stop-relay)
-  (dolist (w (list *eusview-robot-panel* *eusview-panel*))
+  (setq *eusview-bvh-next* nil)
+  (dolist (w (list *eusview-robot-panel* *eusview-panel* *eusview-bvh-panel*))
     (if w (eusview-protect (send w :destroy))))
-  (setq *eusview-robot-panel* nil *eusview-panel* nil)
+  (setq *eusview-robot-panel* nil *eusview-panel* nil *eusview-bvh-panel* nil *eusview-bvh-mode* nil)
   (when *eusview-viewer*
     (eusview-protect (send *eusview-viewer* :destroy))
     (setq *eusview-viewer* nil))

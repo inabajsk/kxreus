@@ -5382,4 +5382,8 @@ live: トグル(live: off / ON)．中継 eusview-live.py が動いていなければ python3 で
   (ログ ~/.cache/eusview-live.log, quit で止める)，iPhone の EusView の「接続」に入れる
   アドレス ws://<この PC の IP>:8766/ と，つながっている iPhone の台数をパネルに出す．
 アイコンから起動したときの出力は ~/.cache/eusview.log．
+BVH: EusView パネルの BVH ボタンで BVH のパネル(eusview-bvh.l)を開き，kxreus/bvh/<種類>/
+  (lafan1, mocopi, rikiya, sfu, tum-kitchen)の BVH を骨格で再生する(jskeus の load-mcd,
+  scale は bvh/*-demo.l と同じ 10, tum-kitchen は 1)．auto play で全種類を順に，メニューで
+  選んだファイルは stop まで繰り返す．speed, robot: hide/show(ロボットを横に並べる)．
 
