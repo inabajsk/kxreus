@@ -6,9 +6,19 @@
 (in-package "USER")
 
 (require :kxranimate)
+;; UTF-8 (Japanese) motion names in the menus with Xft (eusview-xft.l, read at run time).
+;; Without the file, libXft or a Japanese font: button-item with the X core font as before.
+(let ((f (and (boundp '*rcb4eus-dir*) (format nil "~A/eusview-xft.l" *rcb4eus-dir*))))
+  (if (and f (probe-file f)) (require :eusview-xft f)))
 
 ;;;
 (in-package "X")
+
+(defun kxr-utf8-item-class ()
+  "button class for menu items with UTF-8 labels: xft-button-item when Xft has a Japanese font"
+  (if (and (boundp 'xft-button-item) (fboundp 'user::xft-init) (funcall 'user::xft-init))
+      (symbol-value 'xft-button-item)
+    button-item))
 
 (defmethod panel
     (:create-menu-buttons
@@ -39,7 +49,7 @@
 	     (instance menu-panel :create :font font :color color))
        (dotimes (i rows)
 	 (when (< (+ i (* rows j)) (length motion-table))
-	   (send (elt menus j) :create-item button-item
+	   (send (elt menus j) :create-item (kxr-utf8-item-class)
 		 (format nil "~A ~60A button: ~38A" (+ i (* rows j))
 			 (if (elt motion-table (+ i (* rows j)))
 			     (send (elt motion-table (+ i (* rows j))) :name))
@@ -147,7 +157,7 @@
      
      (setq jvectors (send robot :ri :project-file :jump-vectors))
      (dotimes (i 31)
-       (send remoconmenu :create-item button-item
+       (send remoconmenu :create-item (kxr-utf8-item-class)
 	     (if (elt jvectors i)
 		 (format nil "motion:~3A ~40A"
 			 (cadr (caddr (elt jvectors i))) (cdddr (cadr (elt jvectors i))))

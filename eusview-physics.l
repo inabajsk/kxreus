@@ -14,8 +14,10 @@
 ;;;   - joints: hinge / slider at the child link origin, axis of the child link; servo every step
 ;;;     Vel = kp (target - angle), FMax = fmax (odedyna_motor: kp 10, fmax 500000 = unlimited).
 ;;;     Links without a joint are fixed (a hinge held at 0).
-;;;   - world: dt 0.01 s, dWorldStep, erp 0.2, joint cfm 1e-5, contact mu 0.1, soft erp 0.2,
-;;;     soft cfm 0.01, bounce 0.01, 1 contact point per pair (odedyna d-init :max-contacts 1).
+;;;   - world: dt 0.01 s, dWorldStep, erp 0.2, joint cfm 1e-5, contact mu 0.8, soft erp 0.2,
+;;;     soft cfm 0.001, bounce 0.01, 4 contact points per pair. (kxr-dyna uses mu 0.1 and 1 point
+;;;     (odedyna d-init :max-contacts 1); with them a standing kxrl2l6a6h2 slides 29 mm in 3 s,
+;;;     which the real robot does not, so the friction and the contact points are increased.)
 ;;;  The robot is put on the floor (lowest collision point 1 mm above z = 0) at the start pose.
 ;;;  Every frame the joint angles and the root link coords are set from the simulation.
 ;;;
@@ -31,8 +33,8 @@
 (defvar *evp-density* 1.0)  ;; g/cm^3 for robots without weights
 (defvar *evp-world* '((:gravity . #f(0 0 -9.81)) (:dt . 0.01) (:erp . 0.2) (:cfm . 1e-5)
                       (:iterations . 30) (:quickstep . 0)))
-(defvar *evp-contact* '((:mu . 0.1) (:soft-erp . 0.2) (:soft-cfm . 0.01) (:bounce . 0.01)
-                        (:bounce-vel . 1.0) (:max-contacts . 1)))
+(defvar *evp-contact* '((:mu . 0.8) (:soft-erp . 0.2) (:soft-cfm . 0.001) (:bounce . 0.01)
+                        (:bounce-vel . 1.0) (:max-contacts . 4)))
 (defvar *evp-motor* '((:kp . 10.0) (:fmax . 500000.0) (:vmax . 1e6)))
 (defvar *evp-free-fmax* 2.0) ;; N m: servo off -> 0.02 N m of friction (KRS-3304: 1.36 N m)
 (defvar *evp-default-body-weight* 10.0) ;; g (odedyna :init-primitive)

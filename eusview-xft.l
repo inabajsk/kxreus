@@ -4,7 +4,8 @@
 ;;;
 ;;;  The X core fonts of EusLisp's panels have no Japanese: the motion names of the .h4p projects
 ;;;  (UTF-8) are shown as garbage. This file draws the labels with Xft instead (defforeign into
-;;;  libXft; no compile). Used by eusview.l; usable by other panels (e.g. kxrviewer.l):
+;;;  libXft; no compile). Used by eusview.l and kxrviewer.l (robot-control-panel motion menus,
+;;;  read at run time from *rcb4eus-dir*, so the compiled kxrviewer.so works without it):
 ;;;
 ;;;   (xft-init)                         t if Xft and a Japanese font were found (else nil: fall back)
 ;;;   x::xft-button-item                 button-item whose label is drawn with Xft (UTF-8)
@@ -72,11 +73,20 @@
     (xft-text-extents-utf8 x::*display* *xft-font* str (length str) gi)
     (list (xft-short gi 0) (xft-short gi 2) (xft-short gi 6 t) (xft-short gi 8 t))))
 
-(defun xft-colormap () (x::DefaultColormap x::*display* x::*screen-no*))
+(defun xft-colormap ()
+  (unless (fboundp 'x::DefaultColormap) ;; not in every EusLisp X build: XDefaultColormap of libX11
+    (eval `(defforeign x::DefaultColormap ,*xft-lib* "XDefaultColormap" (:integer :integer) :integer)))
+  (x::DefaultColormap x::*display* x::*screen-no*))
 
 (defun xft-init (&optional force)
-  "open a Japanese font with Xft; t if ok"
+  "open a Japanese font with Xft; t if ok (nil without libXft / a Japanese font / errors)"
   (when (or force (not *xft-tried*))
+    (setq *xft-tried* t)
+    (unless (xft-protect-call #'(lambda () (xft-init-1) t))
+      (setq *xft-font* nil)))
+  (if *xft-font* t nil))
+(defun xft-init-1 ()
+  (progn
     (setq *xft-tried* t *xft-font* nil)
     (when (and (boundp 'x::*display*) (numberp x::*display*) (/= x::*display* 0) (xft-load))
       (dolist (name (append (if (unix:getenv "EUSVIEW_FONT") (list (unix:getenv "EUSVIEW_FONT")))
@@ -91,8 +101,7 @@
         (xft-color-alloc-name x::*display* x::*visual* (xft-colormap) "black" *xft-black*)
         (let ((e (xft-extents "あAg")))
           (setq *xft-ascent* (max 8 (elt e 2)) *xft-height* (max 12 (+ (elt e 1) 2))))
-        (format t ";; xft: font ~S (~A px)~%" *xft-font-name* *xft-pixel-size*))))
-  (if *xft-font* t nil))
+        (format t ";; xft: font ~S (~A px)~%" *xft-font-name* *xft-pixel-size*)))))
 
 (defun xft-draw-string (win x y str)
   "draw the UTF-8 string str in the X window win at x, baseline y"

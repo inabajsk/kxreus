@@ -44,6 +44,8 @@ EusView demo (eusview.l, like the EusView iPhone/Mac app):
     ;; robot panel: poses, project motions (RCB4 emulation), physics, servo, live, joint sliders
     ;; physics: kxrdyna.l if found, else eusview-physics.l (ODE via libeusviewode.so)
     ;; Japanese labels (motion names, status) with Xft: eusview-xft.l
+    ;; (also used by kxrviewer.l robot-control-panel for the motion menus; falls back to the
+    ;;  X core font without libXft or a Japanese font)
 3) make eusview-desktop
     ;; Ubuntu: makes an EusView icon on the desktop and in the applications menu
     ;; (~/.local/share/applications/eusview.desktop -> eusview.sh). Click it to start.

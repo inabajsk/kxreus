@@ -5367,6 +5367,10 @@ EusView パネル: KXR / KHR / JSK のメニューでロボットを選ぶ．
   止めて元の姿勢に戻る．servo で脱力．状態の行に経過時間と接触点の数．
   日本語(モーション名，状態の行)は eusview-xft.l が Xft(libXft+fontconfig) で描く．
   日本語フォント(Noto Sans CJK JP, IPAGothic, TakaoGothic ...)がなければ ASCII だけ．
+  kxrviewer.l の robot-control-panel のモーション表(project motion / call rom motion /
+  edit motion table)と remocon のメニューも，eusview-xft.l があれば Xft で日本語の
+  モーション名を出す(実行時に *rcb4eus-dir*/eusview-xft.l を読む．libXft か日本語フォントが
+  なければ従来の button-item のまま)．
   ロボットは (kxr-make-robot name :model nil) で作る(models/ にファイルを書かない)．
   モーションは rcb4-interface の :emulate-motion-code でキーフレームを求めてから
   実時間で補間して表示する(サーボ命令に入っていないサーボは今の角度のまま)．
