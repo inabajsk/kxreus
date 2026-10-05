@@ -5345,6 +5345,8 @@ iPhone / Mac の EusView アプリと同じように，ロボットを選んで
 姿勢・モーション・物理を見るデモ．irtviewer と X のパネルで動く．
 
 cd ~/kxreus
+sudo apt install libode-dev fonts-noto-cjk ;; 物理(ODE)と日本語フォント(Ubuntu)
+make eusview-ode                   ;; 物理用の Linux64/lib/libeusviewode.so を作る
 irteusgl eusview.l "(eusview)"     ;; roseus eusview.l "(eusview)" でもよい
 (eusview "kxrl4r")                 ;; 最初に出すロボットを指定
 make eusview                       ;; 端末から起動
@@ -5357,7 +5359,14 @@ EusView パネル: KXR / KHR / JSK のメニューでロボットを選ぶ．
   name: にロボット名((kxr-all-robot-names) のどれか, JSK のモデル名)を入れて Enter．
 ロボットのパネル: 姿勢(zero, reset-pose, init-pose, sit-pose ...)，
   motion 0- 30- ... (プロジェクトのモーション表を RCB4 のエミュレーションで再生)，
-  stop, physics (kxrdyna.l の ODE, libeusode があるときだけ), live, 関節のスライダー．
+  stop, physics, servo, live, 関節のスライダー．
+  physics: kxrdyna.l(eusdyna) と libeusode があればそれを使い，なければ
+  eusview-physics.l (iPhone/Mac の EusView アプリと同じ ODE の C 層 eusview-ode/odesim.cpp
+  を make eusview-ode で共有ライブラリにし defforeign で呼ぶ) で動かす．床は z=0，今の姿勢で
+  床に置き，姿勢ボタン・スライダー・モーションの角度をサーボの目標にする．もう一度押すと
+  止めて元の姿勢に戻る．servo で脱力．状態の行に経過時間と接触点の数．
+  日本語(モーション名，状態の行)は eusview-xft.l が Xft(libXft+fontconfig) で描く．
+  日本語フォント(Noto Sans CJK JP, IPAGothic, TakaoGothic ...)がなければ ASCII だけ．
   ロボットは (kxr-make-robot name :model nil) で作る(models/ にファイルを書かない)．
   モーションは rcb4-interface の :emulate-motion-code でキーフレームを求めてから
   実時間で補間して表示する(サーボ命令に入っていないサーボは今の角度のまま)．

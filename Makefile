@@ -248,10 +248,42 @@ EUSVIEW_OS ?= $(shell /usr/bin/uname -s)
 EUSVIEW_APPS_DIR ?= $(HOME)/.local/share/applications
 EUSVIEW_DESKTOP_FILE = $(EUSVIEW_APPS_DIR)/eusview.desktop
 
+# physics of eusview.l without kxrdyna.l: ODE through eusview-ode/odesim.cpp (the EusView app's
+# C layer) -> $(EUSVIEW_ODE_LIB), loaded by eusview-physics.l (defforeign).
+#   Ubuntu: sudo apt install libode-dev; make eusview-ode
+#   macOS : ODE_DIR=<dir with libode.a and Headers/ or include/> make eusview-ode
+EUSVIEW_UNAME = $(shell /usr/bin/uname -s)-$(shell /usr/bin/uname -m)
+EUSVIEW_ARCH ?= $(or $(ARCHDIR),$(if $(filter Linux-x86_64,$(EUSVIEW_UNAME)),Linux64,$(if $(filter Linux-%,$(EUSVIEW_UNAME)),LinuxARM,$(shell /usr/bin/uname -s))))
+EUSVIEW_ODE_LIB = $(PWD)/$(EUSVIEW_ARCH)/lib/libeusviewode.so
+ODE_DIR ?= $(firstword $(wildcard $(HOME)/mnist/eusview/ios/third_party/ODE.xcframework/macos-$(shell /usr/bin/uname -m)))
+EUSVIEW_ODE_SRC = eusview-ode/odesim.cpp eusview-ode/eusviewode.cpp
+
+eusview-ode: $(EUSVIEW_ODE_LIB)
+
+$(EUSVIEW_ODE_LIB): $(EUSVIEW_ODE_SRC) eusview-ode/odesim.h
+	@mkdir -p $(dir $@)
+	@if [ "$(EUSVIEW_OS)" = Darwin ]; then \
+		if [ -z "$(ODE_DIR)" ] || [ ! -f "$(ODE_DIR)/libode.a" ]; then \
+			echo "eusview-ode: set ODE_DIR to a directory with libode.a and Headers/ode (or include/ode), e.g. brew install ode -> ODE_DIR=$$(brew --prefix 2>/dev/null)/opt/ode/lib"; exit 1; fi; \
+		INC=$$( [ -d "$(ODE_DIR)/Headers" ] && echo "$(ODE_DIR)/Headers" || echo "$(ODE_DIR)/../include" ); \
+		echo "c++ ... $(ODE_DIR)/libode.a -> $@"; \
+		c++ -O2 -fPIC -shared -std=c++14 -include algorithm -I$$INC -o $@ $(EUSVIEW_ODE_SRC) $(ODE_DIR)/libode.a || exit 1; \
+	else \
+		if pkg-config --exists ode 2>/dev/null; then \
+			CF="$$(pkg-config --cflags ode)"; LF="$$(pkg-config --libs ode)"; \
+		elif [ -f /usr/include/ode/ode.h ]; then CF="-DdDOUBLE"; LF="-lode"; \
+		else echo "eusview-ode: ODE not found -- sudo apt install libode-dev"; exit 1; fi; \
+		echo "g++ ... $$CF $$LF -> $@"; \
+		g++ -O2 -fPIC -shared -std=c++14 -include algorithm $$CF -o $@ $(EUSVIEW_ODE_SRC) $$LF || exit 1; \
+	fi
+	@echo "eusview-ode: $@"
+
 eusview:
+	-@$(MAKE) --no-print-directory eusview-ode || echo "eusview-ode failed: eusview runs without physics"
 	./eusview.sh $(ROBOT)
 
 eusview-desktop:
+	-@$(MAKE) --no-print-directory eusview-ode || echo "eusview-ode failed: eusview runs without physics (sudo apt install libode-dev; make eusview-ode)"
 	@if [ "$(EUSVIEW_OS)" != Linux ]; then \
 		echo "eusview-desktop: the freedesktop launcher is for Ubuntu (Linux) -- nothing made on $(EUSVIEW_OS). Run: make eusview"; \
 	else \

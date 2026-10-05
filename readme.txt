@@ -37,9 +37,13 @@ How to use:
 
 EusView demo (eusview.l, like the EusView iPhone/Mac app):
 1) cd kxreus
+   sudo apt install libode-dev fonts-noto-cjk  ;; ODE for physics, a Japanese font for the motion names
+   make eusview-ode   ;; builds $ARCHDIR/lib/libeusviewode.so (eusview-ode/: the app's ODE layer)
 2) irteusgl eusview.l "(eusview)"   ;; or roseus eusview.l "(eusview)", or make eusview
     ;; EusView panel: choose a robot from KXR / KHR / JSK menus (or type a name)
-    ;; robot panel: poses, project motions (RCB4 emulation), physics (kxrdyna, ODE), live, joint sliders
+    ;; robot panel: poses, project motions (RCB4 emulation), physics, servo, live, joint sliders
+    ;; physics: kxrdyna.l if found, else eusview-physics.l (ODE via libeusviewode.so)
+    ;; Japanese labels (motion names, status) with Xft: eusview-xft.l
 3) make eusview-desktop
     ;; Ubuntu: makes an EusView icon on the desktop and in the applications menu
     ;; (~/.local/share/applications/eusview.desktop -> eusview.sh). Click it to start.
