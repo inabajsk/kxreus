@@ -5365,6 +5365,10 @@ EusView パネル: KXR / KHR / JSK のメニューでロボットを選ぶ．
   を make eusview-ode で共有ライブラリにし defforeign で呼ぶ) で動かす．床は z=0，今の姿勢で
   床に置き，姿勢ボタン・スライダー・モーションの角度をサーボの目標にする．もう一度押すと
   止めて元の姿勢に戻る．servo で脱力．状態の行に経過時間と接触点の数．
+  physics と servo のボタンはトグルで，ラベルに状態(physics: ON/off, servo: on/OFF)を出す．
+  モーションのメニューで選んだ動作は stop を押すまで繰り返す(別の動作を選ぶと切り替わる)．
+  KHR3 のプロジェクト: projects/Hello_khr3, projects/Hello_khr3sl5a3h2 (KHR-3HV のサンプル
+  Hello_KHR3(V2.3).h4p)．:project-file "khr3semi" のロボットは Hello_khr3sl5a3h2 を使う．
   日本語(モーション名，状態の行)は eusview-xft.l が Xft(libXft+fontconfig) で描く．
   日本語フォント(Noto Sans CJK JP, IPAGothic, TakaoGothic ...)がなければ ASCII だけ．
   kxrviewer.l の robot-control-panel のモーション表(project motion / call rom motion /
