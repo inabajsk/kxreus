@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 同じ LAN の Mac (live.py) へ ws:// (暗号化なし) で接続するため -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true" />
+</network-security-config>

@@ -1,0 +1,596 @@
+;; kxreus *kxr-body-config-alist* (rcb4robotconfig.l): 593 entries, in file order
+;; name [aliases] : model params (truncated)
+;; export: EUSVIEW_ROBOTS="name1 name2" eusview/run-eus.sh eusview/export-kxr.l
+kxrroboset1 : (:robotset ("kxrl2body" (:neck "d405eyes") (:larm "la6" "lg1sx") (:rarm "ra6" "rg1sx") (:lleg "lleg5" "lsf") (:rleg "rleg5" "rsf")))
+kxrroboset2 : (:robotset ("kxrl2sbody" (:neck "d405eyes") (:larm "la6" "lg1sx") (:rarm "ra6" "rg1sx") (:lleg "llegs6" "lsf") (:rleg "rlegs6" "rsf")))
+kxrroboset3 : (:robotset ("kxrl27body" (:neck "d405eyes") (:larm "la7" "lg1sx") (:rarm "ra7" "rg1sx") (:lleg "lleg5" "lsf") (:rleg "rleg5" "rsf")))
+kxrroboset4 : (:robotset ("kxrl27sbody" (:neck "d405eyes") (:larm "la7" "lg1sx") (:rarm "ra7" "rg1sx") (:lleg "llegs6" "lsf") (:rleg "rlegs6" "rsf")))
+kxrroboset5 : (:robotset ("kxrl27body" (:neck "d405cam") (:larm "la7" "lg1sx") (:rarm "ra7" "rg1sx") (:lleg "kxrlleg1y" "lleg5" "lsf") (:rleg "kxrrleg1y" "rleg5" "rsf")))
+kxrroboset5b : (:robotset ("kxrl27body" (:neck "d405cam") (:larm "la7" "lg1sx") (:rarm "ra7" "rg1sx") (:lleg "lleg6" "lsf") (:rleg "rleg6" "rsf")))
+kxrroboset6b : (:robotset ("kxrl2a6h2body" (:lleg "kxrlleg1y" "kxrlleg1rf") (:rleg "kxrrleg1y" "kxrrleg1rf")))
+kxrroboset6 : (:robotset ("kxrl2a6h2body" (:lleg "kxrlleg5f") (:rleg "kxrrleg5f")))
+kxrroboset5g : (:robotset ("kxrl2a6h2body" (:larm "lg1sx") (:rarm "rg1sx") (:lleg "kxrlleg5f") (:rleg "kxrrleg5f")))
+kxrroboset6g : (:robotset ("kxrl2a6h2body" (:larm "lg1sx") (:rarm "rg1sx") (:lleg "kxrlleg5f") (:rleg "kxrrleg5f")))
+kxrroboset : (:robotset ("kxrl2a6h2body" (:larm "lg1sx") (:rarm "rg1sx") (:lleg "kxrlleg1y" "kxrlleg5f") (:rleg "kxrrleg1y" "kxrrleg5f")))
+kxrrobosetmw4 : (:project-file "kxra6g" :robotset ("kxrl2body" (:neck "d405echos") (:larm "la6" "lg1sx") (:rarm "ra6" "rg1sx") (:mbase "kxrmw4base")))
+kxrrobosett1mw4 : (:project-file "kxra6g" :robotset ("kxrl2body" (:neck "d405echos") (:larm "la6" "lg1sx") (:rarm "ra6" "rg1sx") (:mbase "kxrt1mw4base")))
+kxrrobosetmw4b : (:robotset ("kxrl2a6h2body" (:larm "lg1sx") (:rarm "rg1sx") (:mbase "kxrmw4base")))
+kxrrobosett1mw4b : (:robotset ("kxrl2a6h2body" (:larm "lg1sx") (:rarm "rg1sx") (:mbase "kxrt1mw4base")))
+kxrrobosetow4 : (:robotset ("kxrl2body" (:neck "d405echos") (:larm "la6" "lg1sx") (:rarm "ra6" "rg1sx") (:mbase "kxrow4base")))
+kxrrobosett1ow4 : (:robotset ("kxrl2body" (:neck "d405echos") (:larm "la6" "lg1sx") (:rarm "ra6" "rg1sx") (:mbase "kxrt1ow4base")))
+kxrrobosetow4b : (:robotset ("kxrl2a6h2body" (:larm "lg1sx") (:rarm "rg1sx") (:mbase "kxrow4base")))
+kxrrobosett1ow4b : (:robotset ("kxrl2a6h2body" (:larm "lg1sx") (:rarm "rg1sx") (:mbase "kxrt1ow4base")))
+kxrrobosetdw4 : (:robotset ("kxrl2body" (:neck "d405echos") (:larm "la6" "lg1sx") (:rarm "ra6" "rg1sx") (:mbase "kxrdw4base")))
+kxrrobosett1dw4 : (:robotset ("kxrl2body" (:neck "d405echos") (:larm "la6" "lg1sx") (:rarm "ra6" "rg1sx") (:mbase "kxrt1dw4base")))
+kxrrobosetdw4b : (:robotset ("kxrl2a6h2body" (:larm "lg1sx") (:rarm "rg1sx") (:mbase "kxrdw4base")))
+kxrrobosett1dw4b : (:robotset ("kxrl2a6h2body" (:larm "lg1sx") (:rarm "rg1sx") (:mbase "kxrt1dw4base")))
+kxrrobosetl4t : (:project-file "kxra6g" :robotset ("kxrl2body" (:neck "d405echos") (:larm "la6" "lg1sx") (:rarm "ra6" "rg1sx") (:mbase "kxrl4tbase")))
+kxrrobosett1l4t : (:project-file "kxra6g" :robotset ("kxrl2body" (:neck "d405echos") (:larm "la6" "lg1sx") (:rarm "ra6" "rg1sx") (:mbase "kxrt1l4tbase")))
+kxrrobosetkamakiri : (:project-file "kxra6g" :robotset ("kxrl2body" (:neck "d405eyes") (:larm "la6" "lg1sx") (:rarm "ra6" "rg1sx") (:mbase "kxrt1l4tbase")))
+kxrrobosetkamakiri2 : (:project-file "kxra6g" :robotset ("kxrl2body" (:neck "d405eyes") (:larm "la6" "lg1sx") (:rarm "ra6" "rg1sx") (:mbase "kxrl4tbase")))
+kxrkamakiri : (:project-file "kxrkamakiri" :body :t1l4tbase :torso :y :type :l4 :head :d405eyes :shoulder :pry-cross :shoulder-front t :shoulder-low t :flat-shoulder nil :elb
+kxrkamakiri2 : (:project-file "kxrkamakiri" :body :l4tbase :type :l4 :head :d405eyes :shoulder :pry-cross :shoulder-front t :shoulder-low t :flat-shoulder nil :elbow :angle :w
+kxrkamakiri4 : (:project-file "kxrkamakiri" :body :t1l4tbase :torso :y :type :l4 :head :d405eyes :shoulder :p-r-y :shoulder-front t :shoulder-low t :flat-shoulder nil :leg0 :j
+kxrrobosetl6 : (:project-file "kxra6g" :robotset ("kxrl2body" (:neck "d405echos") (:larm "la6" "lg1sx") (:rarm "ra6" "rg1sx") (:mbase "kxrl6base")))
+kxrrobosett1l6 : (:project-file "kxra6g" :robotset ("kxrl2body" (:neck "d405eyes") (:larm "la6" "lg1sx") (:rarm "ra6" "rg1sx") (:mbase "kxrt1l6base")))
+kxrrobosetl6b : (:project-file "kxra6g" :robotset ("kxrl2a6h2body" (:larm "lg1sx") (:rarm "rg1sx") (:mbase "kxrl6base")))
+kxrrobosett1l6b : (:project-file "kxra6g" :robotset ("kxrl2a6h2body" (:larm "lg1sx") (:rarm "rg1sx") (:mbase "kxrt1l6base")))
+kxrrobosetl2l2-old : (:robotset ("kxrl2a6h2body" (:neck "d405echos") (:larm "lg1sx") (:rarm "rg1sx") (:mbase "kxrl2l2base")))
+kxrrobosetl2l2 : (:robotset ("kxrl2body" (:neck "d405echos") (:larm "la6" "lg1sx") (:rarm "ra6" "rg1sx") (:mbase "kxrl2l2base")))
+kxrrobosett1l2l2 : (:robotset ("kxrl2body" (:neck "d405echos") (:larm "la6" "lg1sx") (:rarm "ra6" "rg1sx") (:mbase "kxrt1l2l2base")))
+kxrrobosetl2l5-old : (:robotset ("kxrl2a6h2body" (:larm "lg1sx") (:rarm "rg1sx") (:mbase "kxrl2l5base")))
+kxrrobosetl2l5 : (:robotset ("kxrl2body" (:neck "d405echos") (:larm "la6" "lg1sx") (:rarm "ra6" "rg1sx") (:mbase "kxrl2l5base")))
+kxrrobosett1l2l5 : (:robotset ("kxrl2body" (:neck "d405echos") (:larm "la6" "lg1sx") (:rarm "ra6" "rg1sx") (:mbase "kxrt1l2l5base")))
+llegs6 : (:body :mag+7 :type :module :noarm t :limb :lleg :leg :l6s :end :mag-7)
+rlegs6 : (:body :mag+7 :type :module :noarm t :limb :rleg :leg :l6s :end :mag-7)
+lleg6 : (:body :mag+7 :type :module :noarm t :limb :lleg :leg :l6 :end :mag-7)
+lleg6s : (:body :mag+7 :type :module :noarm t :limb :lleg :leg :l6 :end :mag-7)
+lleg6f : (:body :mag+7 :type :module :noarm t :limb :lleg :leg :l6 :sole t)
+lleg6sf : (:body :mag+7 :type :module :noarm t :limb :lleg :leg :l6 :sole t)
+rleg6 : (:body :mag+7 :type :module :noarm t :limb :rleg :leg :l6 :end :mag-7)
+rleg6s : (:body :mag+7 :type :module :noarm t :limb :rleg :leg :l6 :end :mag-7)
+rleg6f : (:body :mag+7 :type :module :noarm t :limb :rleg :leg :l6 :sole t)
+rleg6sf : (:body :mag+7 :type :module :noarm t :limb :rleg :leg :l6 :sole t)
+lleg5 : (:body :mag+7 :type :module :noarm t :limb :lleg :leg :l5 :end :mag-7)
+rleg5 : (:body :mag+7 :type :module :noarm t :limb :rleg :leg :l5 :end :mag-7)
+llegs6f : (:body :mag+7 :type :module :noarm t :limb :lleg :leg :l6s :sole t)
+rlegs6f : (:body :mag+7 :type :module :noarm t :limb :rleg :leg :l6s :sole t)
+kxrrobosetl2l6s0 : (:robotset ("kxrl2sbody" (:neck "d405echos") (:larm "la6" "lg1sx") (:rarm "ra6" "rg1sx") (:lleg "llegs6f") (:rleg "rlegs6f")))
+kxrrobosetl2l6s : (:robotset ("kxrl2sbody" (:neck "d405echos") (:larm "la6" "lg1sx") (:rarm "ra6" "rg1sx") (:lleg "llegs6" "llegf") (:rleg "rlegs6" "rlegf")))
+lsf : (:body :mag+7 :type :module :noarm t :limb :lleg :leg :foot :sole-sensor t)
+rsf : (:body :mag+7 :type :module :noarm t :limb :rleg :leg :foot :sole-sensor t)
+kxrrobosetl2l6s1 : (:robotset ("kxrl2sbody" (:neck "d405cam") (:larm "la6" "lg1sx") (:rarm "ra6" "rg1sx") (:lleg "llegs6" "lsf") (:rleg "rlegs6" "rsf")))
+kxrrobosetl2l6s2 : (:robotset ("kxrl2sbody" (:neck "d405cam") (:larm "la6" "lg1sx") (:rarm "ra6" "rg1sx") (:lleg "llegs6" "llegf") (:rleg "rlegs6" "rlegf")))
+kxrrobosetl2l6 : (:robotset ("kxrl2body" (:neck "d405echos") (:larm "la6" "lg1sx") (:rarm "ra6" "rg1sx") (:mbase "kxrl2l6base")))
+kxrrobosett1l2l6 : (:robotset ("kxrl2body" (:neck "d405echos") (:larm "la6" "lg1sx") (:rarm "ra6" "rg1sx") (:mbase "kxrt1l2l6base")))
+kxrrobosetl2l6-2 : (:robotset ("kxrl2a6body" (:neck "d405cam") (:larm "lg1sx") (:rarm "rg1sx") (:mbase "kxrl2l6base")))
+head-gripper : (:body :mag+7 :noleg t :noarm t :type :module :limb :head :neck nil :head :gripper-y)
+kxrl4nh4gir : (:robotset ("kxrl4nh4" (:head "head-gripper")))
+kxrl2sbody : (:body :l2l6s :type :module :noleg t :noarm t :crotch-front t :shoulder-front nil :end :mag-7)
+kxrl2body : (:body :l2l5m :type :module :noleg t :noarm t :end :mag-7)
+kxrl27body : (:body :l2l5a :type :module :shoulder :ypry-cross :noleg t :noarm t :end :mag-7)
+kxrl27sbody : (:body :l2l6s :type :module :shoulder :ypry-cross :noleg t :noarm t :end :mag-7)
+kxrl2h2body : (:body :l2l5m :type :module :noleg t :noarm t :head :h1 :head-length 20 :end :mag-7)
+kxrl2a6h2g1body : (:body :l2l5a :board :armh7 :noleg t :head :h1 :head-length 20 :end :mag-7 :shoulder :pry-cross :shoulder-front t :shoulder-low t :flat-shoulder nil :elbow :ang
+kxrl2a6h2body : (:body :l2l5m :type :module :noleg t :head :h1 :head-length 20 :shoulder :pry-cross :shoulder-front t :shoulder-low t :flat-shoulder nil :elbow :angle :wrist :c
+kxrl2a6body : (:body :l2l5m :board :armh7 :noleg t :end :mag-7 :shoulder :pry-cross :shoulder-front t :shoulder-low t :flat-shoulder nil :elbow :angle :wrist :cross-pr :upper
+kxrl2l6body : (:body :l2l6base :board :armh7 :noleg t :noarm t)
+kxrl2l6h2body : (:body :l2l6 :board :armh7 :noleg t :noarm t :head :h2 :head-length 20 :end :horn-mag-)
+kxrl2l2base : (:body :l2l6base :type :module :project-file "kxra6g" :noarm t :crotch-p nil :leg :j2-pr :sole t)
+kxrt1l2l2base : (:body :t1l2l6base :type :module :project-file "kxra6g" :noarm t :crotch-p nil :torso :y :leg :j2-pr :sole t)
+kxrl2l5base : (:body :l2l5base :type :module :project-file "kxra6g" :noarm t :crotch-p nil :sole t)
+kxrt1l2l5base : (:body :t1l2l5base :type :module :project-file "kxra6g" :noarm t :crotch-p nil :torso :y :sole t)
+kxrl2l6base : (:body :l2l6base :type :module :project-file "kxra6g" :noarm t :crotch-p nil :sole t)
+kxrt1l2l6base : (:body :t1l2l6base :type :module :project-file "kxra6g" :noarm t :crotch-p nil :torso :y :sole t)
+kxrl4tbase : (:body :l4tbase :type :module :leg0 :j2-2m :leg1 :j2-2m :project-file "kxrl4tm" :noarm t)
+kxrt1l4tbase : (:body :t1l4tbase :type :module :leg0 :j2-2m :leg1 :j2-2m :torso :y :noarm t :project-file "kxrl4tm")
+kxrl6base : (:body :l6base :type :module :leg0 :j3-3m :leg1 :j3-3m :leg2 :j3-3m :noarm t :project-file "kxrl6")
+kxrt1l6base : (:body :t1l6base :type :module :leg0 :j3-3m :leg1 :j3-3m :leg2 :j3-3m :torso :y :noarm t :project-file "kxrl6")
+kxrmw4base : (:body :mw4base :type :module :noarm t :leg :j2m :lidar t :wheel-battery-stand t :wheel-base-a nil :wheel-base-wide t :wheel-servo-stand t)
+kxrt1mw4base : (:body :t1mw4base :type :module :noarm t :leg :j2m :lidar t :wheel-battery-stand t :wheel-base-a nil :wheel-base-wide t :wheel-servo-stand t :torso :y)
+kxrow4base : (:body :ow4base :type :module :noarm t :leg :j2o :lidar t :wheel-battery-stand t :wheel-base-a nil :wheel-base-wide t :wheel-servo-stand t)
+kxrt1ow4base : (:body :t1ow4base :type :module :noarm t :leg :j2o :lidar t :wheel-battery-stand t :wheel-base-a nil :wheel-base-wide t :wheel-servo-stand t :torso :y)
+kxrdw4base : (:body :dw4base :type :module :noarm t :leg :j2d :lidar t :wheel-battery-stand t :wheel-base-a nil :wheel-base-wide t :wheel-servo-stand t)
+kxrt1dw4base : (:body :t1dw4base :type :module :noarm t :leg :j2d :lidar t :wheel-battery-stand t :wheel-base-a nil :wheel-base-wide t :wheel-servo-stand t :torso :y)
+kxrlarma6 : (:body :limb :noleg t :limb :larm :type :module :shoulder :pry-cross :shoulder-front t :shoulder-low t :flat-shoulder nil :elbow :angle :wrist :cross-pr :upper-
+kxrrarma6 : (:body :limb :noleg t :limb :rarm :shoulder :pry-cross :shoulder-front t :shoulder-low t :flat-shoulder nil :elbow :angle :wrist :cross-pr :upper-arm-length 38)
+la6 : (:body :mag+7 :noleg t :limb :larm :type :module :shoulder :pry-cross :shoulder-front t :shoulder-low t :flat-shoulder nil :elbow :angle :wrist :cross-pr :upper
+ra6 : (:body :mag+7 :noleg t :limb :rarm :type :module :shoulder :pry-cross :shoulder-front t :shoulder-low t :flat-shoulder nil :elbow :angle :wrist :cross-pr :upper
+la7 : (:body :mag-0 :noleg t :limb :larm :type :module :shoulder :ypry-cross :shoulder-front t :shoulder-low t :flat-shoulder nil :elbow :angle :wrist :cross-pr :uppe
+ra7 : (:body :mag-0 :noleg t :limb :rarm :type :module :shoulder :ypry-cross :shoulder-front t :shoulder-low t :flat-shoulder nil :elbow :angle :wrist :cross-pr :uppe
+kxrlleg2+ : (:body :limb :type :module :noarm t :limb :lleg :leg :j2)
+kxrlleg3+ : (:body :limb :noarm t :limb :lleg :leg :j3)
+kxrlleg4+ : (:body :limb :noarm t :limb :lleg :leg :j4)
+kxrrleg4+ : (:body :limb :noarm t :limb :rleg :leg :j4)
+kxrlleg1y : (:body :mag+7 :type :module :noarm t :limb :lleg :leg :l1y :end :horn-mag-)
+kxrrleg1y : (:body :mag+7 :type :module :noarm t :limb :rleg :leg :l1y :end :horn-mag-)
+kxrlleg1r : (:body :mag+7 :type :module :noarm t :limb :lleg :leg :l1r :end :mag-7)
+kxrrleg1r : (:body :mag+7 :type :module :noarm t :limb :rleg :leg :l1r :end :mag-7)
+kxrlleg1rf : (:body :mag+7 :type :module :noarm t :limb :lleg :leg :l1r :sole t)
+kxrrleg1rf : (:body :mag+7 :type :module :noarm t :limb :rleg :leg :l1r :sole t)
+kxrlleg1yf : (:body :mag+7 :type :module :noarm t :limb :lleg :leg :l1y :sole t)
+kxrrleg1yf : (:body :mag+7 :type :module :noarm t :limb :rleg :leg :l1y :sole t)
+lleg2 : (:body :mag+7 :type :module :noarm t :limb :lleg :leg :l2 :end :mag-7)
+rleg2 : (:body :mag+7 :type :module :noarm t :limb :lleg :leg :l2 :end :mag-7)
+lleg2f : (:body :mag+7 :type :module :noarm t :limb :lleg :leg :l2 :sole t)
+rleg2f : (:body :mag+7 :type :module :noarm t :limb :rleg :leg :l2 :sole t)
+lleg5 kxrlleg5 : (:body :mag+7 :type :module :noarm t :limb :lleg :leg :l5 :end :mag-7)
+rleg5 kxrrleg5 : (:body :mag+7 :type :module :noarm t :limb :lleg :leg :l5 :end :mag-7)
+lleg5f kxrlleg5f : (:body :mag+7 :type :module :noarm t :limb :lleg :leg :l5 :sole t)
+rleg5f kxrrleg5f : (:body :mag+7 :type :module :noarm t :limb :rleg :leg :l5 :sole t)
+lleg6w kxrlleg6w : (:body :mag+7 :type :module :noarm t :limb :lleg :leg :l6w :end :mag-7)
+rleg6w kxrrleg6w : (:body :mag+7 :type :module :noarm t :limb :rleg :leg :l6w :end :mag-7)
+lleg6wf kxrlleg6wf : (:body :mag+7 :type :module :noarm t :limb :lleg :leg :l6w :sole t)
+rleg6wf kxrrleg6wf : (:body :mag+7 :type :module :noarm t :limb :rleg :leg :l6w :sole t)
+kxrbackpack : (:body :backpack)
+kxrarmh7 : (:body :board :board :armh7)
+drill : (:file "system-cobotta.l" :form (drill) :board :armh7 :com-init-method (:arm2-open))
+cobotta-drill : (:file "system-cobotta.l" :form (cobotta-drill) :board :armh7 :com-init-method (:arm2-open))
+cobotta_drill : (:file "models/cobotta_drill.l" :form (cobotta) :board :armh7 :com-init-method (:arm2-open))
+cobotta-gripper : (:file "models/cobotta_gripper.l" :form (cobotta) :board :armh7 :com-init-method (:arm2-open))
+cobotta : (:file "models/cobotta.l" :form (cobotta) :board :armh7 :com-init-method (:arm2-open))
+kxrhead kxrhead1 : (:body :backpack :board :armh7 :head :h1)
+kxrarm : (:file "irteus/demo/hanoi-arm.l" :form (progn (setq *sarm* (instance sarmclass :init))) :board :armh7 :com-init-method (:arm2-open))
+kxrhead2 : (:body :backpack :board :armh7 :head :h2)
+kxrheadeye : (:body :backpack :board :armh7 :head :m3eye :neck :y-p-r :3eye-rev 3)
+kxrl6 : (:body :l6 :type :l6 :arm :j3 :marm :j3 :leg :j3 :backpack t :board :armh7)
+kxrl6a6h2m : (:body :l6base :type :l6 :leg0 :j3-3m :leg1 :j3-3m :leg2 :j3-3m :head :d405eyes :shoulder :pry-cross :shoulder-front t :shoulder-low t :flat-shoulder nil :elbow
+kxrt1l6a6h2m : (:body :t1l6base :leg0 :j3-3m :leg1 :j3-3m :leg2 :j3-3m :head :d405eyes :shoulder :pry-cross :shoulder-front t :shoulder-low t :flat-shoulder nil :elbow :angle 
+kxrl6s : (:body :l6 :type :l6 :arm :j3 :marm :j3 :leg :j3 :backpack t :project-file "kxrl6" :wrist-sensor :larm)
+kxrl6r : (:body :l6 :type :l6 :arm :j3 :marm :j3 :leg :j3 :backpack t :project-file "kxrl6" :com-init-method (:rcb4-open :vid 5724 :pid 8 :parity 2) :board :rcb4 :interf
+kxrl6dy1 : (:body :l6 :type :l6 :arm :j3 :marm :j3 :leg :j3 :head :d2 :neck t :backpack t)
+kxrl6d1 : (:body :l6 :type :l6 :arm :j3 :marm :j3 :leg :j3 :head :d1 :backpack t)
+kxrl6d2 : (:body :l6 :type :l6 :arm :j3 :marm :j3 :leg :j3 :head :d2 :backpack t)
+kxrl6a2 : (:body :l6 :type :l6 :arm :j2 :marm :j2 :leg :j2 :head :h2s :backpack t)
+kxrl6b : (:body :l6 :type :l6 :arm :j1w :marm :j3 :leg :j2 :head :d :backpack t)
+kxrl6b1 : (:body :l6 :type :l6 :arm :j1w :marm :j3 :leg :j2 :head :d1 :backpack t)
+kxrl6b2 : (:body :l6 :type :l6 :arm :j1w :marm :j3 :leg :j2 :head :d2 :backpack t)
+kxrl6c : (:body :l6 :type :l6 :arm :j1w :marm :j3 :leg :j1w :head :h2s :backpack t)
+kxrl6c1 : (:body :l6 :type :l6 :arm :j1w :marm :j3 :leg :j1w :head :d1 :backpack t)
+kxrl6c2 : (:body :l6 :type :l6 :arm :j1w :marm :j3 :leg :j1w :head :d2 :backpack t)
+kxrl6dw : (:body :l6 :type :l6 :arm :j2 :marm :j3 :leg :j1w :head :d :backpack t)
+kxrl6d1w : (:body :l6 :type :l6 :arm :j2 :marm :j3 :leg :j1w :head :d1 :backpack t)
+kxrl6d2w : (:body :l6 :type :l6 :arm :j2 :marm :j3 :leg :j1w :head :d2 :backpack t)
+kxrl6e : (:body :l6 :type :l6 :arm :j1w :marm :j1w :leg :j1w :head :e :backpack t)
+kxrl4tm : (:body :l4t :type :l4 :arm :j2 :leg :j2 :head :h2s :project-file "kxrl4tm")
+kxrl4tus : (:body :l4t :type :l4 :arm :j2 :leg :j2 :head :m5us :project-file "kxrl4t")
+kxrl4tvs : (:body :l4t :type :l4 :arm :j2 :leg :j2 :head :h2sn :project-file "kxrl4t")
+kxrl4th2s : (:body :l4t :type :l4 :arm :j2 :leg :j2 :head :h2s :project-file "kxrl4t")
+kxrl4th3s : (:body :l4t :type :l4 :arm :j2 :leg :j2 :head :h2s :neck :y-p-r :project-file "kxrl4t")
+kxrl4th3sn : (:body :l4t :type :l4 :head :h2sn :neck :y-p-r :arm :j2 :leg :j2 :project-file "kxrl4t")
+kxrl4t : (:body :l4t :type :l4 :arm :j2 :leg :j2 :head :h1 :project-file "kxrl4t")
+kxrl4th2 : (:body :l4t :type :l4 :arm :j2 :leg :j2 :head :h2 :project-file "kxrl4t" :board :rcb4)
+kxrl4th2a : (:body :l4t :type :l4 :head :m5sh :arm :j2 :leg :j2 :project-file "kxrl4t")
+kxrl4t5s : (:body :l4t :type :l4 :arm :j2 :leg :j2 :head :h2sh :project-file "kxrl4t")
+kxrl4r : (:body :l4t :type :l4 :arm :j1w :leg :j1w :head :h2s)
+kxrw4 : (:body :l4t :type :l4 :arm :j1w :leg :j1w :head :h2s)
+kxrmw4 : (:file "models/kxrmw4.l" :form (kxrmw4) :body :l4mw :type :l4 :leg :j2m :shoulder :pry-cross :shoulder-center t :shoulder-front nil :shoulder-low nil :flat-shou
+kuromitsu : (:body :l4mw-kuro :type :l4 :leg :j2m :shoulder t :shoulder-front t :shoulder-low nil :flat-shoulder t :radius 60 :wheel-battery-stand t :wheel-base-a t :wheel-
+kashiwagi : (:body :l4mw-kashi :type :l4 :leg :j2m :shoulder :kashiwagi-p-r :shoulder-front t :shoulder-low nil :flat-shoulder t :wheel-battery-stand t :wheel-base-a nil :w
+kxrmw4a7 : (:file "models/kxrmw4a7.l" :form (kxrmw4a7) :body :l4mw :type :l4 :leg :j2m :shoulder :ypry-cross :shoulder-center nil :shoulder-front t :shoulder-low nil :flat
+kxrow4 : (:file "models/kxrow4.l" :form (kxrow4) :body :l4ow :type :l4 :leg :j2o :shoulder :pry-cross :shoulder-center t :lidar t :shoulder-low nil :flat-shoulder nil :e
+kxrow4a7 : (:file "models/kxrow4a7.l" :form (kxrow4a7) :body :l4ow :type :l4 :leg :j2o :shoulder :ypry-cross :shoulder-front t :shoulder-low t :flat-shoulder nil :elbow :a
+kxrdw4a6h2m : (:body :l4dw :type :l4 :leg :j2d :shoulder :pry-cross :shoulder-center t :shoulder-front nil :shoulder-low nil :flat-shoulder nil :elbow :angle :wrist :cross-pr
+kxrdw4a7h2m : (:body :l4dw :type :l4 :leg :j2d :shoulder :ypry-cross :shoulder-front t :shoulder-low t :flat-shoulder nil :elbow :angle :wrist :cross-pr :upper-arm-length 38 
+guiga : (:body :l4t :type :l4 :arm :j1w :leg :j1w :head :h1)
+kxrl4rus : (:body :l4t :type :l4 :arm :j1w :leg :j1w :head :m5us :board :armh7)
+kxrl4rvs : (:body :l4t :type :l4 :arm :j1w :leg :j1w :head :h2sn :neck :y-p-r :board :armh7)
+kxrl4rh2s : (:body :l4t :type :l4 :arm :j1w :leg :j1w :head :h2s :board :armh7)
+kxrl4rh3s : (:body :l4t :type :l4 :arm :j1w :leg :j1w :head :h2s :neck :y-p-r :board :armh7)
+kxrr4 : (:body :l4t :type :l4 :arm :j1w :leg :j1w :head :h2s :project-file "kxrl4r")
+kxrr4m : (:body :l4t :type :l4 :arm :j1w :leg :j1w :head :h1 :project-file "kxrl4r")
+kxrl4r2a3 kxrl4r2a3h : (:body :l4t :type :l4 :arm :j3 :leg :j1w :head :h2sn)
+kxrl4r2a3h2 : (:body :l4t :type :l4 :arm :j3 :leg :j1w :head :e)
+kxrl4r2a3g : (:body :l4t :type :l4 :arm :j3 :leg :j1w :head :h2s :gripper-inner t :gripper-sensor :larm :board :armh7 :passive-wheel :shoulder)
+kxrl4r2a3gr : (:body :l4t :type :l4 :arm :j3 :leg :j1w :head :h2s :gripper-inner :rarm :passive-wheel :shoulder)
+kxrl4r2a3gl : (:body :l4t :type :l4 :arm :j3 :leg :j1w :head :realsense :gripper-inner :larm :board :armh7 :gripper-sensor :finger2 :passive-wheel :shoulder)
+kxrl4r2l3 : (:body :l4t :type :l4 :arm :j1w :leg :j3 :head :m5us :passive-wheel :shoulder)
+kxrl4l3a3 : (:body :l4t :type :l4 :arm :j3 :leg :j3 :head :m5s)
+kxrl4l3a3g : (:body :l4t :type :l4 :arm :j3 :leg :j3 :head :h1 :gripper t)
+kxrl4l3a3gi : (:body :l4t :type :l4 :arm :j3 :leg :j3 :head :h1 :gripper-inner t)
+kxrl4l3a3gil : (:body :l4t :type :l4 :arm :j3 :leg :j3 :head :h1 :gripper-inner (:larm :lleg))
+kxrl4l3a3ga : (:body :l4t :type :l4 :arm :j3 :leg :j3 :head :h1 :gripper (:larm :rarm))
+kxrl4l3a3gb : (:body :l4t :type :l4 :arm :j3 :leg :j3 :head :h1 :gripper (:lleg :rleg))
+kxrl4l3a3gl : (:body :l4t :type :l4 :arm :j3 :leg :j3 :head :h1 :gripper (:lleg :larm))
+kxrl4l3a3gc : (:body :l4t :type :l4 :arm :j3 :leg :j3 :head :h1 :gripper (:lleg :rarm))
+kxrl4l3a3gd : (:body :l4t :type :l4 :arm :j3 :leg :j3 :head :h1 :gripper (:rleg :larm))
+kxrl4l3a3gr : (:body :l4t :type :l4 :arm :j3 :leg :j3 :head :h1 :gripper (:rarm :rleg))
+kxrl4l3a3ia : (:body :l4t :type :l4 :arm :j3 :leg :j3 :head :h1 :gripper-inner (:larm :rarm))
+kxrl4l3a3ib : (:body :l4t :type :l4 :arm :j3 :leg :j3 :head :h1 :gripper-inner (:lleg :rleg))
+kxrl4l3a3il : (:body :l4t :type :l4 :arm :j3 :leg :j3 :head :h1 :gripper-inner (:lleg :larm))
+kxrl4l3a3ic : (:body :l4t :type :l4 :arm :j3 :leg :j3 :head :h1 :gripper-inner (:lleg :rarm))
+kxrl4l3a3id : (:body :l4t :arm :j3 :leg :j3 :head :h1 :gripper-inner (:rleg :larm))
+kxrl4l3a3ir : (:body :l4t :arm :j3 :leg :j3 :head :h1 :gripper-inner (:rarm :rleg))
+kxrl4c : (:body :l4d :marm :j4 :leg :j4 :head :m5sh :torso :ly-p :board :armh7 :shoulder :ly-p-r :wrist :r :gripper t)
+kxrl4ch : (:body :l4d :marm :j4 :leg :j4 :head :m5sh :torso :ly-p :shoulder :ly-p-r :wrist :r :gripper-inner t)
+kxrl4c2 : (:body :l4t :type :l4 :marm :j2 :leg :j2 :head :h2sh :torso :ly-p :shoulder :ly-p-r :wrist :r :gripper-inner t)
+kxrl4c3 : (:body :l4t :type :l4 :marm :j3 :leg :j3 :head :h2sh :torso :ly-p :shoulder :ly-p-r :wrist :r :gripper-inner (:larm :rarm))
+kxrl4c3b : (:body :l4t :type :l2 :marm :j3 :leg :j3 :head :h2sh :torso :ly-p :shoulder :ly-p-r :wrist :r :gripper-inner t)
+kxrl4cw : (:body :l4t :type :l2 :marm :j1w :leg :j1w :head :h2sh :torso :ly-p :shoulder :ly-p-r :wrist :r :gripper-inner t)
+kxrl4ct2a3h2 : (:body :l4t :type :l2 :marm :j1w :leg :j1w :torso :y-p :shoulder :p :head :d405eyes :neck-jf :b :gripper-inner t)
+kxrl4ct2a4pyrh2 : (:body :l4t :type :l2 :marm :j1w :leg :j1w :torso :y-p :shoulder :cross :head :m5sh :neck-jf :b :gripper-inner t)
+kxrl4ct2a4pryh2 : (:body :l4t :type :l2 :marm :j1w :leg :j1w :torso :y-p :shoulder :p :head :m5sh :neck-jf :b :gripper-inner t)
+kxrl4ct2a5pryh2 : (:body :l4t :type :l4 :marm :j1w :leg :j1w :torso :y-p :shoulder :p :wrist :r :head :m5sh :neck-jf :b :gripper-inner t)
+kxrl4ct2a5pyrh2 : (:body :l4t :type :l4 :marm :j1w :leg :j1w :torso :y-p :shoulder :cross :wrist :r :head :m5sh :neck-jf :b :gripper-inner t)
+kxrl4ct2a6h2 : (:body :l4t :type :l4 :marm :j1w :leg :j1w :torso :y-p :shoulder :cross :wrist :cross :head :m5sh :neck-jf :b :gripper-inner t)
+kxrl4ct2a7h2 : (:body :l4t :type :l4 :marm :j1w :leg :j1w :torso :y-p :shoulder :cross :wrist :y-cross :neck :y-r-p :head :m3eye :3eye-rev 3 :neck-jf :b :gripper-inner t)
+kxrl4l2a3g : (:body :l4t :type :l4 :arm :j3 :leg :j2 :head :h2s :gripper t :passive-wheel :shoulder :wrist-sensor nil)
+kxrl4rh : (:body :l4t :type :l4 :head :h2s :arm :j1w :leg :j1w)
+kxrl4n : (:body :l4t :type :l4 :head :h2s :arm :j2 :leg :j2)
+kxrl4n1 : (:body :l4t :type :l4 :head :d1 :arm :j2 :leg :j2)
+kxrl4n2 : (:body :l4t :type :l4 :head :d2 :arm :j2 :leg :j2)
+kxrl4nh4-old : (:body :l4t :type :l4 :arm :j2 :leg :j2 :neck :y-p-p-p)
+kxrl4nh4 : (:body :l4t :type :l4 :arm :j2 :leg :j2 :neck :y-p-p-p)
+kxrl4nh4g : (:body :l4t :type :l4 :arm :j2 :leg :j2 :neck :y-p-p-p :head :gripper-y)
+kxrl4ng : (:body :l4t :type :l4 :arm :j2 :leg :j2 :head :gripper-y)
+kxrl4b1 : (:body :l4b :type :l4 :head :h2s :neck :y-p-r :arm :j4 :leg :j4 :stand t :leg-frontal t :tail :t2 :board :armh7 :project-file "kxrl4d")
+kxrl4b2 : (:body :l4b :type :l4 :head :m5usv2 :neck :y-r-p :arm :j4 :leg :j4 :lego-bar 15 :stand t :leg-frontal t :tail :t2 :project-file "kxrl4d")
+kxrl4b21 : (:body :l4b :type :l4 :head :m5us :neck :y-r-p :arm :j4 :leg :j4 :stand t :leg-frontal t :tail :t2 :project-file "kxrl4d")
+kxrl4b22 : (:body :l4b :type :l4 :head :h2sn :neck :y-r-p :arm :j4 :leg :j4 :stand t :leg-frontal t :tail :t2 :project-file "kxrl4d")
+kxrl4b3 : (:body :l4d :type :l4 :head :h2sn :neck :y-r-p :arm :j4 :leg :j4 :board :armh7 :project-file "kxrl4d")
+kxrl4b4 : (:body :l4d :type :l4 :head :m5us :neck :y-r-p :arm :j4 :leg :j4 :board :armh7 :project-file "kxrl4d")
+kxrl4b2sn : (:body :l4b :type :l4 :head :h2sn :neck :y-r-p :stand t :arm :j4 :leg :j4 :board :armh7)
+kxrl4b2sh : (:body :l4b :type :l4 :head :h2sh :arm :j4 :leg :j4 :board :armh7 :project-file "kxrl4d")
+kxrl4d : (:body :l4d :type :l4 :head :d :arm :j4 :leg :j4 :board :rcb4)
+kxrl4da : (:body :l4d :type :l4 :head :d :arm :j4 :leg :j4 :board :armh7 :project-file "kxrl4d")
+kxrl4d1a : (:body :l4d :type :l4 :head :d1 :arm :j4 :leg :j4 :board :armh7 :project-file "kxrl4dr")
+kxrl4d1r : (:body :l4d :type :l4 :head :d1 :arm :j4 :leg :j4 :board :rcb4 :project-file "kxrl4dr")
+kxrl4dh2s : (:body :l4d :type :l4 :head :h2s :arm :j4 :leg :j4 :board :armh7)
+kxrl4dh2sn : (:body :l4d :type :l4 :head :h2sn :arm :j4 :leg :j4 :board :armh7)
+kxrl4dh2sl : (:body :l4d :type :l4 :head :h2sl :arm :j4 :leg :j4 :board :armh7)
+kxrl4dh2sh : (:body :l4d :type :l4 :head :h2sh :arm :j4 :leg :j4 :board :armh7)
+kxrl4dh3s : (:body :l4d :type :l4 :head :h2s :neck :y-r-p :arm :j4 :leg :j4 :board :armh7)
+kxrl4d1 : (:body :l4d :type :l4 :head :d1 :arm :j4 :leg :j4)
+kxrl4d2 : (:body :l4d :type :l4 :head :d2 :arm :j4 :leg :j4)
+kxrl4d3 : (:body :l4d :type :l4 :head :m5sh :arm :j4 :leg :j4)
+kxrl4d4 : (:body :l4d :type :l2 :stand t :head :d2 :arm :j4 :leg :j4)
+kxrl4d5 : (:body :l4d :type :l2 :active-wheel :knee :board :armh7 :shoulder :cross :wrist :r :gripper t :gripper-inner t :wrist-sensor t :gripper-sensor :finger1 :sole t 
+kxrl4d6 : (:body :l4d :type :l2 :stand t :active-wheel :knee :board :armh7 :shoulder :cross :wrist :r :gripper t :gripper-inner nil :gripper-sensor :finger1 :sole t :sole
+kxrl4d7 : (:body :l4d :type :l2 :active-wheel :knee :board :armh7 :shoulder :cross :wrist :r :gripper-inner t :gripper-sensor :finger1 :sole t :sole-sensor t :head :h2s :
+kxrl4d8 : (:body :l4d :type :l2 :stand t :active-wheel :knee :board :armh7 :shoulder :cross :wrist :r :gripper-inner t :gripper-sensor (:finger1) :sole t :sole-sensor t :
+kxrl4d9 : (:body :l4d :type :l4 :active-wheel :knee :shoulder :ly-p-r :wrist :r :passive-wheel :wrist :board :armh7 :gripper-inner t :gripper-sensor :finger1 :sole t :sol
+kxrl4d10 : (:body :l4d :type :l4 :stand t :active-wheel :knee :shoulder :ly-p-r :wrist :r :passive-wheel :wrist :board :armh7 :gripper-inner t :gripper-sensor :finger1 :so
+kxrl4d11 : (:body :l4d :type :l2 :active-wheel :knee :shoulder :ly-p-r :wrist :r :passive-wheel :wrist :board :armh7 :gripper-inner t :gripper-sensor :finger1 :sole t :sol
+kxrl4d12 : (:body :l4d :type :l4 :active-wheel :knee :board :armh7 :arm :l6w :sole t :sole-sensor t :head :h2s :head-length 20)
+kxrl2l5a3 : (:body :l2l5 :type :l2 :neck-jf :b :sole t)
+kxrl2l5a3r : (:body :l2l5 :type :l2 :neck-jf :b :sole t :board :rcb4)
+kxrl2l5a3g : (:body :l2l5 :type :l2 :gripper t :neck-jf :b :sole t :project-file "kxrl2l5a3")
+kxrl2l5a3ga : (:body :l2l5 :type :l2 :gripper t :sole t :head :d405cam)
+kxrl2l5a3gr : (:body :l2l5 :type :l2 :gripper t :neck-jf :b :sole t :board :rcb4 :project-file "kxrl2l5a3")
+kxrl2l5a3h2 kxrl2l5a3h2b : (:body :l2l5 :type :l2 :gripper t :head :m5 :neck-jf :b :sole t :board :armh7 :project-file "kxrl2l5a3")
+kxrl2l5a3wide : (:body :l2l5 :type :l2 :shoulder-width 38 :gripper t :head :m5us :neck-jf :b-back :sole t :shoulder-front t :neck-front t :upper-arm-length 38 :board :armh7 :pr
+kxrl2l5a3h2e : (:body :l2l5 :type :l2 :gripper t :head :h2s :neck-jf :b :sole t :project-file "kxrl2l5a3")
+kxrl2l5a3h2g : (:body :l2l5 :type :l2 :gripper t :head :h2s :neck-jf :b :sole t :project-file "kxrl2l5a3h2g")
+kxrl2l5a3h2ga : (:body :l2l5 :type :l2 :gripper t :head :m3eye :neck-jf :a :sole t :project-file "kxrl2l5a3h2g")
+kxrl2l5a3h2gu kxrl2l5unitv : (:body :l2l5 :type :l2 :gripper t :head :m5us :neck-jf :b :sole t :project-file "kxrl2l5a3h2g")
+kxrsemi2021 : (:body :l2l5 :type :l2 :gripper t :head :m5us :m5stack 0 :neck-jf :b :sole t :board :armh7 :project-file "kxrl2l5a3h2g")
+kxrl2fujiia : (:body :l2l5 :type :l2 :gripper t :head :ir :neck-jf :b :sole t :board :armh7 :project-file "kxrl2l5a3h2g")
+kxrl2fujiir : (:body :l2l5 :type :l2 :gripper t :head :ir :neck-jf :b :sole t :board :rcb4 :project-file "kxrl2l5a3h2g")
+kxrl2l5a3h2gr kxrl2g : (:body :l2l5 :type :l2 :gripper t :head :ir :neck-jf :a :sole t :board :rcb4 :project-file "kxrl2l5a3h2g")
+kxrl2l5a4h2g : (:body :l2l5 :type :l2 :shoulder :p-r-y :gripper t :neck-jf :a :sole t :backpack :m5 :head :m5u3s2 :sole-sensor t :project-file "kxrl2l5a4h2g")
+kxrl2l5a4h2gm : (:body :l2l5m :type :l2 :shoulder :p-r-y :gripper t :neck-jf :a :sole t :head :m3eye :3eye-rev 5 :m5stickv t :project-file "kxrl2l5a4h2g")
+kxrl2l5semi : (:body :l2l5 :type :l2 :shoulder :p-r-y :gripper t :neck-jf :a :sole t :backpack :m5 :head :m5sh :sole-sensor t :project-file "kxrl2l5a4h2g")
+kxrl2l5a4h2gr : (:body :l2l5 :type :l2 :shoulder :p-r-y :gripper t :neck-jf :a :sole t :head :h2 :board :rcb4 :project-file "kxrl2l5a4h2g")
+kxrl2l5a4h2ga : (:body :l2l5 :type :l2 :shoulder :p-r-y :gripper t :sole t :neck-jf :b :board :armh7 :head :m5sh :project-file "kxrl2l5a4h2g")
+kxrl2l5inaba : (:body :l2l5 :type :l2 :shoulder :p-r-y :head :m3eye :3eye-rev 4 :m5stickv t :gripper t :neck-jf :a :sole t :gripper-sensor :rev-a :head-sensor t :wrist-sensor 
+kxrl2l5a6inaba : (:project-file "kxrl2l5a4h2g" :body :l2l5 :type :l2 :sole t :shoulder :pry-cross :shoulder-front t :shoulder-low t :flat-shoulder nil :elbow :angle :wrist :cros
+kxrl2l6a6inaba1 : (:project-file "kxrl2l5a4h2g" :body :l2l6 :type :l2 :sole t :shoulder :pry-cross :shoulder-front t :shoulder-low t :flat-shoulder nil :elbow :angle :wrist :cros
+kxrl2l6a6inaba5 : (:project-file "kxrl2l5a4h2g" :body :l2l6b :type :l2 :sole t :shoulder :pry-cross :shoulder-front t :shoulder-low t :flat-shoulder nil :elbow :angle :wrist :cro
+kxrl2l5inaba0m5 : (:body :l2l5 :type :l2 :shoulder :p-r-y :head :h2 :neck-jf :b :sole t :gripper t :gripper-inner nil :gripper-sensor :finger1 :head-sensor t :wrist-sensor nil :b
+kxrl2l5inaba0 : (:body :l2l5 :type :l2 :shoulder :p-r-y :head :h2 :neck-jf :b :sole t :gripper t :gripper-inner nil :gripper-sensor :finger1 :head-sensor t :wrist-sensor nil)
+kxrl2l5inaba0f1 : (:body :l2l5 :type :l2 :shoulder :p-r-y :head :h2 :neck-jf :b :sole t :gripper t :gripper-inner nil :gripper-sensor :finger1 :head-sensor t :wrist-sensor t :bac
+kxrl2l5inaba0f2 : (:body :l2l5 :type :l2 :shoulder :p-r-y :head :h2 :neck-jf :b :sole t :gripper t :gripper-inner nil :gripper-sensor :finger2 :head-sensor t :wrist-sensor t :bac
+kxrl2l5inaba0i : (:body :l2l5 :type :l2 :shoulder :p-r-y :head :h2 :neck-jf :b :sole t :gripper t :gripper-inner t :gripper-sensor nil :head-sensor t :wrist-sensor nil :backpack
+kxrl2l5inaba0is : (:body :l2l5 :type :l2 :shoulder :p-r-y :head :m3deye :neck-jf :b :sole t :gripper t :gripper-inner t :gripper-sensor t :head-sensor t :ankle-sensor t :wrist-se
+kxrl2l5inaba0if1 : (:body :l2l5 :type :l2 :shoulder :p-r-y :head :h2 :neck-jf :b :sole t :gripper t :gripper-inner t :gripper-sensor :finger1 :head-sensor t :wrist-sensor t :backp
+kxrl2l5inaba0if2 : (:body :l2l5 :type :l2 :shoulder :p-r-y :head :h2 :neck-jf :b :sole t :gripper t :gripper-inner t :gripper-sensor :finger2 :head-sensor t :wrist-sensor t :backp
+kxrl2l5inaba2 : (:body :l2l5 :type :l2 :shoulder :p-r-y :head :h2s :gripper t :neck-jf :a :sole t :gripper-sensor t :head-sensor t :wrist-sensor t :backpack :m5 :project-file "
+kxrl2l5inaba3 : (:body :l2l5 :type :l2 :shoulder :p-r-y :head :h2s :neck :y-p-r :gripper t :neck-jf :a :sole t :gripper-sensor ((:finger1 . :rev-a) (:finger2 . :rev-c)) :wrist-
+kxrl2l5inaba3n : (:body :l2l5 :type :l2 :shoulder :p-r-y :head :h2sn :neck :y-p-r :gripper t :neck-jf :a :sole t :gripper-sensor (:finger1 :rev-a) :head-sensor t :wrist-sensor t
+kxrl2l5inaba3v : (:body :l2l5 :type :l2 :shoulder :p-r-y :head :h2sv :neck :y-p-r :gripper t :neck-jf :a :sole t :gripper-sensor (:finger1 :rev-a) :head-sensor t :wrist-sensor t
+kxrl2l5inaba3vo : (:body :l2l5 :type :l2 :shoulder :p-r-y :head :h2svo :neck :y-p-r :gripper t :neck-jf :a :sole t :gripper-sensor (:finger1 :rev-a) :head-sensor t :wrist-sensor 
+kxrl2l5inaba3vi : (:body :l2l5 :type :l2 :shoulder :p-r-y :head :h2svi :neck :y-p-r :gripper t :neck-jf :a :sole t :gripper-sensor (:finger1 :rev-a) :head-sensor t :wrist-sensor 
+kxrl2l5inaba3l : (:body :l2l5 :type :l2 :shoulder :p-r-y :head :h2sl :neck :y-p-r :gripper t :neck-jf :a :sole t :gripper-sensor (:finger1 :rev-a) :head-sensor t :wrist-sensor t
+kxrl2l5inaba3h : (:body :l2l5 :type :l2 :shoulder :p-r-y :head :h2sh :neck :y-p-r :gripper t :neck-jf :a :sole t :gripper-sensor (:finger1 :rev-a) :head-sensor t :wrist-sensor t
+kxrl2l5rcb4 : (:body :l2l5 :type :l2 :shoulder :p-r-y :head :e :gripper t :neck-jf :a :sole t :board :rcb4 :com-init-method (:rcb4-open) :project-file "kxrl2l5a4h2g")
+kxrl2l5inaba6 : (:body :l2l5 :type :l2 :shoulder :p-r-y :head :m3deye :3eye-rev 6 :neck :y-p-r :gripper t :neck-jf :a :sole t :gripper-sensor ((:finger1 . :rev-a) (:finger2 . :
+kxrl2l5inabamodel : (:file "models/kxrl2l5inaba.l" :form (kxrl2l5inaba) :project-file "kxrl2l5a4h2g")
+kxrl2l5inabafull : (:body :l2l5 :type :l2 :shoulder :p-r-y :head :m5i :gripper t :neck-jf :a :sole t :gripper-sensor t :head-sensor t :wrist-sensor t :sole-sensor t :backpack :m5 
+kxrl2semi2020 : (:body :l2l5 :type :l2 :gripper t :head :m5 :neck-jf :b :sole t :sole-sensor t :project-file "kxrl2l5a3h2g")
+kxrl2sonoyama : (:body :l2l5 :type :l2 :gripper t :head :m5 :neck-jf :b :sole t :sole-sensor t :project-file "kxrl2sonoyama")
+kxrl2l5a3h2gar : (:body :l2l5 :type :l2 :gripper :rarm :head :e :neck-jf :b :sole t)
+kxrl2l5a3h2gal : (:body :l2l5 :type :l2 :gripper :larm :head :e :neck-jf :b :sole t)
+kxrl2l5a4h2 : (:body :l2l5 :type :l2 :wrist :r :head :ir :gripper t :neck-jf :a :sole t)
+kxrl2l5a4h2y : (:body :l2l5 :type :l2 :shoulder :p-r-y :project-file "kxrl2l5a4h2g" :head :m5h :gripper t :neck-jf :a :sole t)
+kxrl2w2l5a3 kxrl2w2l5a3h2 kxrl2w2l5a3h2b : (:body :l2l5 :type :l2 :active-wheel :ankle :gripper t :passive-wheel :gripper :neck-jf :b :head :e :sole t)
+kxrl2wcl5a3 : (:body :l2l5 :type :l2 :active-wheel :crotch :gripper t :passive-wheel :gripper :neck-jf :b :head :e :sole t)
+kxrl2w2l5a3i kxrl2w2l5a3h2i kxrl2w2l5a3h2bi : (:body :l2l5 :type :l2 :active-wheel :ankle :passive-wheel :gripper :neck-jf :b :head :e :gripper-inner t :sole t)
+kxrl2w2l5a4p kxrl2w2l5a4h2p kxrl2kimura0 : (:body :l2l5 :type :l2 :active-wheel :ankle :head :e :wrist :p :gripper t :gripper-axis :p :neck-jf :b :sole t)
+kxrl2w2l5a4ps kxrl2kimura0f1 : (:body :l2l5 :type :l2 :active-wheel :ankle :head :e :wrist :p :gripper t :gripper-sensor :finger1 :gripper-axis :p :neck-jf :b :sole t)
+kxrl2kimura0f2 : (:body :l2l5 :type :l2 :active-wheel :ankle :head :e :wrist :p :gripper t :gripper-sensor :finger2 :gripper-axis :p :neck-jf :b :sole t)
+kxrl2w2l5a4pw kxrl2w2l5a4h2pw kxrl2kimura1 : (:body :l2l5 :type :l2 :active-wheel :ankle :wrist :p :gripper t :passive-wheel :gripper :head :e :neck-jf :b :sole t)
+kxrl2kimura1f1 : (:body :l2l5 :type :l2 :active-wheel :ankle :wrist :p :gripper t :gripper-sensor :finger1 :passive-wheel :gripper :head :e :neck-jf :b :sole t)
+kxrl2kimura1f2 : (:body :l2l5 :type :l2 :active-wheel :ankle :wrist :p :gripper t :gripper-sensor :finger2 :passive-wheel :gripper :head :e :neck-jf :b :sole t)
+kxrl2w2inaba1 : (:body :l2l5 :type :l2 :head :e :active-wheel :ankle :wrist :r :project-file "kxrl2w2l5a4h2" :gripper t :passive-wheel :gripper :neck-jf :a :sole t)
+kxrl2w2l5a4h2s kxrl2w2inaba2 : (:body :l2l5 :type :l2 :head :h2s :active-wheel :ankle :wrist :r :gripper t :passive-wheel :gripper :neck-jf :a :sole t :gripper-sensor t :project-file "kxrl2w2
+kxrl2w2l5a4h3s kxrl2w2inaba3 : (:body :l2l5 :type :l2 :head :h2s :neck :y-p-r :active-wheel :ankle :wrist :r :gripper t :passive-wheel :gripper :neck-jf :a :sole t :project-file "kxrl2w2l5a4h
+kxrl2w2l5a4h3s-no-project : (:body :l2l5 :type :l2 :head :h2s :neck :y-p-r :active-wheel :ankle :wrist :r :gripper-sensor :rev-a :gripper t :passive-wheel :gripper :neck-jf :a :sole t :com
+kxrl2w2l5a4h2 kxrl2w2l5a4h2rw kxrl2kimura2 kxrl2sato : (:body :l2l5 :type :l2 :head :m5 :active-wheel :ankle :wrist :r :gripper t :passive-wheel :gripper :neck-jf :a :sole t)
+kxrl2kimura2f1 kxrl2satof1 : (:body :l2l5 :type :l2 :head :m5 :active-wheel :ankle :wrist :r :board :armh7 :gripper-sensor :finger1 :gripper t :passive-wheel :gripper :neck-jf :a :sole t)
+kxrl2kimura2f2 kxrl2satof2 : (:body :l2l5 :type :l2 :head :m5 :active-wheel :ankle :wrist :r :board :armh7 :gripper-sensor :finger2 :gripper t :passive-wheel :gripper :neck-jf :a :sole t)
+kxrl2w2l5a4h2fly : (:body :l2l5 :type :l2 :wing t :head :e :active-wheel :ankle :wrist :r :gripper t :passive-wheel :gripper :neck-jf :a :sole t)
+kxrl2w2l5a4h2i : (:type :l2 :head :e :active-wheel :ankle :wrist :r :gripper t :passive-wheel :gripper :gripper-inner t :neck-jf :a :sole t)
+kxrl2w2l5a4h2il : (:body :l2l5 :type :l2 :head :e :active-wheel :ankle :wrist :r :gripper t :passive-wheel :gripper :board :armh7 :wrist-sensor :larm :gripper-inner :larm :neck-j
+kxrl2w2l5a4h2ir : (:body :l2l5 :type :l2 :head :e :active-wheel :ankle :wrist :r :board :armh7 :gripper t :passive-wheel :gripper :wrist-sensor :rarm :gripper-sensor t :gripper-i
+kxrl2w2l5a4h2pgr : (:body :l2l5 :type :l2 :head :e :active-wheel :ankle :wrist :r :gripper t :passive-wheel :gripper :gripper-axis :p :neck-jf :a :sole t)
+kxrl2l6a3 : (:body :l2l6 :type :l2 :sole t)
+kxrl2l6a4 : (:body :l2l6 :type :l2 :shoulder :p :head :e :neck-jf :b :sole t)
+kxrl2l6a4h2 : (:body :l2l6 :type :l2 :shoulder :p :gripper t :head :e :neck-jf :b :sole t :project-file "kxrl2l6a4h2")
+kxrl2w2l6a4 kxrl2w2l6a4h2 : (:body :l2l6 :type :l2 :active-wheel :ankle :shoulder :p :gripper t :head :e :neck-jf :b :passive-wheel :gripper :sole t)
+kxrl2w2l6a4h2c : (:body :l2l6r :type :l2 :neck-jf :a :active-wheel :crotch :head :e :board :rcb4 :shoulder :p :gripper t :sole t :project-file "kxrl2w2l6a4h2")
+kxrl2cinaba kxrl2w2l6a4h2ca : (:body :l2l6r :type :l2 :neck-jf :a :active-wheel :crotch :head :h2sf :board :armh7 :shoulder :p :gripper t :sole t :project-file "kxrl2w2l6a4h2")
+kxrl2l6a5h2 : (:file "models/kxrl2l6a5h2.l" :form (kxrl2l6a5h2) :body :l2l6 :type :l2 :shoulder :p :wrist :r :gripper t :sole t :head :e)
+kxrl2w2l6a5h2 : (:body :l2l6w :type :l2 :active-wheel :ankle :shoulder :p :wrist :r :gripper t :head :m5u3sv2 :passive-wheel :gripper :sole t)
+kxrl2l6a6 : (:body :l2l6w :type :l2 :shoulder :cross :wrist :cross :gripper t :sole t :head :m3eye)
+kxrl2l6a6h2-old : (:body :l2l6w :type :l2 :head :e :shoulder :cross :wrist :cross :gripper t :sole t :board :armh7)
+kxrl2l6a6inaba : (:body :l2l6b :type :l2 :head :m3deye :3eye-rev 9 :3eye-front t :3eye-cover t :head-length 20 :m5stickv nil :shoulder :pry-cross :elbow :angle :wrist :cross-pr 
+kxrl2l6a6inaba2 : (:body :l2l6 :type :l2 :head :m3deye :3eye-rev 9 :3eye-front t :3eye-cover t :head-length 20 :m5stickv nil :shoulder :pry-cross :elbow :angle :wrist :cross-pr :
+kxrl2l6a6inaba3 : (:body :l2l6s :type :l2 :head :m3deye :3eye-rev 9 :3eye-front t :3eye-cover t :head-length 20 :m5stickv nil :shoulder :pry-cross :elbow :angle :wrist :cross-pr 
+kxrl2l6a6inaba4 : (:body :l2l6s :type :l2 :head :d405cam :3eye-rev 9 :3eye-front t :3eye-cover t :head-length 20 :m5stickv nil :shoulder :pry-cross :elbow :angle :wrist :cross-pr
+kxrl2t2l6a7h2d405 : (:body :l2l6c :type :l2 :torso :y-p :shoulder :cross :wrist :y-cross :chest-worm t :head :d405cam :head-length 20 :neck-jf :b :gripper t :gripper-sensor :rev-a 
+kxrl2l6a6h2b : (:body :l2l6b :type :l2 :sole t :name "kxrl2l6a6h2inaba" :shoulder :pry-cross :shoulder-front t :shoulder-low t :flat-shoulder nil :elbow :angle :wrist :cross-p
+kxrl2l6a6h2 : (:body :l2l6 :type :l2 :sole t :project-file "kxrl2l6a6h2" :shoulder :pry-cross :shoulder-front t :shoulder-low t :flat-shoulder nil :elbow :angle :wrist :cross
+kxrl2l5a6h2m0 : (:body :l2l5m :type :l2 :sole t :project-file "kxrl2l5a6h2g" :head :d405echos :3eye-front t :head-length 20 :shoulder :pry-cross :shoulder-front t :shoulder-low
+kxra6h2m : (:body :l2l6m :type :l2 :sole t :project-file "kxra6g" :head :d405echos :3eye-front t :head-length 20 :shoulder :pry-cross :shoulder-front t :shoulder-low t :fl
+kxrl2l6a6h2g : (:body :l2l6m :type :l2 :sole t :project-file "kxrl2l6a6h2g" :head :d405echos :3eye-front t :head-length 20 :shoulder :pry-cross :shoulder-front t :shoulder-low
+kxrl2l6a6h2m : (:body :l2l6m :type :l2 :sole t :project-file "kxra6g" :head :d405echos :3eye-front t :head-length 20 :shoulder :pry-cross :shoulder-front t :shoulder-low t :fl
+kxrl2l6a7h2 : (:body :l2l6 :type :l2 :sole t :shoulder :ypry-cross :shoulder-front t :elbow :angle :wrist :cross-pr :upper-arm-length 38 :gripper t :gripper-straight t :gripp
+kxrl2l6a7h2m : (:body :l2l6m :type :l2 :sole t :project-file "kxrl2l6a6h2g" :head :d405echos :3eye-front t :head-length 20 :shoulder :ypry-cross :shoulder-front t :shoulder-lo
+kxrl2l5a6h2 : (:body :l2l5 :type :l2 :sole t :project-file "kxrl2l5a6h2g" :shoulder :pry-cross :shoulder-front t :shoulder-low t :flat-shoulder nil :shoulder-p-sensor :horn-m
+kxrl2l5a6h2m : (:body :l2l5m :type :l2 :sole t :project-file "kxra6g" :head :d405echos :3eye-front t :head-length 20 :shoulder :pry-cross :shoulder-front t :shoulder-low t :fl
+kxrl2l5a7h2 : (:body :l2l5 :type :l2 :sole t :project-file "kxrl2l6a6h2" :shoulder :ypry-cross :shoulder-front t :shoulder-low t :flat-shoulder nil :shoulder-p-sensor :horn-m
+kxrl2l5a7h2m : (:body :l2l5m :type :l2 :sole t :project-file "kxrl2l5a6h2g" :head :d405echos :3eye-front t :head-length 20 :shoulder :ypry-cross :shoulder-front t :shoulder-lo
+kxrl2l2a4h2 : (:body :l2l6 :type :l2 :sole t :shoulder :p-r-y :gripper t :neck-jf :a :project-file "kxrl2l5a4h2g" :leg :j2-pr :sole t :head :d405cam :3eye-front t :head-lengt
+kxrl2l2a4h2m : (:body :l2l6 :type :l2 :sole t :shoulder :p-r-y :gripper t :neck-jf :a :project-file "kxrl2l5a4h2g" :leg :j2-pr :sole t :head :d405eyes :3eye-front t :head-leng
+kxrl2l2a4h2mi : (:body :l2l6 :type :l2 :sole t :shoulder :p-r-y :gripper t :neck-jf :a :project-file "kxrl2l5a4h2g" :leg :j2-pr :sole t :head :d405eyes-iris :3eye-front t :head
+kxrt1l2l2a4h2m : (:body :l2l6c :type :l2 :sole t :torso :y :shoulder :p-r-y :gripper t :neck-jf :a :project-file "kxrl2l5a4h2g" :crotch-p nil :crotch-center-front t :crotch-side
+kxrl2l2a6h2 : (:body :l2l6 :type :l2 :project-file "kxra6g" :shoulder :pry-cross :shoulder-front t :shoulder-low t :flat-shoulder nil :elbow :angle :wrist :cross-pr :upper-ar
+kxrl4l2a6h2m : (:body :l2l6m :type :l4 :project-file "kxrl2l2a6h2g" :head :d405echos :3eye-front t :head-length 20 :shoulder :pry-cross :shoulder-front t :shoulder-low t :flat
+kxrl2l2a6h2i : (:body :l2l6m :type :l2 :board :rcb4-acc-reverse :project-file "kxra6g" :head :d405eyes :3eye-front t :head-length 20 :shoulder :pry-cross :shoulder-front t :sh
+kxrl2l2a6h2m : (:body :l2l6m :type :l2 :project-file "kxra6g" :head :d405eyes :3eye-front t :head-length 20 :shoulder :pry-cross :shoulder-front t :shoulder-low t :flat-should
+kxrl2l2a6h2mr : (:body :l2l6m :type :l2 :project-file "kxra6g" :board :rcb4 :head :d405eyes :3eye-front t :head-length 20 :shoulder :pry-cross :shoulder-front t :shoulder-low t
+kxrkanehiro : (:body :l2l6m :type :l2 :project-file "kxra6g" :head :d405echos :neck-jf :b-back :3eye-front t :head-length 20 :shoulder :pry-cross :shoulder-front t :shoulder-
+kxrl2l2inaba : (:body :l2l6m :type :l2 :project-file "kxra6g" :head :d405echos :neck-jf :b-back :3eye-front t :head-length 20 :shoulder :pry-cross :shoulder-front t :shoulder-
+kxrl2l2a6h2mi : (:body :l2l6m :type :l2 :project-file "kxra6g" :head :d405eyes-iris :3eye-front t :head-length 20 :shoulder :pry-cross :shoulder-front t :shoulder-low t :flat-s
+kxrl2l2a6h2md : (:body :l2l6m :type :l2 :project-file "kxra6g" :head :d405eyes :3eye-front t :head-length 20 :shoulder :pry-cross :shoulder-front t :shoulder-low t :flat-should
+kxrl2l2a7h2m : (:body :l2l6m :type :l2 :project-file "kxrl2l2a6h2g" :head :d405echos :3eye-front t :head-length 20 :shoulder :ypry-cross :shoulder-front t :shoulder-low t :fla
+kxrt1l2l2a6h2m : (:body :l2l6c :type :l2 :torso :y :project-file "kxra6g" :head :d405eyes :3eye-front t :head-length 20 :shoulder :pry-cross :shoulder-front t :shoulder-low t :f
+kxrt1l2l2e7h2m : (:body :l2l6c :type :l2 :torso :y :project-file "kxre7g" :head :d405eyes :3eye-front t :head-length 20 :shoulder :pry-cross :shoulder-front t :shoulder-low t :f
+kxrt1l2l2d7h2m : (:body :l2l6c :type :l2 :torso :y :project-file "kxrd7g" :head :d405eyes :3eye-front t :head-length 20 :shoulder :pry-cross :shoulder-front t :shoulder-low t :f
+kxrt1l2l2w7h2m : (:body :l2l6c :type :l2 :torso :y :project-file "kxrw7g" :head :d405eyes :3eye-front t :head-length 20 :shoulder :pry-cross :shoulder-front t :shoulder-low t :f
+kxrow4a6h2m : (:project-file "kxra6g" :body :l4ow :type :l4 :leg :j2o :head :d405echos :3eye-front t :head-length 20 :wheel-battery-stand t :wheel-base-a t :lidar t :shoulder
+kxrow4a7h2m : (:body :l4ow :type :l4 :leg :j2o :head :d405echos :3eye-front t :head-length 20 :wheel-battery-stand t :wheel-base-a t :lidar t :shoulder :ypry-cross :shoulder-
+kxrmw4a4h2m : (:body :l4mw :type :l4 :leg :j2m :head :d405echos :3eye-front t :head-length 20 :project-file "kxra6g" :wheel-battery-stand t :wheel-base-a nil :wheel-base-wide
+kxrt1mw4a4h2m : (:body :l4mw :type :l4 :leg :j2m :torso :y :head :d405echos :3eye-front t :head-length 20 :project-file "kxra6g" :wheel-battery-stand t :wheel-base-a nil :wheel
+kxrmw4a6h2m : (:body :l4mw :type :l4 :leg :j2m :head :d405echos :3eye-front t :head-length 20 :project-file "kxra6g" :wheel-battery-stand t :wheel-base-a nil :wheel-base-wide
+kxrmw4a7h2m : (:body :l4mw :type :l4 :leg :j2m :head :d405echos :3eye-front t :head-length 20 :wheel-battery-stand t :wheel-base-a nil :wheel-base-wide t :wheel-servo-stand t
+kxrl2l2a7h2 : (:body :l2l6m :type :l2 :project-file "kxrl2l6a6h2" :shoulder :ypry-cross :shoulder-front t :shoulder-low t :flat-shoulder nil :elbow :angle :wrist :cross-pr :u
+kxrl2l1a6h2 : (:body :l2l5a :type :l2 :sole t :shoulder :pry-cross :shoulder-front t :shoulder-low t :flat-shoulder nil :shoulder-p-sensor :horn-mag- :elbow :angle :wrist :cr
+kxrl2mw4a6h2 : (:body :l2l6 :type :l4 :leg :j1-2mw :project-file "kxrl2l6a6h2" :board :armh7 :shoulder :pry-cross :shoulder-center t :lidar t :shoulder-low nil :flat-shoulder 
+kxrmw4a6h2 : (:body :l4mw :type :l4 :leg :j2m :project-file "kxrl2l6a6h2" :board :armh7 :shoulder :pry-cross :shoulder-center t :lidar t :shoulder-low nil :flat-shoulder nil
+kxrow4a6h2 : (:body :l4ow :type :l4 :leg :j2o :board :armh7 :shoulder :pry-cross :shoulder-center t :lidar t :shoulder-low nil :flat-shoulder nil :elbow :angle :wrist :cross
+kxrl2l6a6h2v1 : (:body :l2l6b :type :l2 :sole t :name "kxrl2l6a6h2inaba" :shoulder :pry-cross :shoulder-front t :shoulder-low t :flat-shoulder nil :shoulder-p-sensor :horn-mag-
+kxrl2l6a6h2mag : (:body :l2l6b :type :l2 :sole t :name "kxrl2l6a6h2inaba" :shoulder :pry-cross :shoulder-front t :shoulder-low t :flat-shoulder nil :shoulder-p-sensor :horn-mag-
+kxrl2l6a6h2n : (:body :l2l6 :type :l2 :shoulder :cross :wrist :y-p :gripper t :head :e :neck-jf :b :sole t)
+kxrl2w2l6a6h2 : (:body :l2l6b :type :l2 :sole t :name "kxrl2l6a6h2inaba" :shoulder :pry-cross :shoulder-front t :shoulder-low t :flat-shoulder nil :shoulder-p-sensor :horn-mag-
+kxrl2w2l6a6h2old kxrl2w2l6a6h2nold : (:body :l2l6 :type :l2 :active-wheel :ankle :shoulder :cross :wrist :y-p :gripper t :head :e :neck-jf :b :passive-wheel :gripper :sole t)
+kxrl2l6a7 : (:body :l2l6w :type :l2 :shoulder :cross :wrist :cross-y :gripper t :head :e :neck-jf :b :sole t)
+kxrl2l6a7h2n : (:body :l2l6 :type :l2 :shoulder :cross :wrist :cross-y :gripper t :head :h2s :neck-jf :b :sole t :board :armh7)
+kxrl2l6a3h2w : (:body :l2l6w :type :l2 :gripper t :head :e :neck-jf :b :sole t)
+kxrl2l6a3h2w-arm-no-projectfile : (:body :l2l6w :type :l2 :gripper t :head :e :neck-jf :b :sole t :gripper-sensor :finger1)
+kxrl2l6a3h2wa kxrl2l6inaba : (:body :l2l6w :type :l2 :gripper t :head :e :neck-jf :b :sole t :gripper-sensor :finger1 :project-file "kxrl2l6a3h2w")
+kxrl2l6a7h2w : (:body :l2l6w :type :l2 :shoulder :cross :wrist :y-cross :gripper t :head :e :neck-jf :b :sole t)
+kxrl2l6a7h2ypy : (:body :l2l6 :type :l2 :shoulder :cross :wrist :y-p-y :gripper t :neck-jf :a :sole t :head :m5sh)
+kxrl2t2l6a3h2 : (:body :l2l6c :type :l2 :torso :y-p :gripper t :neck-jf :b :sole t :head :m5sh)
+kxrl2t2l6a7h2yprb kxrl2t2inaba : (:body :l2l6c :type :l2 :torso :y-p :shoulder :cross :wrist :y-cross :chest-worm t :gripper t :head :m5sh :neck-jf :b :gripper-sensor :rev-a :sole t)
+kxrl2t2inaba2 : (:body :l2l6c :type :l2 :torso :y-p :shoulder :cross :wrist :y-cross :gripper t :head :h2s :neck-jf :b :gripper-sensor :rev-a :sole t)
+kxrl2t2inaba3 : (:body :l2l6c :type :l2 :torso :y-p :shoulder :cross :wrist :y-cross :head :h2sh :neck :y-p-r :chest-worm t :neck-jf :b :eye-length 26 :eye-y-rotate 3 :gripper 
+kxrl2t2l6a7h2yprc : (:body :l2l6c :type :l2 :torso :y-p :shoulder :cross :wrist :y-cross :board :armh7 :gripper t :head :m5sh :neck-jf :b :gripper-sensor :larm :sole t)
+kxrl2t2l6a7h2 kxrl2t2l6a7h2ypr : (:body :l2l6c :type :l2 :head :h2s :torso :y-p :shoulder :cross :board :armh7 :wrist :y-cross :gripper t :neck-jf :a :sole t)
+kxrl2t2l6a7h2rhp3 : (:body :l2l6c :type :l2 :head :h2s :torso :y-p :shoulder :cross :board :armh7 :wrist :y-cross :gripper t :neck-jf :a :sole t :sole-sensor t)
+kxrl2t2l6a7h2ypy : (:body :l2l6c :type :l2 :head :e :torso :y-p :shoulder :cross :wrist :y-p-y :gripper t :neck-jf :a :sole t)
+kxrl2t3l6a7h2ypy kxrl2t3 : (:body :l2l6c :type :l2 :head :m5sh :torso :y-r-p :shoulder :cross :board :armh7 :wrist :y-p-y :gripper t :neck-jf :a :sole t)
+kxrl2t3max : (:body :l2l6c :type :l2 :head :h2sf :torso :y-r-p :shoulder :cross :board :armh7 :wrist :y-p-y :gripper t :neck-jf :a :sole t)
+kxrl2w2l6a7h2w : (:body :l2l6w :type :l2 :active-wheel :ankle :shoulder :cross :wrist :cross-y :gripper t :passive-wheel :gripper :head :e :neck-jf :b :sole t)
+kxrl2test1 : (:body :lyp-high :type :l2 :knee-type t :active-wheel :knee :shoulder :ly-p-r :wrist :r :passive-wheel :wrist :gripper t :gripper-inner t :torso :ly-p-high :hea
+kxrl2test2 : (:body :lyp-low :type :l2 :knee-type :lp :active-wheel :knee :shoulder :ly-p-r :wrist :r :passive-wheel :wrist :gripper t :gripper-inner t :torso :ly-p :neck-ax
+kxrl2test3 : (:body :dyp-z :type :l2 :knee-type :lp :active-wheel :knee :shoulder :ly-p-r :wrist :r :passive-wheel :shoulder :gripper t :gripper-inner t :torso :ly-p :neck-a
+kxrl2test4 : (:body :lyp-low :type :l2 :knee-type :lp :active-wheel :knee :shoulder :ly-p-r :wrist :r :passive-wheel :wrist :gripper t :gripper-inner t :torso :ly-p :neck-ax
+kxrl2test5 : (:body :lyp-high :type :l2 :knee-type :lp :active-wheel :knee :shoulder :uy-p-r :wrist :r :passive-wheel :wrist :gripper t :gripper-inner t :torso :ly-p-high :n
+kxrl2makabels : (:body :lyp-high :type :l2 :knee-type :lp :active-wheel :knee :shoulder :ly-p-r :wrist :r :passive-wheel :wrist :crotch-z t :gripper t :gripper-inner t :torso :
+kxrl2makabelc : (:body :dyp-z :type :l2 :active-wheel :knee :shoulder :ly-p-r :wrist :r :passive-wheel :wrist :crotch-z t :gripper t :gripper-inner t :torso :ly-p :neck-axis :p
+kxrl2makabelcw : (:body :dyp-z :type :l2 :active-wheel :knee :shoulder :ly-p-r :wrist :r :passive-wheel (:shoulder) :crotch-z t :gripper t :gripper-inner t :torso :ly-p :neck-ax
+kxrl2semi2022 : (:file "models/kxrl2semi2022.l" :form (kxrl2semi2022) :body :l2l6b :type :l2 :crotch-p t :crotch-low t :crotch-front t :flat-crotch t :leg :j2-pr :sole t :ankle
+kxrl2inaba : (:file "models/kxrl2inaba.l" :form (kxrl2inaba) :body :l2l6 :type :l2 :crotch-p t :crotch-low t :crotch-front t :flat-crotch t :leg :j2-pr :sole t :shoulder-p-s
+kxra6g : (:body :l2l6m :type :l2 :project-file "kxra6g" :head :d405echos :board :rcb4-acc-reverse :neck-jf :b-back :3eye-front t :head-length 20 :shoulder :pry-cross :sh
+kxrl2inabafull : (:body :l2l6b :type :l2 :crotch-p t :crotch-low t :crotch-front t :flat-crotch t :leg :j2-pr :sole t :shoulder-p-sensor (:rev-a :flip) :shoulder-y-sensor (:rev-
+kxrl2semi2022inaba : (:body :l2l6b :type :l2 :crotch-p t :crotch-low t :crotch-front t :flat-crotch t :leg :j2-pr :sole t :shoulder-p-sensor (:rev-a :flip) :shoulder-y-sensor (:rev-
+kxrl2l2a6inaba : (:file "models/kxrl2l2a6inaba.l" :form (kxrl2l2a6inaba) :body :l2l6b :type :l2 :crotch-p t :crotch-low t :crotch-front t :flat-crotch t :leg :j2-pr :sole t :sho
+kxrl2inabaold : (:body :l2l6b :type :l2 :crotch-p t :crotch-low t :crotch-front t :flat-crotch t :leg :j2-pr :sole t :ankle-sensor t :shoulder :pry-cross :shoulder-front t :sho
+kxrl2semi2022matsuo : (:file "models/kxrl2semi2022.l" :form (kxrl2semi2022))
+kxrl2hoshino : (:file "models/kxrl2semi2022.l" :form (kxrl2semi2022))
+kxrl2sawada : (:file "models/kxrl2semi2022.l" :form (kxrl2semi2022))
+kxrl2sonoda : (:file "models/kxrl2semi2022.l" :form (kxrl2semi2022))
+kxrl2semi2022r1 kxrl2semi2022r2 : (:file "models/kxrl2semi2022r1.l" :form (kxrl2semi2022r1))
+kxrl2semi2022upr1 kxrl2semi2022upr2 : (:body :l2l6b :type :l2 :crotch-p t :crotch-low t :crotch-front nil :flat-crotch t :leg :j2-pr :sole t :ankle-sensor t :shoulder :pry-cross :shoulder-front t :s
+kxrl2semi2022h : (:file "models/kxrl2semi2022h.l" :form (kxrl2semi2022h))
+kxrl2semi2022uph : (:body :l2l6b :type :l2 :noarm t :noleg t :head :m3deye :3eye-rev 8 :3eye-front t :3eye-cover t :head-length 20 :m5stickv nil)
+kxrl2semi2022l : (:file "models/kxrl2semi2022l.l" :form (kxrl2semi2022l))
+kxrl2semi2022upl : (:body :l2l6b :type :l2 :noarm t :crotch-p t :crotch-low t :crotch-front nil :flat-crotch t :leg :j2-pr :sole t :head :m3deye :3eye-rev 8 :3eye-front t :3eye-co
+kxrl2semi2022s : (:body :l2l6b :type :l2 :crotch-p t :crotch-low t :crotch-front t :flat-crotch t :leg :j2-pr :sole t :shoulder :pry-cross :shoulder-front t :shoulder-low t :fla
+kxrl2semi2022up-leg-wide : (:body :l2l6b :crotch-p t :flat-crotch nil :leg :j2-pr :type :l2 :shoulder-front t :sole t :m5stickv nil :upper-arm-length 38 :shoulder :pry-cross :elbow :angle
+kxrl2semi2022up-straight-arm : (:body :l2l6b :crotch-p t :flat-crotch nil :leg :j2-pr :type :l2 :shoulder-front t :sole t :m5stickv nil :upper-arm-length 38 :shoulder :pry-cross :wrist :cross
+kxrl2semi2022-old : (:body :l2l5 :type :l2 :shoulder-front t :active-wheel :crotch :crotch-front t :shoulder :ly-p-rb :wrist :r :wrist-a t :wrist-len 38 :gripper t :gripper-inner t
+kxrsemi2022up-old : (:body :l2l6b :noleg t :type :l2 :shoulder-front t :upper-arm-length 38 :shoulder :pry-cross :wrist :cross-py :gripper t :gripper-straight t :head :m3deye :3eye
+kxrl2semi2022up-old : (:body :l2l6b :crotch-p t :flat-crotch nil :leg :j2-pr :type :l2 :shoulder-front t :sole t :m5stickv nil :shoulder :ly-p-rb :wrist :r :wrist-a t :wrist-len 38 :
+kxrl2semi20226 : (:body :l2l6 :type :l2 :shoulder-front t :shoulder :ly-p-rb :wrist :r :wrist-a t :wrist-len 38 :gripper t :gripper-inner t :head :m3eye :neck :y-p-r :3eye-rev 3
+kxrl2semi20225 : (:body :l2l5 :type :l2 :shoulder-front t :shoulder :ly-p-rb :wrist :r :wrist-a t :wrist-len 38 :gripper t :gripper-inner t :head :m3eye :neck :y-p-r :3eye-rev 3
+kxrl2semi2022b : (:body :l2l6b :type :l2 :shoulder-front t :shoulder :ly-p-rb :wrist :r :wrist-a t :wrist-len 38 :gripper t :gripper-inner t :head :m3eye :3eye-rev 3 :neck :y-p-
+kxrl2semi2022r : (:body :l2l6r :type :l2 :shoulder-front t :shoulder :ly-p-rb :wrist :r :wrist-a t :wrist-len 38 :gripper t :gripper-inner t :head :m3eye :neck :y-p-r :3eye-rev 
+kxrl2semi2022ups : (:body :l2l6s :type :l2 :shoulder-front t :crotch-front t :shoulder :ly-p-rb :wrist :r :wrist-a t :wrist-len 38 :gripper t :gripper-inner t :head :m3eye :3eye-r
+kxrl2semi2022w : (:body :l2l6w :type :l2 :shoulder-front t :shoulder :ly-p-rb :wrist :r :wrist-a t :wrist-len 38 :gripper t :gripper-inner t :head :m3eye :neck :y-p-r :3eye-rev 
+kxrl2makabelw : (:body :l2w2 :type :l2 :shoulder :ly-p-rb :wrist :r :wrist-a t :wrist-len 38 :gripper t :gripper-inner t :torso :ly-pfy :waist-len 38 :neck-axis :p :head :m3eye
+kxrl2makabelwup : (:body :bodyplate :type :l2 :noleg t :shoulder :ly-p-rb :wrist :r :wrist-a t :wrist-len 20 :gripper t :gripper-inner t :torso :ly-pf :neck-axis :p :waist-len 20
+kxrl2makabelw0 : (:body :l2w2 :type :l2 :shoulder :ly-p-rb :wrist :r :wrist-a t :wrist-len 38 :gripper t :gripper-inner t :torso :ly-pfy :neck-axis :p :head :m3eye :3eye-rev 3 :
+kxrl2makabelw1 : (:body :l2w2 :type :l2 :shoulder :ly-p-rb :wrist :r :gripper t :gripper-inner t :torso :ly-pf :neck-axis :p :head :my3eye :3eye-rev 3 :head-length 20 :board :ar
+kxrl2makabelw2 : (:body :l2w2 :type :l2 :shoulder :ly-p-rb :wrist :r :gripper t :gripper-inner t :torso :ly-pf :neck-axis :p :head :m3eye :3eye-rev 3 :head-length 20 :board :arm
+kxrl2makabelsw : (:body :lyp-low :type :l2 :knee-type :lp :active-wheel :knee :shoulder :ly-p-r :wrist :r :passive-wheel (:shoulder) :gripper t :gripper-inner t :torso :ly-p-hig
+kxrl2makabelw3 : (:body :lyp-low :type :l2 :knee-type :lp :active-wheel :knee :shoulder :ly-p-r :wrist :r :passive-wheel (:shoulder :wrist) :gripper t :gripper-inner t :torso :l
+kxrl2himeno : (:body :dyp-zf :type :l2 :active-wheel :knee :crotch-cross-back t :shoulder :uy-p-r :wrist :r :passive-wheel (:torso :double) :gripper t :torso :ly-p :sole t :g
+kxrl2himeno! : (:file "models/kxrl2himeno.l" :form (kxrl2himeno) :board :armh7 :com-init-method (:arm2-open))
+kxrl2himeno2 : (:body :dyp-zf :type :l2 :active-wheel :knee :crotch-cross-back t :shoulder :uy-p-r :wrist :r :passive-wheel (:torso :double) :gripper t :chest-worm t :torso :l
+kxrl2makabel : (:body :lyp-low :type :l2 :knee-type :lp :active-wheel :knee :shoulder :uy-p-r :wrist :r :passive-wheel :wrist :board :armh7 :gripper-inner t :torso :ly-p :sole
+kxrl2makabe kxrl2w2t2l6a7h1 : (:body :dyp :type :l2 :active-wheel :knee :shoulder :y-p-r :wrist :r :passive-wheel :wrist :board :armh7 :wrist-sensor t :gripper t :gripper-inner t :gripper-se
+kxrl2makabefull : (:body :dyp :type :l2 :active-wheel :knee :shoulder :y-p-r :wrist :r :passive-wheel :wrist :board :armh7 :board :armh7 :shoulder-p-sensor :rev-a :shoulder-r-sen
+kxrl2makabeorig : (:body :dyp :type :l2 :active-wheel :knee :shoulder :y-p-r :wrist :r :passive-wheel :wrist :board :armh7 :board :armh7 :wrist-sensor t :gripper-inner t :gripper
+kxrl2makaberev2 : (:body :dyp-zf :type :l2 :active-wheel :knee :shoulder :y-p-r :wrist :r :passive-wheel :wrist :board :armh7 :board :armh7 :wrist-sensor t :gripper-inner t :sole
+kxrl2makaberev3 : (:body :dyp-zf :type :l2 :active-wheel :knee :shoulder :y-p-r :wrist :r :passive-wheel :wrist :board :armh7 :board :armh7 :wrist-sensor t :gripper-inner t :sole
+kxrl2makaberev2f1 : (:body :dyp-zf :type :l2 :active-wheel :knee :shoulder :y-p-r :wrist :r :passive-wheel :wrist :board :armh7 :board :armh7 :wrist-sensor :rev-b :gripper-sensor (
+kxrl2makaberev2f2 : (:body :dyp-zf :type :l2 :active-wheel :knee :shoulder :y-p-r :wrist :r :passive-wheel :wrist :board :armh7 :board :armh7 :wrist-sensor t :gripper-sensor (:fing
+kxrl2makaberev2s : (:body :dyp-zf :type :l2 :active-wheel :knee :shoulder :y-p-r :wrist :r :passive-wheel :wrist :board :armh7 :board :armh7 :wrist-sensor t :gripper-sensor :rev-a
+kxrl2makaberev4 : (:body :dyp-zf :type :l2 :active-wheel :knee :shoulder :y-p-r :wrist :r :passive-wheel :wrist :board :armh7 :board :armh7 :wrist-sensor t :ankle-sensor t :gripp
+kxrl2makaberev5 : (:body :dyp-zf :type :l2 :active-wheel :knee :shoulder :y-p-r :wrist :r :passive-wheel :wrist :board :armh7 :board :armh7 :wrist-sensor t :ankle-sensor t :gripp
+kxr_transformer_rev3 : (:file "catkin_ws_src/kxr_pkgs/kxr_models/euslisp/kxr_transformer_rev3.l" :form (progn (load "additional-settings.l") (kxr_transformer_rev3)) :board :armh7)
+kxr_transformer_rev3_normal_leg_6magnet_wheel : (:file "catkin_ws_src/kxr_pkgs/kxr_models/euslisp/kxr_transformer_rev3_normal_leg_6magnet_wheel.l" :form (progn (load "additional-settings.l") (kxr_transformer_
+kxr_transformer_rev4 : (:file "catkin_ws_src/kxr_pkgs/kxr_models/euslisp/kxr_transformer_rev4_magnet.l" :form (progn (load "additional-settings.l") (kxr_transformer_rev4_magnet)) :boa
+kxr_transformer_rev5_6magnet : (:file "catkin_ws_src/kxr_pkgs/kxr_models/euslisp/kxr_transformer_rev5_6magnet.l" :form (progn (load "additional-settings.l") (kxr_transformer_rev5_6magnet)) :b
+kxr_transformer_rev5_8magnet : (:file "catkin_ws_src/kxr_pkgs/kxr_models/euslisp/kxr_transformer_rev5_8magnet.l" :form (progn (load "additional-settings.l") (kxr_transformer_rev5_8magnet)) :b
+kxr_l2g : (:file "models/kxr_l2g.l" :form (progn (load "additional-settings.l") (kxr_l2g)) :board :armh7)
+kxr_mag_humanoid_2dof : (:file "models/kxr_mag_humanoid_2dof.l" :form (progn (load "additional-settings.l") (kxr_mag_humanoid_2dof)) :board :armh7)
+kxr_mag_humanoid_5dof : (:file "models/kxr_mag_humanoid_5dof.l" :form (progn (load "additional-settings.l") (kxr_mag_humanoid_5dof)) :board :armh7)
+kxr_mag_humanoid_6dof : (:file "models/kxr_mag_humanoid_6dof.l" :form (progn (load "additional-settings.l") (kxr_mag_humanoid_6dof)) :board :armh7)
+kxr_mag_humanoid_mechanum : (:file "models/kxr_mag_humanoid_mechanum.l" :form (progn (load "additional-settings.l") (kxr_mag_humanoid_mechanum)) :board :armh7)
+kxr_magtest : (:file "catkin_ws_src/kxr_pkgs/kxr_models/euslisp/kxr_transformer_rev4_magnet.l" :form (progn (load "additional-settings.l") (kxr_transformer_rev4_magnet)) :boa
+kxr-magnet-test : (:file "catkin_ws_src/kxr_pkgs/kxr_models/euslisp/kxr-magnet-test.l" :form (progn (load "additional-settings.l") (kxr-magnet-test)) :board :armh7)
+kxr_spider_auv : (:file "catkin_ws_src/kxr_pkgs/kxr_models/euslisp/kxr_spider_auv.l" :form (progn (load "additional-settings.l") (kxr_spider_auv)) :board :armh7 :project-file "k
+kxrl2w2t2l6a7h10 kxrl2makabe0 : (:body :dyp :type :l2 :knee-type t :active-wheel :knee :shoulder :y-p-r :wrist :r :passive-wheel :wrist :gripper-inner t :torso :dy-p :neck-axis :p :head :m5 :h
+kxrl2w2t2l6a7h1raspi kxrl2makaberaspi : (:body :dyp :type :l2 :knee-type t :active-wheel :knee :shoulder :y-p-r :wrist :r :passive-wheel :wrist :gripper t :gripper-inner t :torso :dy-p2 :neck-axis :p 
+kxrl2w2t2l6a7h1raspy kxrl2makaberaspy : (:body :dyp :type :l2 :knee-type t :active-wheel :knee :shoulder :y-p-r :wrist :r :passive-wheel :wrist :gripper t :gripper-inner t :torso :dy-p :head :realsens
+kxrl2l6anzai : (:body :l2l6 :type :l2 :head :h2s :shoulder :cross :wrist :y-cross :gripper t :sole t)
+kxrl2l6anzais : (:body :l2l6 :type :l2 :head :h2s :shoulder :cross :wrist :y-cross :gripper t :board :armh7 :gripper-sensor :larm :sole t)
+kxrl2l6anzai3 : (:body :l2l6 :type :l2 :head :h2s :shoulder :cross :wrist :y-cross :gripper t :sole t :project-file "kxrl2l6anzai")
+kxrl2l6anzaifly : (:body :l2l6 :type :l2 :wing t :head :m5sh :shoulder :cross :board :armh7 :wrist :y-cross :gripper t :sole t :project-file "kxrl2l6anzai")
+kxrl2l6anzaifly5 : (:body :l2l6 :type :l2 :wing :5inch :head :m5us :shoulder :cross :board :armh7 :wrist :y-cross :gripper t :sole t :project-file "kxrl2l6anzai")
+kxrl2l5anzaifly : (:body :l2l5 :type :l2 :wing t :gripper t :head :m5u2s :neck-jf :b :sole t :project-file "kxrl2l5a3h2g")
+kxrl2l5anzaifly5 : (:body :l2l5 :type :l2 :wing :5inch :gripper t :head :m5us :neck-jf :b :sole t :project-file "kxrl2l5a3h2g")
+kxrl2test : (:body :dyp :type :l2 :torso :dy-p :shoulder :y-p-r :leg :l6w :passive-wheel :wrist :wrist :r :gripper-inner t :neck-axis :p :head :h2s :sole t)
+kxrl2test6 : (:body :lyp-low :type :l2 :active-wheel :knee :torso :ly-p :shoulder :ly-p-r :passive-wheel :wrist :wrist :r :gripper-inner t :neck-axis :p :head :m5us :sole t)
+kxrr4ll : nil
+premaidai : nil
+khrnishio : (:body :l2l5 :head :m5sh :gripper t :wing :5inch :wing-pos #f(-80.0 0.0 50.0) :sole :b :sole-sensor t :passive-wheel :sole :board :armh7 :com-init-method (:arm-
+khrmain : (:file "models/KHRmain.l" :form (khr) :project-file "khr3" :board :armh7 :com-init-method (:arm-open :pid 24577))
+khr : (:file "KHR/khr.l" :form (khr) :project-file "khr3" :board :armh7 :com-init-method (:arm2-open))
+khrh2 : (:file "KHR/khrh2.l" :form (khrh2) :project-file "khr3" :board :armh7 :com-init-method (:arm2-open))
+khr20 : (:body :l2l6 :wrist t :project-file "khr3semi" :board :armh7 :torso t :com-init-method (:arm-open :pid 24577))
+khr20-cad : (:file "KHR/khr20.l" :form (khr20) :project-file "khr3" :board :armh7 :com-init-method (:arm2-open))
+khr20h2 : (:body :l2l6 :head :m5sh :wrist t :project-file "khr3semi" :board :armh7 :torso t :com-init-method (:arm-open :pid 24577))
+khr20h2-cad : (:file "KHR/khr20h2.l" :form (khr20h2) :project-file "khr3" :board :armh7 :com-init-method (:arm2-open))
+khrl6a3h2 : (:body :l2l6 :head :m5sh :wrist t :project-file "khr3semi" :board :armh7 :com-init-method (:arm-open :pid 24577))
+khrl6a3h2m : (:body :l2l6 :head :d405echos :wrist t :project-file "khr3semi" :board :armh7 :com-init-method (:arm-open :pid 24577))
+khrl6a3h2-cad : (:file "KHR/khrl6a3h2.l" :form (khrl6a3h2) :project-file "khr3" :board :armh7 :com-init-method (:arm2-open))
+khrt1l6a3h2 : (:body :l2l6 :head :m5sh :wrist t :project-file "khr3semi" :board :armh7 :torso t :com-init-method (:arm-open :pid 24577))
+khrt1l6a3h2m : (:body :l2l6 :head :d405echos :wrist t :project-file "khr3semi" :board :armh7 :torso t :com-init-method (:arm-open :pid 24577))
+khrt1l6a3h2-cad : (:file "KHR/khrt1l6a3h2.l" :form (khrt1l6a3h2) :project-file "khr3" :board :armh7 :com-init-method (:arm2-open))
+khr22 : (:body :l2l6 :wrist t :project-file "khr3semi" :board :armh7 :torso t :shoulder :y :com-init-method (:arm-open :pid 24577))
+khr22-cad : (:file "KHR/khr22.l" :form (khr22) :project-file "khr3" :board :armh7 :com-init-method (:arm2-open))
+khr22h2 : (:body :l2l6 :head :m5sh :wrist t :project-file "khr3semi" :board :armh7 :torso t :shoulder :y :com-init-method (:arm-open :pid 24577))
+khrl6a4h2 : (:body :l2l6 :head :m5sh :wrist t :project-file "khr3semi" :board :armh7 :shoulder :y :com-init-method (:arm2-open))
+khrl6a4h2-cad : (:file "KHR/khrl6a4h2.l" :form (khrl6a4h2) :project-file "khr3" :board :armh7 :com-init-method (:arm2-open))
+khr23semi khrt1l6a4h2 : (:body :l2l6 :wrist t :head :m3deye :3eye-rev 6 :torso t :shoulder :y :com-init-method (:arm2-open))
+khr23semi-cad : (:file "KHR/khrt1l6a4h2.l" :form (khrt1l6a4h2) :project-file "khr23semi" :com-init-method (:arm2-open) :board :armh7)
+khr23semi1 : (:body :l2l6 :head :m5u3sv2 :wrist t :project-file "khr3semi" :board :armh7 :torso t :shoulder :y :com-init-method (:arm-open :pid 24577))
+khr23semi2 : (:body :l2l6 :head :m5u2s :wrist t :project-file "khr3semi" :board :armh7 :torso t :shoulder :y :com-init-method (:arm-open :pid 24577))
+khr23semi3 : (:body :l2l6 :head :m5shv2 :wrist t :project-file "khr3semi" :board :armh7 :torso t :shoulder :y :com-init-method (:arm-open :pid 24577))
+khr23semi4 : (:body :l2l6 :head :m5shv2 :wrist t :project-file "khr3semi" :board :armh7 :torso t :shoulder :y :com-init-method (:arm-open :pid 24577))
+khr24semis3 : (:body :l2l6 :head :m5sh :wrist t :project-file "khr3semi" :board :armh7 :torso t :shoulder :y :com-init-method (:arm2-open))
+khr3omori : (:file "KHR/khrt1l6a4h2.l" :form (khrt1l6a4h2) :project-file "khr3omori" :com-init-method (:arm2-open) :board :armh7)
+khr3 : (:file "KHR/khr.l" :form (khr) :project-file "khr3" :board :armh7)
+khr3rcb4 : (:file "KHR/khr.l" :form (khr) :project-file "khr3")
+khr3semircb4 : (:file "KHR/khrh2.l" :form (khrh2) :project-file "khr3semi")
+khr3semi : (:body :l2l5 :head :m5sh :wrist t :project-file "khr3semi" :board :armh7 :com-init-method (:arm-open :pid 24577))
+khr3semi-cad : (:project-file "khr3semi")
+khr3semi1 : (:project-file "khr3semi")
+khr3semi2 : (:body :l2l5 :head :m5u2s :wrist t :head-offset #f(0.0 0.0 6.0) :project-file "khr3semi")
+khr3semi3 : (:body :l2l5 :head :m5u3sv2 :wrist t :head-offset #f(0.0 0.0 6.0) :project-file "khr3semi")
+khr3semi4 : (:body :l2l5 :head :m5shv2 :wrist t :head-offset #f(0.0 0.0 6.0) :project-file "khr3semi")
+khr3sl5a3h2 : (:body :l2l5 :head :m5sh)
+khrl5a3h2 : (:project-file "khr3semi" :body :l2l5 :head :m5sh)
+khrl5a3h2g : (:body :l2l5 :head :m5sh :gripper t :gripper-straight t :project-file "khr3semi" :board :armh7 :com-init-method (:arm-open :pid 24577))
+khrl5a3h2wg : (:body :l2l5 :head :m5sh :wrist t :gripper t :gripper-straight t :project-file "khr3semi" :board :armh7 :com-init-method (:arm-open :pid 24577))
+khrl5a4h2g : (:body :l2l5 :head :m5sh :shoulder :y :gripper t :gripper-straight t :project-file "khr3semi" :board :armh7 :com-init-method (:arm-open :pid 24577))
+khrl5a4h2wg : (:body :l2l5 :head :m5sh :shoulder :y :wrist t :gripper t :gripper-straight t :project-file "khr3semi" :board :armh7 :com-init-method (:arm-open :pid 24577))
+khrt1l5a3h2g : (:body :l2l5 :head :m5sh :torso t :gripper t :gripper-straight t :project-file "khr3semi" :board :armh7 :com-init-method (:arm-open :pid 24577))
+khrt1l5a3h2wg : (:body :l2l5 :head :m5sh :torso t :wrist t :gripper t :gripper-straight t :project-file "khr3semi" :board :armh7 :com-init-method (:arm-open :pid 24577))
+khrt1l5a4h2g : (:body :l2l5 :head :m5sh :torso t :shoulder :y :gripper t :gripper-straight t :project-file "khr3semi" :board :armh7 :com-init-method (:arm-open :pid 24577))
+khrt1l5a4h2wg : (:body :l2l5 :head :m5sh :torso t :shoulder :y :wrist t :gripper t :gripper-straight t :project-file "khr3semi" :board :armh7 :com-init-method (:arm-open :pid 2
+khrl6a3h2g : (:body :l2l6 :head :m5sh :gripper t :gripper-straight t :project-file "khr3semi" :board :armh7 :com-init-method (:arm-open :pid 24577))
+khrl6a3h2wg : (:body :l2l6 :head :m5sh :wrist t :gripper t :gripper-straight t :project-file "khr3semi" :board :armh7 :com-init-method (:arm-open :pid 24577))
+khrl6a4h2g : (:body :l2l6 :head :m5sh :shoulder :y :gripper t :gripper-straight t :project-file "khr3semi" :board :armh7 :com-init-method (:arm-open :pid 24577))
+khrl6a4h2wg : (:body :l2l6 :head :m5sh :shoulder :y :wrist t :gripper t :gripper-straight t :project-file "khr3semi" :board :armh7 :com-init-method (:arm-open :pid 24577))
+khrt1l6a3h2g : (:body :l2l6 :head :m5sh :torso t :gripper t :gripper-straight t :project-file "khr3semi" :board :armh7 :com-init-method (:arm-open :pid 24577))
+khrt1l6a3h2wg : (:body :l2l6 :head :m5sh :torso t :wrist t :gripper t :gripper-straight t :project-file "khr3semi" :board :armh7 :com-init-method (:arm-open :pid 24577))
+khrt1l6a4h2g : (:body :l2l6 :head :m5sh :torso t :shoulder :y :gripper t :gripper-straight t :project-file "khr3semi" :board :armh7 :com-init-method (:arm-open :pid 24577))
+khrt1l6a4h2wg : (:body :l2l6 :head :m5sh :torso t :shoulder :y :wrist t :gripper t :gripper-straight t :project-file "khr3semi" :board :armh7 :com-init-method (:arm-open :pid 2
+khranzaifly : (:body :l2l5 :wrist t :head-offset #f(0.0 0.0 6.0) :wing :70mm :wing-pos #f(-80.0 0.0 50.0) :project-file "khr3semi" :board :armh7 :com-init-method (:arm-open :
+khranzaifly-cad : (:file "KHR/khranzaifly.l" :form (khranzaifly-70mm) :board :armh7 :project-file "khr3")
+khranzaifly5 : (:body :l2l5 :wrist t :wing :5inch :wing-pos #f(-80.0 0.0 50.0) :project-file "khr3semi" :board :armh7 :com-init-method (:arm-open :pid 24577))
+khranzaifly5-cad : (:file "KHR/khranzaifly.l" :form (khranzaifly-5inch) :board :armh7 :project-file "khr3")
+khrh2fly : (:project-file "khr3semi" :file "KHR/khrh2fly.l" :form (khrh2fly))
+khranzaiflys : (:file "KHR/khranzaifly.l" :form (khranzaifly) :board :armh7 :project-file "khr3" :sole t :sole-sensor t)
+khrh2ganzaiflys : (:body :l2l5 :head :m5sh :gripper t :wing :5inch :wing-pos #f(-80.0 0.0 50.0) :project-file "khr3semi" :board :armh7 :com-init-method (:arm-open :pid 24577))
+kxrl4dfly : (:body :l4d :type :l4 :head :d :arm :j4 :leg :j4 :wing t :board :armh7 :project-file "kxrl4d" :wing-pos #f(-21.5 0.0 69.0))
+kxrl6fly : (:body :l6 :type :l6 :arm :j3 :marm :j3 :leg :j3 :project-file "kxrl6" :board :armh7 :wing t :wing-pos #f(0.0 0.0 161.0))
+kxrl2l7a7 : (:body :l2l6w :type :l2 :shoulder :cross :wrist :yw-cross :board :armh7 :project-file "kxrl2l6a7h2w" :gripper-inner t :ankle :y :sole t :head :h2s :head-length 
+kxrl2l7a7w : (:body :l2l6w :type :l2 :shoulder :cross :wrist :yw-cross :board :armh7 :project-file "kxrl2l6a7h2w" :gripper-inner t :ankle :y :sole :w :head :h2s :head-length
+kxr_uav : (:file "robot_assembler/kxr_uav_fullbody.l" :form (kxr_uav_fullbody) :board :armh7)
+kxr_uav_tilt : (:file "robot_assembler/kxr_uav_fullbody_tilt.l" :form (kxr_uav_fullbody) :board :armh7)
+kxr_uav_fin : (:file "robot_assembler/kxr_uav_fullbody_fin.l" :form (kxr_uav_fullbody_fin) :board :armh7)
+kxr_uav_fin_nobackpack : (:file "robot_assembler/kxr_uav_fullbody_fin_nobackpack.l" :form (kxr_uav_fullbody_fin_nobackpack) :board :armh7)
+kxr_uav_fin_device : (:file "robot_assembler/kxr_uav_fullbody_fin_device.l" :form (kxr_uav_fullbody_fin_device) :board :armh7)
+kxr_uav2 : (:body :l2l6w :type :l2 :wing t :board :armh7 :shoulder :cross :wrist :y-cross :gripper-inner t :gripper-sensor ((:finger1 . :rev-c)) :sole t :sole-sensor t :he
+kxr_auv : (:file "robot_assembler/kxr_auv_fullbody_initial.l" :form (kxr_auv_fullbody_initial) :board :armh7)
+kxr_auvrev2 : (:body :l2l5 :type :l2 :shoulder :p-r-yr :board :armh7 :project-file "kxrl2l5a4h2g" :backpack-function kxr-auv-back-pack :gripper-inner t :gripper-sensor nil :w
+kxr_auvrev2nofloat : (:body :l2l5 :type :l2 :shoulder :p-r-yr :board :armh7 :project-file "kxr_auvrev2" :backpack-function kxr-auv-back-pack-nofloat :gripper-inner t :wrist-inner t 
+kxr_amv : (:body :l2l5 :type :l2 :shoulder :p-r-yr :board :armh7 :project-file "kxrl2l5a4h2g" :backpack-function kxr-auv-back-pack :gripper-inner t :head :h2-auv :neck-jf
+kxr_amv2 : (:body :l2l5 :type :l2 :shoulder :p-r-yr :project-file "kxrl2l5a4h2g" :backpack-function kxr-auv-back-pack :gripper-inner t :head :h2s :neck-jf :a :sole t)
+kxr_amv3 : (:body :l2l5 :type :l2 :shoulder :p-r-yr :project-file "kxrl2l5a4h2g" :backpack-function kxr-auv-back-pack :gripper-inner t :head :h2s :neck :y-p-r :neck-jf :a 
+kxrhandw1f4 : (:body :dyp-zf :type :l2 :active-wheel :knee :shoulder :y-p-r :wrist :r :passive-wheel :wrist :board :armh7 :board :armh7 :wrist-sensor t :gripper-inner t :sole
+kxrdrill : (:body :dyp-zf :type :l2 :active-wheel :knee :shoulder :y-p-r :wrist :r :passive-wheel :wrist :board :armh7 :board :armh7 :wrist-sensor t :gripper-inner t :sole
+kxrmamoru : (:body :l4m :type :l4 :marm :r :arm :j3w :leg :j3w :head :h3 :board :armh7)
+kxrmamoru-new : (:body :l4m2 :type :l4 :marm :r3 :arm :j3w :leg :j3w :head :h3-new :board :armh7)
+kxrmamoru-2022 : (:body :l4m3 :type :l4 :marm :r3 :arm :j3w :leg :j3w :head :h3-new :board :armh7)
+khr23oh : (:body :l2l6 :head :m5sh :wrist t :project-file "khr3oh" :torso t :shoulder :y)
+attachable_arm : (:file "catkin_ws_src/kxr_pkgs/kxr_models/euslisp/attachable_arm.l" :form (progn (load "additional-settings.l") (attachable_arm)) :board :armh7)
+single-worm : (:file "catkin_ws_src/kxr_pkgs/kxr_models/euslisp/single-worm.l" :form (progn (load "additional-settings.l") (single-worm)) :board :armh7)
+single-worm-kondoh7 : (:file "catkin_ws_src/kxr_pkgs/kxr_models/euslisp/single-worm-kondoh7.l" :form (progn (load "additional-settings.l") (single-worm-kondoh7)) :board :armh7)
+single-worm-kondoh7-2 : (:file "catkin_ws_src/kxr_pkgs/kxr_models/euslisp/single-worm-kondoh7-2.l" :form (progn (load "additional-settings.l") (single-worm-kondoh7-2)) :board :armh7)
+worm_and_servo_kondoh7_sample : (:file "models/worm_and_servo_kondoh7_sample.l" :form (progn (load "additional-settings.l") (worm_and_servo_kondoh7_sample)) :board :armh7)
+single-worm-pitch : (:file "catkin_ws_src/kxr_pkgs/kxr_models/euslisp/single-worm-pitch.l" :form (progn (load "additional-settings.l") (single-worm-pitch)) :board :armh7)
+la5 : (:body :mag+7 :type :module :noleg t :limb :larm :arm :a5 :upper-arm-length 38 :elbow-p-sensor :mag-7 :wrist-sensor :mag-7)
+ra5 : (:body :mag+7 :type :module :noleg t :limb :rarm :arm :a5 :upper-arm-length 38 :elbow-p-sensor :mag-7 :wrist-sensor :mag-7)
+d405 : (:body :mag+7 :type :module :noarm t :noleg t :head :d405 :3eye-front t :head-length 20)
+d405cam : (:body :mag+7 :type :module :noarm t :noleg t :head :d405cam :3eye-front t :head-length 20)
+d405echos : (:body :mag+7 :type :module :noarm t :noleg t :head :d405echos :3eye-front t :head-length 20)
+d405eyes : (:body :mag+7 :type :module :noarm t :noleg t :head :d405eyes :3eye-front t :head-length 20)
+h2d405cam : (:body :mag+7 :type :module :noarm t :noleg t :head :d405cam :3eye-front t :head-length 20)
+h2d405echos : (:body :mag+7 :type :module :noarm t :noleg t :head :d405echos :3eye-front t :head-length 20)
+lg1 : (:body :mag+7 :type :module :noleg t :arm :g1 :limb :larm :gripper t)
+rg1 : (:body :mag+7 :type :module :noleg t :arm :g1 :limb :rarm :gripper t)
+lg1i : (:body :mag+7 :type :module :noleg t :arm :g1 :limb :larm :gripper t :gripper-inner t)
+rg1i : (:body :mag+7 :type :module :noleg t :arm :g1 :limb :rarm :gripper t :gripper-inner t)
+lg1s : (:body :mag+7 :type :module :noleg t :arm :g1 :limb :larm :gripper t :gripper-straight t)
+rg1s : (:body :mag+7 :type :module :noleg t :arm :g1 :limb :rarm :gripper t :gripper-straight t)
+rg1sz : (:body :mag+7 :type :module :noleg t :arm :g1 :limb :rarm :gripper t :gripper-straight t :gripper-axis :z)
+lg1sx : (:body :mag+7 :type :module :noleg t :arm :g1 :limb :larm :gripper t :gripper-straight t :gripper-axis :y)
+rg1sx : (:body :mag+7 :type :module :noleg t :arm :g1 :limb :rarm :gripper t :gripper-straight t :gripper-axis :y)
+worm_movebase_module : (:file "models/worm_movebase_module.l" :form (progn (load "additional-settings.l") (worm_movebase_module)) :board :armh7)

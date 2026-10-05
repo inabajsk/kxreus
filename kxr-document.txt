@@ -5389,9 +5389,25 @@ BVH: EusView パネルの BVH ボタンで BVH のパネル(eusview-bvh.l)を開き，kxreus/bvh
   BVH パネルの robot (KXR kxrl2l6a6h2 / KHR khr20h2 / JSK sample-robot / none) を選ぶと，
   方法1(joint names: bvh/*-demo.l の :copy-state-to の関節名の対応)と方法2(GMR: 体の部位の
   位置を limb ごとの :inverse-kinematics で合わせる)のロボットを棒人形の横に並べて同じ時刻で
-  再生する(eusview-retarget.l, 仕様は mnist/eusview/bvh/RETARGET.md)．
+  再生する(eusview-retarget.l, 仕様は eusview/bvh/RETARGET.md)．
   ロボットのパネルの BVH メニュー: 種類→ファイル→方法を選ぶと，BVH から移した関節角を
   そのロボットの動作として繰り返す．physics ON ならサーボの目標(腰は ODE)，OFF なら腰は BVH．
   (eusview-bvh-export-retarget "mocopi/greeting1.bvh" "kxrl2l6a6h2" :names 0 100 10)
   で関節角とルートを ~/.cache/eusview/retarget-*.json に書き出す(アプリの照合用)．
+GMR + QP (eusview-qp.l, 2026.10.5): EusView アプリの全身の QP (eusview/bvh/QP.md,
+  C++ の eusview-ode/wbqp.{h,cpp} はアプリのコピー) を make eusview-ode で同じ
+  $ARCHDIR/lib/libeusviewode.so に入れ，defforeign (eusviewqp_*) で呼ぶ．kxreus の GMR の答えを
+  毎コマ，自己衝突なし・関節の可動範囲(余裕つき)の中・重心が床に着いた足の裏の多角形の中・
+  着いた足を動かさない，に直す．QP のモデルは EusLisp のロボットから作る(リンク・関節・
+  質量と重心は eusview-physics.l と同じ，衝突のカプセルはボディの頂点から，手と足の裏は
+  :larm/:rarm/:lleg/:rleg の :end-coords の親リンク)．
+  BVH パネルの QP: ON/off で GMR の横に GMR+QP のロボットを並べ，GMR と GMR+QP の違反を
+  irtviewer に描く: 衝突しているリンクを赤，可動範囲の端のリンクを橙，重心(十字と床への線，
+  床の円)と支持多角形(緑 = 重心が中，赤 = 外)．状態の行にそのコマの違反と，それまでの
+  集計(QP の ms/コマ，衝突のコマの割合 GMR→QP，重心が外の割合)を出す．
+  ロボットのパネルの BVH の method: joint names / GMR / GMR + QP (押すたびに変わる)．
+  GMR + QP は全部のキー(15 fps)の足の接地を先読みしてから解く．physics ON の BVH の動作は
+  今の姿勢から初めのキーへ 0.8 秒で移ってから始める．
+  Mac で確かめた値: mocopi greeting1 x kxrl2l6a6h2 は衝突のコマ 100% -> 0% (QP 1.1 ms/コマ)，
+  rikiya A01 x khr20h2 は 100% -> 1.5%，重心が外 21% -> 0%．
 

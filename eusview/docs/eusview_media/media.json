@@ -1,0 +1,170 @@
+[
+ {
+  "name": "gallery_kxr",
+  "title_ja": "KXR のロボット",
+  "caption_ja": "kxreus の KXR 36 体から 6 体",
+  "seconds": 12.0,
+  "what": "SceneKit でオフライン描画（rendervideo）。kxrl2l6a6h2, kxra6g, kxrl4d, kxrl4r, kxrmw4a6h2m, kxrt1l2l2d7h2m を reset-pose で 3×2 に並べ、カメラを 30°/秒で 1 周（12 秒）"
+ },
+ {
+  "name": "gallery_khr",
+  "title_ja": "KHR のロボット",
+  "caption_ja": "kxreus の KHR 43 体から 6 体",
+  "seconds": 12.0,
+  "what": "オフライン描画。khr3, khr20h2, khr23oh, khrnishio, khrl6a4h2wg, khranzaifly（reset-pose）を 3×2 で、30°/秒で 1 周"
+ },
+ {
+  "name": "gallery_jsk",
+  "title_ja": "jskeus のロボット",
+  "caption_ja": "irteus/demo と eus/models の 42 体から 6 体",
+  "seconds": 12.0,
+  "what": "オフライン描画。sample-robot, h7, darwin, hanzou, akira, macra（reset-pose がないものは init-pose）を 3×2 で、30°/秒で 1 周"
+ },
+ {
+  "name": "motion_kxr_walk",
+  "title_ja": "モーションの再生（KXR 歩行）",
+  "caption_ja": "kxrl2l6a6h2「ゆっくり歩行前（5回）」",
+  "seconds": 13.0,
+  "what": "物理なしで関節角をそのまま表示（RCB4 エミュレーションで作った 50 fps のフレーム, 204 コマ = 4.1 秒）を 3 回。ルートは動かないので、コマごとにいちばん低い点を床に合わせて表示。カメラは 6°/秒で回る"
+ },
+ {
+  "name": "motion_khr_greet",
+  "title_ja": "モーションの再生（KHR）",
+  "caption_ja": "khr20h2「押忍」「手を振る」「エイエイオー」",
+  "seconds": 12.0,
+  "what": "Hello_KHR3(V2.3) のモーションを物理なしで続けて再生（間 0.5 秒は直線でつなぐ）。左下に再生中のモーション名"
+ },
+ {
+  "name": "motion_kxr_rcb4",
+  "title_ja": "いろいろなモーション（KXR）",
+  "caption_ja": "kxra6g 挨拶・手を振る・喜ぶ・パンチ・防御・がっかり",
+  "seconds": 13.0,
+  "what": "kxra6g のプロジェクトの 7 つのモーションを物理なしで続けて再生（間 0.3 秒）。左下にモーション名"
+ },
+ {
+  "name": "sample-robot-walk",
+  "title_ja": "jskeus の歩行生成",
+  "caption_ja": "sample-robot の go-pos 500 150 45°",
+  "seconds": 11.5,
+  "what": "irteus の歩行生成で作った関節角とルートの位置（30 fps, 329 コマ = 11 秒）を物理なしで再生。カメラはルートを追う"
+ },
+ {
+  "name": "physics_walk",
+  "title_ja": "物理（ODE）で歩く",
+  "caption_ja": "kxrl2l6a6h2 ゆっくり歩行前 ×2 で約 16 cm 進む",
+  "seconds": 13.0,
+  "what": "PhysicsSim（アプリと同じ ODE の層）で、動作の関節角をサーボの目標にする。kp 10, fmax 500000（eusdyna）, mu 0.8, 接触 4 点, soft_cfm 0.001, dt 0.01 s, dWorldStep。1 回目のあと x +118 mm（7.5 秒）, 2 回のあと x +163 mm（実測）"
+ },
+ {
+  "name": "cmp_friction",
+  "title_ja": "床の摩擦と接触点の比較",
+  "caption_ja": "左 mu 0.1 / 1 点（滑る）, 右 mu 0.8 / 4 点（滑らない）",
+  "seconds": 13.0,
+  "what": "横から見る。立つ 3 秒 → ゆっくり歩行前 → 立つ。左（kxr-dyna の値: mu 0.1, 接触 1 点, soft_cfm 0.01）は立っているだけで 3 秒で x +14 mm 滑り、歩いたあとも後ろへ滑る（9 秒 +82 → 12.5 秒 +57 mm）。右（今の既定: mu 0.8, 4 点, soft_cfm 0.001）は立っている間 +0.4 mm、歩いたあと +82 mm で止まる"
+ },
+ {
+  "name": "cmp_cfm",
+  "title_ja": "関節の CFM の比較",
+  "caption_ja": "world CFM 0.01 では 2 cm 沈む",
+  "seconds": 8.0,
+  "what": "横から脚を拡大。reset-pose で立つだけ。左 world CFM 0.01（JSON の値そのまま）は腰の高さ 192 mm、右 1e-5（今の既定）は 211.5 mm。差 約 20 mm（関節が伸びる）"
+ },
+ {
+  "name": "cmp_servo",
+  "title_ja": "サーボ オン / オフ",
+  "caption_ja": "2 秒で脱力すると約 1 秒で崩れる",
+  "seconds": 8.0,
+  "what": "KRS の公称トルク（realServo: 1.363 N·m, 8.06 rad/s）で reset-pose に立ち、右だけ 2 秒でサーボをオフ（脱力: 力の上限の 1 %）。腰の高さ 211.5 → 55.5 mm で倒れる。左はそのまま 211.5 mm"
+ },
+ {
+  "name": "cmp_torque",
+  "title_ja": "サーボの力の上限の比較",
+  "caption_ja": "fmax 実質無制限 vs KRS の公称 1.36 N·m（逆立ち）",
+  "seconds": 10.0,
+  "what": "kxrl2l6a6h2「逆立ち」を物理で。左 eusdyna の fmax 500000 N·m、右 realServo（1.363 N·m, 8.06 rad/s）。どちらも逆立ちできずに倒れ、動きはほぼ同じ。終わりの位置が x +305 mm と +392 mm で違う"
+ },
+ {
+  "name": "physics_fall_getup",
+  "title_ja": "倒れて起き上がる（物理）",
+  "caption_ja": "khr20h2 うつぶせ / 仰向けになって起きあがる",
+  "seconds": 10.0,
+  "what": "khr20h2 の「うつぶせになる」→「起きあがり(うつぶせ)」（左）, 「仰向けになる」→「起きあがり(仰向け)」（右）を物理で。間 1 秒は直線でつなぐ。どちらも約 7 秒で腰の高さ 296 mm に戻り立つ（fmax 500000, mu 0.8, 4 点）"
+ },
+ {
+  "name": "physics_jsk_h7",
+  "title_ja": "大きなロボットも物理で立つ",
+  "caption_ja": "h7（約 49 kg, jskeus）",
+  "seconds": 9.0,
+  "what": "h7 を reset-pose で床に置き、サーボ kp 10 で 9 秒立たせる（以前は発散した）。腰の高さ 541 mm で安定, 接触 120 点。カメラは 12°/秒で回る"
+ },
+ {
+  "name": "physics_kxrl4d",
+  "title_ja": "4 脚ロボットの歩行（物理）",
+  "caption_ja": "kxrl4d 一定歩行前（3歩）×3 で約 11 cm 進む",
+  "seconds": 10.0,
+  "what": "kxrl4d の「一定歩行前（3歩）」（94 コマ）を 3 回、物理で。x +107 mm 進む（実測）"
+ },
+ {
+  "name": "mac_catalyst_list",
+  "title_ja": "Mac 版 EusView（Mac Catalyst）",
+  "caption_ja": "KXR 36 / KHR 43 / JSK 42 体の一覧",
+  "seconds": 9.5,
+  "what": "~/Applications/EusView.app のウィンドウを screencapture -l で撮った静止画 3 枚をスライドでつないだもの（UI を操作する権限（アクセシビリティ）がないため、ロボットを開く操作は録れなかった）"
+ },
+ {
+  "name": "eusview_ubuntu_panel",
+  "title_ja": "kxreus の EusView（irteusgl）",
+  "caption_ja": "irtviewer + X パネル, 日本語のモーションメニュー",
+  "seconds": 15.0,
+  "what": "この Mac の irteusgl + XQuartz で ~/kxreus/eusview.l を実行して画面録画。kxrl2l6a6h2 を reset-pose → モーションのメニュー（Xft で日本語）を開く → 挨拶 → ゆっくり歩行前（RCB4 エミュレーション）。Ubuntu でも同じ"
+ },
+ {
+  "name": "eusview_ubuntu_physics",
+  "title_ja": "kxreus の EusView で物理",
+  "caption_ja": "physics ON で歩く（eusview-physics.l, libeusviewode）",
+  "seconds": 16.7,
+  "what": "同じく irteusgl + XQuartz。physics ON（アプリと同じ odesim を defforeign で呼ぶ）で立たせ、ゆっくり歩行前を 2 回、そのあとサーボ オフ。パネルに経過時間・接触点・腰の位置"
+ },
+ {
+  "name": "android_list",
+  "title_ja": "Android 版 EusView: 一覧",
+  "caption_ja": "Pixel 7a, KXR / KHR / JSK のタブ",
+  "seconds": 15.0,
+  "what": "adb shell screenrecord で録画, adb shell input で操作。KXR → KHR → JSK のタブを切り替えて一覧をスクロール"
+ },
+ {
+  "name": "android_motion",
+  "title_ja": "Android 版 EusView: モーション",
+  "caption_ja": "Pixel 7a, kxrl2l6a6h2 ゆっくり歩行前",
+  "seconds": 20.0,
+  "what": "名前で探す → kxrl2l6a6h2 を開く → 姿勢 reset-pose → 動作「ゆっくり歩行前（5回）」を再生（物理なし）。左は画面全体, 右は 3D 表示の拡大"
+ },
+ {
+  "name": "android_physics",
+  "title_ja": "Android 版 EusView: 物理",
+  "caption_ja": "Pixel 7a, 物理（ODE）オンで歩く",
+  "seconds": 18.0,
+  "what": "物理（ODE）をオン → 「ゆっくり歩行前（5回）」をサーボの目標にして歩く。状態の行に経過時間・接触点・計算時間（約 3 ms/コマ, 端末の表示）"
+ },
+ {
+  "name": "bvh_mac",
+  "title_ja": "Mac 版 EusView: BVH の自動再生",
+  "caption_ja": "lafan1 → mocopi の骨格を再生",
+  "seconds": 17.4,
+  "what": "新しい ~/Applications/EusView.app（19:29 版）を open --args -bvh auto で起動して 8.5 秒（lafan1/aiming1_subject1, 30 fps）、続けて -bvh auto:mocopi で起動して 8.5 秒（mocopi/factory_1, 24 fps）。screencapture -v でウィンドウの範囲を録画してつないだもの"
+ },
+ {
+  "name": "bvh_android",
+  "title_ja": "Android 版 EusView: BVH の自動再生",
+  "caption_ja": "Pixel 7a, lafan1 → tum-kitchen",
+  "seconds": 20.0,
+  "what": "リリース版（19:30 に入れ直したもの）。一覧の右上「BVH」→「自動再生（全部）」（5 種類 421 本）→ lafan1/aiming1_subject1 を約 8 秒 →「前へ」で 421 本目の tum-kitchen/1-7（25 fps）。adb shell input で操作し screenrecord で録画。左は画面全体、右は 3D 表示の拡大"
+ },
+ {
+  "name": "bvh_ubuntu",
+  "title_ja": "kxreus の EusView: BVH パネル",
+  "caption_ja": "irteusgl + XQuartz, lafan1 → mocopi",
+  "seconds": 16.0,
+  "what": "~/kxreus/eusview.l + eusview-bvh.l（d0d5a90）。BVH パネルの auto play と同じ処理（eusview-bvh-request :auto）を lafan1/dance2_subject4（その場で踊り、移動が小さいもの）から始め、9 秒後に mocopi/factory_1 に切り替える。上はビューア（骨格）、下は BVH パネル（種類ごとのメニューと再生中の行）"
+ }
+]

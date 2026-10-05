@@ -1,0 +1,62 @@
+# XcodeGen の設定:  make -C eusview/ios project DEVELOPMENT_TEAM=<チーム ID>
+name: EusView
+options:
+  bundleIdPrefix: jp.jsk.eusview
+  deploymentTarget:
+    iOS: "17.0"
+settings:
+  base:
+    DEVELOPMENT_TEAM: ${DEVELOPMENT_TEAM}
+    CODE_SIGN_STYLE: Automatic
+    SWIFT_VERSION: "5.0"
+targets:
+  EusView:
+    type: application
+    platform: iOS
+    supportedDestinations: [iOS, macCatalyst]
+    sources:
+      - path: EusView/App
+      - path: EusView/Physics
+        excludes: ["Bridging.h"]
+      # 全身 QP (自己衝突・可動範囲・重心, C++ と Swift. Android と kxreus も同じ wbqp.{h,cpp} を使う)
+      - path: EusView/QP
+      - path: EusView/Assets.xcassets
+      - path: ../robots
+        type: folder
+        buildPhase: resources
+      # BVH → ロボットの移し替えの表 (BVHRetarget.swift, Android と同じ)
+      - path: ../bvh/retarget_tables.json
+        buildPhase: resources
+    postBuildScripts:
+      # BVH（eusview/bvh/convert_bvh.py の出力 eusview/bvh/cache/, git に入れない）があればアプリの bvh/ に入れる
+      - name: Copy BVH cache
+        basedOnDependencyAnalysis: false
+        script: |
+          SRC="$SRCROOT/../bvh/cache"
+          DST="$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/bvh"
+          if [ -f "$SRC/index.json" ]; then
+            mkdir -p "$DST" && rsync -a --delete --include='*/' --include='*.ebvh' --include='index.json' --exclude='*' "$SRC/" "$DST/"
+          else
+            rm -rf "$DST"; echo "warning: BVH のデータがありません（python3 eusview/bvh/convert_bvh.py で作る）"
+          fi
+    dependencies:
+      - framework: third_party/ODE.xcframework
+        embed: false
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: jp.jsk.eusview.EusView
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        SWIFT_OBJC_BRIDGING_HEADER: EusView/Physics/Bridging.h
+        CLANG_CXX_LANGUAGE_STANDARD: c++17
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        INFOPLIST_KEY_CFBundleDisplayName: EusView
+        INFOPLIST_KEY_NSLocalNetworkUsageDescription: Mac などの EusLisp から関節角を受け取るため
+        INFOPLIST_KEY_UIFileSharingEnabled: YES
+        INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace: YES
+        MARKETING_VERSION: "1.0"
+        CURRENT_PROJECT_VERSION: "1"
+        TARGETED_DEVICE_FAMILY: "1,2,6"
+        SUPPORTS_MACCATALYST: YES
+        ENABLE_USER_SCRIPT_SANDBOXING: NO
+        DERIVE_MACCATALYST_PRODUCT_BUNDLE_IDENTIFIER: NO

@@ -1,0 +1,16 @@
+;; Load the irteus libraries by hand (see run-eus.sh). libirteusimg (jpeg/png) is skipped.
+(unless (boundp 'robot-model)
+  (load-library (format nil "~A~A/lib/libirteus" *eusdir* (unix:getenv "ARCHDIR"))
+                '("irtmath" "irtutil" "irtc" "irtgeoc" "irtgraph" "___time" "___pgsql"))
+  (in-package "GEOMETRY")
+  (load-library (format nil "~A~A/lib/libirteusg" *eusdir* (unix:getenv "ARCHDIR"))
+                '("irtgeo" "euspqp" "pqp" "irtscene" "irtmodel" "irtdyna" "irtrobot"
+                  "irtsensor" "irtbvh" "irtcollada" "irtpointcloud"))
+  (in-package "X")
+  (load-library (format nil "~A~A/lib/libirteusx" *eusdir* (unix:getenv "ARCHDIR")) '("irtx"))
+  (in-package "GL")
+  (load-library (format nil "~A~A/lib/libirteusgl" *eusdir* (unix:getenv "ARCHDIR"))
+                '("irtglrgb" "irtgl" "irtglc" "irtviewer"))
+  (in-package "USER")
+  (import '(collada::convert-irtmodel-to-collada collada::eus2collada))
+  (unless (member :irt *features*) (push :irt *features*)))

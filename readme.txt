@@ -38,7 +38,7 @@ How to use:
 EusView demo (eusview.l, like the EusView iPhone/Mac app):
 1) cd kxreus
    sudo apt install libode-dev fonts-noto-cjk  ;; ODE for physics, a Japanese font for the motion names
-   make eusview-ode   ;; builds $ARCHDIR/lib/libeusviewode.so (eusview-ode/: the app's ODE layer)
+   make eusview-ode   ;; builds $ARCHDIR/lib/libeusviewode.so (eusview-ode/: the app's ODE layer and whole-body QP)
 2) irteusgl eusview.l "(eusview)"   ;; or roseus eusview.l "(eusview)", or make eusview
     ;; EusView panel: choose a robot from KXR / KHR / JSK menus (or type a name)
     ;; robot panel: poses, project motions (RCB4 emulation), physics, servo, live, joint sliders
@@ -48,8 +48,12 @@ EusView demo (eusview.l, like the EusView iPhone/Mac app):
     ;; BVH button: plays kxreus/bvh/<kind>/*.bvh as the skeleton (auto play through all kinds,
     ;; or a file from the menus repeated until stop; speed) -- eusview-bvh.l
     ;; robots beside the skeleton: KXR / KHR / JSK, joint names (bvh/*-demo.l :copy-state-to)
-    ;; and GMR (IK of the body parts) -- eusview-retarget.l (spec: mnist/eusview/bvh/RETARGET.md)
-    ;; robot panel "BVH" menu: kind -> file -> method, played as a motion (physics ON: servo targets)
+    ;; and GMR (IK of the body parts) -- eusview-retarget.l (spec: eusview/bvh/RETARGET.md)
+    ;; QP: ON/off: GMR + whole-body QP beside them (eusview-qp.l, the app's wbqp.cpp in libeusviewode.so;
+    ;; spec: eusview/bvh/QP.md): no self-collision, joint limits, COM in the support polygon;
+    ;; colliding links red, links at a joint limit orange, COM and support polygon drawn in irtviewer
+    ;; robot panel "BVH" menu: kind -> file -> method (joint names / GMR / GMR + QP), played as a motion
+    ;; (physics ON: servo targets, 0.8 s from the current pose to the first key)
     ;; KHR3 projects: projects/Hello_khr3, Hello_khr3sl5a3h2 ("khr3semi" robots use the latter)
     ;; Japanese labels (motion names, status) with Xft: eusview-xft.l
     ;; (also used by kxrviewer.l robot-control-panel for the motion menus; falls back to the

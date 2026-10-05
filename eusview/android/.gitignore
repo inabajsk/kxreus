@@ -1,0 +1,9 @@
+.gradle/
+build/
+local.properties
+.cxx/
+.kotlin/
+*.iml
+.idea/
+captures/
+shot.png

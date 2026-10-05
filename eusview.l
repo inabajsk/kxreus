@@ -40,7 +40,12 @@
 ;;;                                 robot: KXR kxrl2l6a6h2 / KHR khr20h2 / JSK sample-robot / none,
 ;;;                                 joint names: ON/off（方法 1, bvh/*-demo.l の :copy-state-to）,
 ;;;                                 GMR: ON/off（方法 2, 部位の位置を IK で合わせる）のロボットを棒人形の横に並べる
-;;;                                 （eusview-retarget.l, 仕様は mnist/eusview/bvh/RETARGET.md）
+;;;                                 （eusview-retarget.l, 仕様は eusview/bvh/RETARGET.md）
+;;;                                 QP: ON/off（GMR + 全身 QP: eusview-qp.l, アプリと同じ eusview-ode/wbqp.cpp を
+;;;                                 libeusviewode.so に入れて defforeign で呼ぶ。仕様は eusview/bvh/QP.md）:
+;;;                                 GMR を自己衝突なし・可動範囲の中・重心が足の裏の多角形の中に直したロボットを並べ,
+;;;                                 GMR と GMR+QP の違反を描く（衝突のリンク = 赤, 可動範囲の端 = 橙, 重心と床への線,
+;;;                                 支持多角形: 緑 = 中, 赤 = 外）。状態の行にそのコマの違反と集計
 ;;;   ロボットのパネル（ロボットごと）:
 ;;;     zero / reset-pose / init-pose ...   そのロボットにある姿勢
 ;;;     motion 0- / 20- ...         プロジェクトのモーション表（RCB4 のエミュレーションで再生）。
@@ -54,9 +59,10 @@
 ;;;                                 今の姿勢で床に置く。姿勢・スライダー・モーションはサーボの目標になる。
 ;;;                                 状態の行に経過時間・接触点の数・腰の位置
 ;;;     servo: on / OFF             トグル。サーボ on / off（脱力）（eusview-physics.l のとき）
-;;;     BVH（メニュー）             種類 → ファイル → 方法（joint names / GMR）を選ぶと、BVH から移した関節角を
+;;;     BVH（メニュー）             種類 → ファイル → 方法（joint names / GMR / GMR + QP）を選ぶと、BVH から移した関節角を
 ;;;                                 このロボットの動作として繰り返す。physics OFF: 腰は BVH の腰に合わせる,
 ;;;                                 physics ON: 関節角はサーボの目標で、腰は ODE が決める（転ぶなどの違いを見る）
+;;;                                 （physics ON の BVH の動作は今の姿勢から初めのキーへ 0.8 秒で移ってから）
 ;;;   (eusview-bvh-export-retarget "mocopi/greeting1.bvh" "kxrl2l6a6h2" :names 0 100 10)
 ;;;                                 方法 1 / 2 の関節角とルートを ~/.cache/eusview/retarget-*.json に書く（アプリの照合用）
 ;;;     live: off / ON              トグル。関節角を EusView アプリへ送る（eusview-live.py が中継, 下を参照）
@@ -78,7 +84,8 @@
 (require :eusview-physics) ;; ODE without kxrdyna.l (libeusviewode.so, make eusview-ode)
 (require :eusview-xft)     ;; Japanese labels (motion names, status) with Xft
 (require :eusview-bvh)     ;; BVH playback (kxreus/bvh, the skeleton)
-(require :eusview-retarget) ;; BVH -> robots (joint names / GMR, mnist/eusview/bvh/RETARGET.md)
+(require :eusview-qp)      ;; GMR + whole-body QP (eusview-ode/wbqp.cpp in libeusviewode.so)
+(require :eusview-retarget) ;; BVH -> robots (joint names / GMR, eusview/bvh/RETARGET.md)
 
 (defvar *eusview-kxr-robots*
   '("kxrl2l5a3h2" "kxrl2l6a6h2" "kxrl4t" "kxrl4r" "kxrl4d" "kxrl6" "kxra6g"
@@ -225,7 +232,13 @@
   (:change-background (&rest args) (send-super :change-background *eusview-background*))
   (:draw-objects
    (&rest args)
-   (prog1 (send-super* :draw-objects args)
+   (prog1
+       (if *eusview-qp-marks*
+           ;; GMR + QP of the BVH viewer: the COM and the support polygons over the objects (eusview-qp.l)
+           (prog1 (send-super* :draw-objects :flush nil args)
+             (eusview-protect (eusview-qp-draw-marks))
+             (send self :viewer :viewsurface :flush))
+         (send-super* :draw-objects args))
      (if *eusview-live* (eusview-live-send)))))
 
 (defun eusview-make-viewer ()
@@ -503,6 +516,11 @@
      ((eq (eusview-physics-on-p) :ode)
       ;; eusview-physics.l: the interpolated angles are the servo targets at the simulation time;
       ;; the simulation runs in steps of dt, drawn every 30 ms and not faster than real time
+      ;; BVH motions: 0.8 s from the current pose to the first key first (a jump makes the robot fall)
+      (when *eusview-key-roots*
+        (setq keys (cons (cons 0 (copy-seq (send r :angle-vector)))
+                         (mapcar #'(lambda (k) (cons (+ 800 (car k)) (cdr k))) keys))
+              tend (+ tend 800)))
       (let* ((dt (* 1000.0 (evp-cdr :dt *evp-world*))) (tsim 0) (tdraw 0))
         (while (and (<= tsim (+ tend 200)) (not *eusview-stop*))
           (send *evp* :set-targets-av (eusview-interpolate keys tsim))

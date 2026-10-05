@@ -1,0 +1,440 @@
+{
+ "format": "eusview-retarget",
+ "version": 1,
+ "note": "BVH -> robot retargeting tables shared by the iOS/Mac (BVHRetarget.swift) and Android (BvhRetarget.kt) apps. See eusview/bvh/RETARGET.md and eusview/README.md. method1 = joint names, the same as kxreus eusview-retarget.l :names (the :copy-state-to of the kxreus bvh/*-demo.l classes, with the rotation part of 6-channel joints and joint axes as vectors), checked with eusview/bvh/retarget-kxreus.l + ios/tools/retargettest. gmr = per-limb IK on scaled body points.",
+ "robots": {
+  "defaults": {
+   "kxr": "kxrl2l6a6h2",
+   "khr": "khr20h2",
+   "jsk": "sample-robot"
+  },
+  "mirrored": [],
+  "supported": {
+   "kxr": [
+    "kxra6g",
+    "kxrl2l2a6h2m",
+    "kxrl2l5a3",
+    "kxrl2l5a3h2",
+    "kxrl2l5a3h2g",
+    "kxrl2l5a4h2g",
+    "kxrl2l5a6h2m0",
+    "kxrl2l6a4",
+    "kxrl2l6a5h2",
+    "kxrl2l6a6",
+    "kxrl2l6a6h2",
+    "kxrl2l6a6h2g",
+    "kxrl2l6a6h2n",
+    "kxrl2l6a7",
+    "kxrl2l6a7h2",
+    "kxrl2l6a7h2n",
+    "kxrl2l6a7h2w",
+    "kxrl2w2l5a3h2",
+    "kxrl2w2l5a4h2",
+    "kxrl2w2l6a4h2",
+    "kxrl2w2l6a5h2",
+    "kxrl2w2l6a7h2w",
+    "kxrl4d",
+    "kxrl4l2a6h2m",
+    "kxrl4nh4",
+    "kxrl4r",
+    "kxrl4r2a3",
+    "kxrl4r2a3g",
+    "kxrl4rh",
+    "kxrl4t",
+    "kxrl4tm",
+    "kxrl6",
+    "kxrt1l2l2d7h2m",
+    "kxrt1l2l2e7h2m",
+    "kxrt1l2l2w7h2m"
+   ],
+   "khr": [
+    "khr20",
+    "khr20h2",
+    "khr22",
+    "khr22h2",
+    "khr23oh",
+    "khr23semi1",
+    "khr23semi2",
+    "khr23semi3",
+    "khr23semi4",
+    "khr24semis3",
+    "khr3",
+    "khr3semi",
+    "khr3semi2",
+    "khr3semi3",
+    "khr3semi4",
+    "khr3sl5a3h2",
+    "khranzaifly",
+    "khranzaifly5",
+    "khrh2ganzaiflys",
+    "khrl5a3h2",
+    "khrl5a3h2g",
+    "khrl5a3h2wg",
+    "khrl5a4h2g",
+    "khrl5a4h2wg",
+    "khrl6a3h2",
+    "khrl6a3h2g",
+    "khrl6a3h2m",
+    "khrl6a3h2wg",
+    "khrl6a4h2",
+    "khrl6a4h2g",
+    "khrl6a4h2wg",
+    "khrnishio",
+    "khrt1l5a3h2g",
+    "khrt1l5a3h2wg",
+    "khrt1l5a4h2g",
+    "khrt1l5a4h2wg",
+    "khrt1l6a3h2",
+    "khrt1l6a3h2g",
+    "khrt1l6a3h2m",
+    "khrt1l6a3h2wg",
+    "khrt1l6a4h2",
+    "khrt1l6a4h2g",
+    "khrt1l6a4h2wg"
+   ],
+   "jsk": [
+    "akira",
+    "akira2",
+    "akira3",
+    "ape",
+    "ape3",
+    "bishamon",
+    "chibikaz",
+    "h6",
+    "h7",
+    "hanzou",
+    "hanzous",
+    "human",
+    "igoid",
+    "igoid2",
+    "igoid3",
+    "ikuo-haru",
+    "kaz",
+    "kaz2",
+    "kaz3",
+    "kuma",
+    "macket",
+    "miharu",
+    "millennium",
+    "penguin",
+    "saizo",
+    "sample-robot-walk",
+    "sample-robot",
+    "taro",
+    "tot",
+    "zero"
+   ]
+  }
+ },
+ "method1": {
+  "order": [
+   [
+    "larm",
+    "collar"
+   ],
+   [
+    "larm",
+    "shoulder"
+   ],
+   [
+    "larm",
+    "elbow"
+   ],
+   [
+    "larm",
+    "wrist"
+   ],
+   [
+    "rarm",
+    "collar"
+   ],
+   [
+    "rarm",
+    "shoulder"
+   ],
+   [
+    "rarm",
+    "elbow"
+   ],
+   [
+    "rarm",
+    "wrist"
+   ],
+   [
+    "lleg",
+    "crotch"
+   ],
+   [
+    "lleg",
+    "knee"
+   ],
+   [
+    "lleg",
+    "ankle"
+   ],
+   [
+    "rleg",
+    "crotch"
+   ],
+   [
+    "rleg",
+    "knee"
+   ],
+   [
+    "rleg",
+    "ankle"
+   ],
+   [
+    "torso",
+    "chest"
+   ],
+   [
+    "head",
+    "neck"
+   ]
+  ],
+  "axes": {
+   "r": 0,
+   "p": 1,
+   "y": 2
+  },
+  "rule": "w = log(R_local) of the BVH joint (deg, BVH axes; 6-channel joints: the rotation). robot <limb>-<joint>-<c> = sign_c * w[src[c]], clamped to the joint limits. axisSign cumulative (bvh-demo.l rikiya :copy-joint-to-): sign starts at signs[limb-joint] (1), then for r, p, y in this order it is negated when the robot joint exists and its axis component (x, y, z) is negative (the negation carries over). axisSign none: sign = 1. Other joints: reset-pose. calibrate (lafan1): angle - (angle at frame 0 - reset-pose), clamped. Root: rotation = C (G_root G_root(0)^T) C^T, C = Rz(-yaw of the root at frame 0); position = s_leg x (root - root(0)) horizontally, the lower foot on the floor."
+ },
+ "datasets": {
+  "rikiya": {
+   "eusClass": "rikiya-bvh-robot-model",
+   "method1": {
+    "larm-collar": "LeftCollar",
+    "larm-shoulder": "LeftShoulder",
+    "larm-elbow": "LeftElbow",
+    "larm-wrist": "LeftWrist",
+    "rarm-collar": "RightCollar",
+    "rarm-shoulder": "RightShoulder",
+    "rarm-elbow": "RightElbow",
+    "rarm-wrist": "RightWrist",
+    "lleg-crotch": "LeftHip",
+    "lleg-knee": "LeftKnee",
+    "lleg-ankle": "LeftAnkle",
+    "rleg-crotch": "RightHip",
+    "rleg-knee": "RightKnee",
+    "rleg-ankle": "RightAnkle",
+    "torso-chest": "Chest",
+    "head-neck": "Neck"
+   },
+   "method1Rule": {
+    "src": {
+     "r": 2,
+     "p": 0,
+     "y": 1
+    },
+    "axisSign": "cumulative",
+    "signs": {
+     "head-neck": -1
+    },
+    "calibrate": false
+   },
+   "gmr": {
+    "pelvis": "Hips",
+    "chest": "Chest",
+    "neck": "Neck",
+    "head": "Head",
+    "lshoulder": "LeftShoulder",
+    "lelbow": "LeftElbow",
+    "lwrist": "LeftWrist",
+    "rshoulder": "RightShoulder",
+    "relbow": "RightElbow",
+    "rwrist": "RightWrist",
+    "lhip": "LeftHip",
+    "lknee": "LeftKnee",
+    "lankle": "LeftAnkle",
+    "ltoe": "end:LeftAnkle",
+    "rhip": "RightHip",
+    "rknee": "RightKnee",
+    "rankle": "RightAnkle",
+    "rtoe": "end:RightAnkle"
+   }
+  },
+  "lafan1": {
+   "eusClass": "lafan1-bvh-robot-model",
+   "method1": {
+    "larm-shoulder": "LeftShoulder",
+    "larm-elbow": "LeftArm",
+    "larm-wrist": "LeftForeArm",
+    "rarm-shoulder": "RightShoulder",
+    "rarm-elbow": "RightArm",
+    "rarm-wrist": "RightForeArm",
+    "lleg-crotch": "LeftUpLeg",
+    "lleg-knee": "LeftLeg",
+    "lleg-ankle": "LeftFoot",
+    "rleg-crotch": "RightUpLeg",
+    "rleg-knee": "RightLeg",
+    "rleg-ankle": "RightFoot",
+    "torso-chest": "Spine1",
+    "head-neck": "Neck"
+   },
+   "method1Rule": {
+    "src": {
+     "r": 0,
+     "p": 1,
+     "y": 2
+    },
+    "axisSign": "none",
+    "signs": {},
+    "calibrate": true
+   },
+   "gmr": {
+    "pelvis": "Hips",
+    "chest": "Spine2",
+    "neck": "Neck",
+    "head": "Head",
+    "lshoulder": "LeftArm",
+    "lelbow": "LeftForeArm",
+    "lwrist": "LeftHand",
+    "rshoulder": "RightArm",
+    "relbow": "RightForeArm",
+    "rwrist": "RightHand",
+    "lhip": "LeftUpLeg",
+    "lknee": "LeftLeg",
+    "lankle": "LeftFoot",
+    "ltoe": "LeftToe",
+    "rhip": "RightUpLeg",
+    "rknee": "RightLeg",
+    "rankle": "RightFoot",
+    "rtoe": "RightToe"
+   }
+  },
+  "mocopi": {
+   "eusClass": "mocopi-bvh-robot-model",
+   "method1": {
+    "larm-shoulder": "l_up_arm",
+    "larm-elbow": "l_low_arm",
+    "larm-wrist": "l_hand",
+    "rarm-shoulder": "r_up_arm",
+    "rarm-elbow": "r_low_arm",
+    "rarm-wrist": "r_hand",
+    "lleg-crotch": "l_up_leg",
+    "lleg-knee": "l_low_leg",
+    "lleg-ankle": "l_foot",
+    "rleg-crotch": "r_up_leg",
+    "rleg-knee": "r_low_leg",
+    "rleg-ankle": "r_foot",
+    "torso-chest": "torso_1",
+    "head-neck": "neck_1"
+   },
+   "method1Rule": {
+    "src": {
+     "r": 2,
+     "p": 0,
+     "y": 1
+    },
+    "axisSign": "none",
+    "signs": {},
+    "calibrate": false
+   },
+   "gmr": {
+    "pelvis": "root",
+    "chest": "torso_7",
+    "neck": "neck_1",
+    "head": "head",
+    "lshoulder": "l_up_arm",
+    "lelbow": "l_low_arm",
+    "lwrist": "l_hand",
+    "rshoulder": "r_up_arm",
+    "relbow": "r_low_arm",
+    "rwrist": "r_hand",
+    "lhip": "l_up_leg",
+    "lknee": "l_low_leg",
+    "lankle": "l_foot",
+    "ltoe": "l_toes",
+    "rhip": "r_up_leg",
+    "rknee": "r_low_leg",
+    "rankle": "r_foot",
+    "rtoe": "r_toes"
+   }
+  },
+  "sfu": {
+   "eusClass": "sfu-bvh-robot-model",
+   "method1": {
+    "larm-shoulder": "LeftShoulder",
+    "larm-elbow": "LeftArm",
+    "larm-wrist": "LeftForeArm",
+    "rarm-shoulder": "RightShoulder",
+    "rarm-elbow": "RightArm",
+    "rarm-wrist": "RightForeArm",
+    "lleg-crotch": "LeftUpLeg",
+    "lleg-knee": "LeftLeg",
+    "lleg-ankle": "LeftFoot",
+    "rleg-crotch": "RightUpLeg",
+    "rleg-knee": "RightLeg",
+    "rleg-ankle": "RightFoot",
+    "torso-chest": "Spine",
+    "head-neck": "Neck"
+   },
+   "method1Rule": {
+    "src": {
+     "r": 2,
+     "p": 0,
+     "y": 1
+    },
+    "axisSign": "none",
+    "signs": {},
+    "calibrate": false
+   },
+   "gmr": {
+    "pelvis": "Hips",
+    "chest": "Spine1",
+    "neck": "Neck",
+    "head": "Head",
+    "lshoulder": "LeftArm",
+    "lelbow": "LeftForeArm",
+    "lwrist": "LeftHand",
+    "rshoulder": "RightArm",
+    "relbow": "RightForeArm",
+    "rwrist": "RightHand",
+    "lhip": "LeftUpLeg",
+    "lknee": "LeftLeg",
+    "lankle": "LeftFoot",
+    "ltoe": "LeftToeBase",
+    "rhip": "RightUpLeg",
+    "rknee": "RightLeg",
+    "rankle": "RightFoot",
+    "rtoe": "RightToeBase"
+   }
+  },
+  "tum-kitchen": {
+   "eusClass": "tum-bvh-robot-model",
+   "method1": {},
+   "method1Rule": null,
+   "gmr": {
+    "pelvis": "BEC",
+    "chest": "BRK",
+    "neck": "OHW",
+    "head": "KO",
+    "lshoulder": "OA.L",
+    "lelbow": "UA.L",
+    "lwrist": "HA.L",
+    "rshoulder": "OA.R",
+    "relbow": "UA.R",
+    "rwrist": "HA.R",
+    "lhip": "OS.L",
+    "lknee": "US.L",
+    "lankle": "FU.L",
+    "ltoe": "FB.L",
+    "rhip": "OS.R",
+    "rknee": "US.R",
+    "rankle": "FU.R",
+    "rtoe": "FB.R"
+   }
+  }
+ },
+ "gmrParams": {
+  "lambda": 0.05,
+  "iterations": 10,
+  "wEnd": 1.0,
+  "wMid": 0.3,
+  "wFootRot": 0.6,
+  "wTorsoRot": 1.0,
+  "wHeadRot": 1.0,
+  "wRest": 0.02
+ }
+}

@@ -1,0 +1,479 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		032111D4EE41495FC227BC1C /* ODE.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9B92ADCBCEBB547ABB03FDCF /* ODE.xcframework */; };
+		0A1CEEE33C232B3CA352964C /* BVHView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7E85622CFD2073EC7470D4D /* BVHView.swift */; };
+		2079FA284CAED65CF5E22A2D /* BVHData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55E3BE2DFE625A448EF84159 /* BVHData.swift */; };
+		28A2D53F6F19171CC479A4D2 /* RobotScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96FF86C92ADBF9E2FB88F34A /* RobotScene.swift */; };
+		347382AFB82648CB2BCE69E0 /* LiveLink.swift in Sources */ = {isa = PBXBuildFile; fileRef = C57880CE2A6998FE9D48959C /* LiveLink.swift */; };
+		4C6F220F5D1D437AA6B25922 /* odesim.cpp in Sources */ = {isa = PBXBuildFile; fileRef = BB8DADFD1D96ED4BFD9CDE2B /* odesim.cpp */; };
+		5146C9B30331824FF33F3350 /* RobotModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50E711C5719A9E79D4D29C51 /* RobotModel.swift */; };
+		8709C8B7E34B67203AA55068 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 81350E5C23ACD2B78FC8F65E /* Assets.xcassets */; };
+		AEA3FF5156AEA1369094C726 /* robots in Resources */ = {isa = PBXBuildFile; fileRef = 9726BC3042A9BB0B37BA590B /* robots */; };
+		B93D491E8302AA6BEF53FAEC /* PhysicsSim.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F8A5ECB7C693A9932DF8CA3 /* PhysicsSim.swift */; };
+		BD2AAB5E69A1A51D84517CF0 /* wbqp.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E5D2282F964BDC036496823D /* wbqp.cpp */; };
+		C99861263DE82D5819ACD732 /* EusViewApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = F26AED0C884CD996504231E9 /* EusViewApp.swift */; };
+		DCCBFBD2431EFC004612C322 /* WholeBodyQP.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AFC10E40C4C315D78ADC79F /* WholeBodyQP.swift */; };
+		E9981F9B84B268D7BAD1C4E3 /* RobotView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 318F26F270BBC356DC13F6CF /* RobotView.swift */; };
+		F337275CD974073D06D7E064 /* retarget_tables.json in Resources */ = {isa = PBXBuildFile; fileRef = A0B9113228B6554E9389F276 /* retarget_tables.json */; };
+		FADF9E6C469706328A405970 /* BVHRetarget.swift in Sources */ = {isa = PBXBuildFile; fileRef = E228E277A5D346ECF43BF933 /* BVHRetarget.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		1F53A7056DD00F74AC0D7465 /* odesim.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = odesim.h; sourceTree = "<group>"; };
+		248A405275C49DAB1833D637 /* wbqp.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = wbqp.h; sourceTree = "<group>"; };
+		318F26F270BBC356DC13F6CF /* RobotView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RobotView.swift; sourceTree = "<group>"; };
+		3F8A5ECB7C693A9932DF8CA3 /* PhysicsSim.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhysicsSim.swift; sourceTree = "<group>"; };
+		50E711C5719A9E79D4D29C51 /* RobotModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RobotModel.swift; sourceTree = "<group>"; };
+		55E3BE2DFE625A448EF84159 /* BVHData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BVHData.swift; sourceTree = "<group>"; };
+		81350E5C23ACD2B78FC8F65E /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		96FF86C92ADBF9E2FB88F34A /* RobotScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RobotScene.swift; sourceTree = "<group>"; };
+		9726BC3042A9BB0B37BA590B /* robots */ = {isa = PBXFileReference; lastKnownFileType = folder; name = robots; path = ../robots; sourceTree = SOURCE_ROOT; };
+		9AFC10E40C4C315D78ADC79F /* WholeBodyQP.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WholeBodyQP.swift; sourceTree = "<group>"; };
+		9B92ADCBCEBB547ABB03FDCF /* ODE.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = ODE.xcframework; path = third_party/ODE.xcframework; sourceTree = "<group>"; };
+		A0B9113228B6554E9389F276 /* retarget_tables.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = retarget_tables.json; sourceTree = "<group>"; };
+		BB8DADFD1D96ED4BFD9CDE2B /* odesim.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = odesim.cpp; sourceTree = "<group>"; };
+		C57880CE2A6998FE9D48959C /* LiveLink.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveLink.swift; sourceTree = "<group>"; };
+		C7E85622CFD2073EC7470D4D /* BVHView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BVHView.swift; sourceTree = "<group>"; };
+		D6821E65786B6D5158C7F904 /* EusView.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = EusView.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		E228E277A5D346ECF43BF933 /* BVHRetarget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BVHRetarget.swift; sourceTree = "<group>"; };
+		E5D2282F964BDC036496823D /* wbqp.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = wbqp.cpp; sourceTree = "<group>"; };
+		F26AED0C884CD996504231E9 /* EusViewApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EusViewApp.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		15AD800D328EEEF49D11CC15 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				032111D4EE41495FC227BC1C /* ODE.xcframework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		24168CEBAA58BD668C70D454 = {
+			isa = PBXGroup;
+			children = (
+				9726BC3042A9BB0B37BA590B /* robots */,
+				EE495EF4E5D7EFB7470CC8BD /* App */,
+				6906D7C55230353AFCE8BD18 /* bvh */,
+				65D787440A858FEC42289FA1 /* EusView */,
+				FFCC1A7292E9A10E89ADD4FB /* Physics */,
+				626C6DA008CECDC83D5CBE50 /* QP */,
+				E123F0407AD959F1EFC53D8B /* Frameworks */,
+				7BD2CD1910E651DF073A22DA /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		626C6DA008CECDC83D5CBE50 /* QP */ = {
+			isa = PBXGroup;
+			children = (
+				E5D2282F964BDC036496823D /* wbqp.cpp */,
+				248A405275C49DAB1833D637 /* wbqp.h */,
+				9AFC10E40C4C315D78ADC79F /* WholeBodyQP.swift */,
+			);
+			name = QP;
+			path = EusView/QP;
+			sourceTree = "<group>";
+		};
+		65D787440A858FEC42289FA1 /* EusView */ = {
+			isa = PBXGroup;
+			children = (
+				81350E5C23ACD2B78FC8F65E /* Assets.xcassets */,
+			);
+			path = EusView;
+			sourceTree = "<group>";
+		};
+		6906D7C55230353AFCE8BD18 /* bvh */ = {
+			isa = PBXGroup;
+			children = (
+				A0B9113228B6554E9389F276 /* retarget_tables.json */,
+			);
+			name = bvh;
+			path = ../bvh;
+			sourceTree = "<group>";
+		};
+		7BD2CD1910E651DF073A22DA /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				D6821E65786B6D5158C7F904 /* EusView.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		E123F0407AD959F1EFC53D8B /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				9B92ADCBCEBB547ABB03FDCF /* ODE.xcframework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		EE495EF4E5D7EFB7470CC8BD /* App */ = {
+			isa = PBXGroup;
+			children = (
+				55E3BE2DFE625A448EF84159 /* BVHData.swift */,
+				E228E277A5D346ECF43BF933 /* BVHRetarget.swift */,
+				C7E85622CFD2073EC7470D4D /* BVHView.swift */,
+				F26AED0C884CD996504231E9 /* EusViewApp.swift */,
+				C57880CE2A6998FE9D48959C /* LiveLink.swift */,
+				50E711C5719A9E79D4D29C51 /* RobotModel.swift */,
+				96FF86C92ADBF9E2FB88F34A /* RobotScene.swift */,
+				318F26F270BBC356DC13F6CF /* RobotView.swift */,
+			);
+			name = App;
+			path = EusView/App;
+			sourceTree = "<group>";
+		};
+		FFCC1A7292E9A10E89ADD4FB /* Physics */ = {
+			isa = PBXGroup;
+			children = (
+				BB8DADFD1D96ED4BFD9CDE2B /* odesim.cpp */,
+				1F53A7056DD00F74AC0D7465 /* odesim.h */,
+				3F8A5ECB7C693A9932DF8CA3 /* PhysicsSim.swift */,
+			);
+			name = Physics;
+			path = EusView/Physics;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		C640086E97C691DD11D59B5E /* EusView */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = FC01C3EBE15FF9AFF6487AF1 /* Build configuration list for PBXNativeTarget "EusView" */;
+			buildPhases = (
+				EF0500EF39B2659086405892 /* Sources */,
+				3677430192088565885DA4DD /* Resources */,
+				15AD800D328EEEF49D11CC15 /* Frameworks */,
+				27561AD044758C2C38CB6629 /* Copy BVH cache */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = EusView;
+			packageProductDependencies = (
+			);
+			productName = EusView;
+			productReference = D6821E65786B6D5158C7F904 /* EusView.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		EBDDC913989EDDB92A01E959 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					C640086E97C691DD11D59B5E = {
+						DevelopmentTeam = 39WXY2YNCK;
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = 7EC8BBBD5B11E5BBF5F96B62 /* Build configuration list for PBXProject "EusView" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 24168CEBAA58BD668C70D454;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				C640086E97C691DD11D59B5E /* EusView */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		3677430192088565885DA4DD /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				8709C8B7E34B67203AA55068 /* Assets.xcassets in Resources */,
+				F337275CD974073D06D7E064 /* retarget_tables.json in Resources */,
+				AEA3FF5156AEA1369094C726 /* robots in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		27561AD044758C2C38CB6629 /* Copy BVH cache */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Copy BVH cache";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "SRC=\"$SRCROOT/../bvh/cache\"\nDST=\"$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/bvh\"\nif [ -f \"$SRC/index.json\" ]; then\n  mkdir -p \"$DST\" && rsync -a --delete --include='*/' --include='*.ebvh' --include='index.json' --exclude='*' \"$SRC/\" \"$DST/\"\nelse\n  rm -rf \"$DST\"; echo \"warning: BVH のデータがありません（python3 eusview/bvh/convert_bvh.py で作る）\"\nfi\n";
+		};
+/* End PBXShellScriptBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		EF0500EF39B2659086405892 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				2079FA284CAED65CF5E22A2D /* BVHData.swift in Sources */,
+				FADF9E6C469706328A405970 /* BVHRetarget.swift in Sources */,
+				0A1CEEE33C232B3CA352964C /* BVHView.swift in Sources */,
+				C99861263DE82D5819ACD732 /* EusViewApp.swift in Sources */,
+				347382AFB82648CB2BCE69E0 /* LiveLink.swift in Sources */,
+				B93D491E8302AA6BEF53FAEC /* PhysicsSim.swift in Sources */,
+				5146C9B30331824FF33F3350 /* RobotModel.swift in Sources */,
+				28A2D53F6F19171CC479A4D2 /* RobotScene.swift in Sources */,
+				E9981F9B84B268D7BAD1C4E3 /* RobotView.swift in Sources */,
+				DCCBFBD2431EFC004612C322 /* WholeBodyQP.swift in Sources */,
+				4C6F220F5D1D437AA6B25922 /* odesim.cpp in Sources */,
+				BD2AAB5E69A1A51D84517CF0 /* wbqp.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		33A28477264731FD8A4570A2 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = 39WXY2YNCK;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		845A7D9DDB172E9C3EB7C276 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CLANG_CXX_LANGUAGE_STANDARD = "c++17";
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CURRENT_PROJECT_VERSION = 1;
+				DERIVE_MACCATALYST_PRODUCT_BUNDLE_IDENTIFIER = NO;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"\"third_party\"",
+				);
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = EusView;
+				INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace = YES;
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Mac などの EusLisp から関節角を受け取るため";
+				INFOPLIST_KEY_UIFileSharingEnabled = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = jp.jsk.eusview.EusView;
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = YES;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = YES;
+				SWIFT_OBJC_BRIDGING_HEADER = EusView/Physics/Bridging.h;
+				TARGETED_DEVICE_FAMILY = "1,2,6";
+			};
+			name = Release;
+		};
+		AF3EED4206E2BB8507B9C231 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = 39WXY2YNCK;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		DD4354379F36E834425460F1 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CLANG_CXX_LANGUAGE_STANDARD = "c++17";
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CURRENT_PROJECT_VERSION = 1;
+				DERIVE_MACCATALYST_PRODUCT_BUNDLE_IDENTIFIER = NO;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"\"third_party\"",
+				);
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = EusView;
+				INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace = YES;
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Mac などの EusLisp から関節角を受け取るため";
+				INFOPLIST_KEY_UIFileSharingEnabled = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = jp.jsk.eusview.EusView;
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = YES;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = YES;
+				SWIFT_OBJC_BRIDGING_HEADER = EusView/Physics/Bridging.h;
+				TARGETED_DEVICE_FAMILY = "1,2,6";
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		7EC8BBBD5B11E5BBF5F96B62 /* Build configuration list for PBXProject "EusView" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AF3EED4206E2BB8507B9C231 /* Debug */,
+				33A28477264731FD8A4570A2 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		FC01C3EBE15FF9AFF6487AF1 /* Build configuration list for PBXNativeTarget "EusView" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				DD4354379F36E834425460F1 /* Debug */,
+				845A7D9DDB172E9C3EB7C276 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = EBDDC913989EDDB92A01E959 /* Project object */;
+}

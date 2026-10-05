@@ -11,7 +11,11 @@
 ;;;   BVH panel (EusView panel -> "BVH"):
 ;;;     auto play        every file of every kind in turn (kind by kind) until stop
 ;;;     <kind> 1- 21- .. menus of the files (20 per menu); the chosen file repeats until stop
-;;;     stop, speed (0.5x / 1x / 2x / 4x), robot: hide / show (the robot beside the skeleton)
+;;;     stop, speed (0.5x / 1x / 2x / 4x), robot: KXR / KHR / JSK / none beside the skeleton:
+;;;     joint names (method 1), GMR (method 2), GMR + QP (eusview-qp.l: the GMR made free of self-collision,
+;;;     inside the joint limits, COM above the support polygon; QP: ON / off). With QP ON the violations are
+;;;     shown on the GMR and the GMR + QP robots: colliding links red, links at a joint limit orange,
+;;;     the COM (cross, line to the floor, disk) and the support polygon (green: COM inside, red: outside)
 ;;;   (eusview-bvh-request :auto "lafan1" 0)    (eusview-bvh-request :repeat "sfu" 3)
 ;;;
 
@@ -88,12 +92,21 @@
 (defvar *eusview-bvh-robot-group* :kxr)   ;; :kxr :khr :jsk or nil (RETARGET.md)
 (defvar *eusview-bvh-show-names* t)        ;; method 1 robot
 (defvar *eusview-bvh-show-gmr* t)          ;; method 2 robot
+(defvar *eusview-bvh-show-qp* t)           ;; GMR + QP robot (eusview-qp.l) and the violations
 (defvar *eusview-bvh-retargets* nil)       ;; eusview-retarget instances of the current file
+(defvar *eusview-bvh-qp* nil)              ;; (qp gmr-retarget qp-robot offset last-frame stats) of the current file
+(defvar *eusview-bvh-qp-info* "")          ;; violations of the current frame (status line)
 
-(defun eusview-bvh-make-retargets (kind mcd)
-  "the method 1 / method 2 robots beside the skeleton (skeleton at y 0, then -gap, -2 gap)"
-  (setq *eusview-bvh-retargets* nil)
-  (let* ((name (cdr (assoc *eusview-bvh-robot-group* *eusview-bvh-robot-names*))) pair h gap)
+(defun eusview-bvh-qp-model (r)
+  "the QP model (eusview-qp.l) of the robot instance r (made once)"
+  (or (get r :eusview-qp)
+      (setf (get r :eusview-qp) (instance eusview-qp :init r))))
+
+(defun eusview-bvh-make-retargets (kind mcd &optional (ft 0.033333))
+  "the method 1 / method 2 / GMR + QP robots beside the skeleton (skeleton at y 0, then -gap, -2 gap, -3 gap)"
+  (setq *eusview-bvh-retargets* nil *eusview-bvh-qp* nil *eusview-bvh-qp-info* "")
+  (eusview-qp-clear (apply #'append (mapcar #'cdr *eusview-bvh-robots*)))
+  (let* ((name (cdr (assoc *eusview-bvh-robot-group* *eusview-bvh-robot-names*))) pair h gap gmr)
     (when name
       (setq pair (eusview-bvh-robot-pair name))
       (send (car pair) :reset-pose)
@@ -104,26 +117,79 @@
       (when (and *eusview-bvh-show-names* (eusview-bvh-names-p kind))
         (push (instance eusview-retarget :init (car pair) :names mcd :offset (float-vector 0 (- gap) 0))
               *eusview-bvh-retargets*))
-      (when *eusview-bvh-show-gmr*
-        (push (instance eusview-retarget :init (cadr pair) :gmr mcd :offset (float-vector 0 (* -2 gap) 0))
-              *eusview-bvh-retargets*))
-      (dolist (rt *eusview-bvh-retargets*) (send rt :apply)))
+      (when (or *eusview-bvh-show-gmr* *eusview-bvh-show-qp*)
+        (setq gmr (instance eusview-retarget :init (cadr pair) :gmr mcd :offset (float-vector 0 (* -2 gap) 0)))
+        (if *eusview-bvh-show-gmr* (push gmr *eusview-bvh-retargets*)))
+      (dolist (rt *eusview-bvh-retargets*) (send rt :apply))
+      ;; GMR + QP: the reference is the GMR robot (hidden when GMR is off), the answer is drawn one gap further
+      (when (and *eusview-bvh-show-qp* gmr (send (caddr pair) :lleg) (send (caddr pair) :rleg)
+                 (eq t (eusview-protect (progn (evq-load) (eusview-bvh-qp-model (caddr pair)) t) t)))
+        (setq *eusview-bvh-qp* (list (eusview-bvh-qp-model (caddr pair)) gmr (caddr pair) (float-vector 0 (- gap) 0) nil
+                                     (list 0 0 0 0 0 0.0)))
+        (eusview-bvh-qp-step 0 ft)))
     *eusview-bvh-retargets*))
 
-(defun eusview-bvh-view (mcd &optional kind)
+(defun eusview-bvh-qp-step (i ft)
+  "GMR + QP of frame i (the GMR robot is already at frame i unless GMR is hidden): solve from the previous frame,
+   put the QP robot, evaluate both (link colors, COM and support polygon marks, *eusview-bvh-qp-info*)"
+  (let* ((st *eusview-bvh-qp*) (qp (elt st 0)) (gmr (elt st 1)) (r (elt st 2)) (off (elt st 3)) (last (elt st 4))
+         (stats (elt st 5)) (ref (send gmr :robot)) d c eg eq ans)
+    (unless (member gmr *eusview-bvh-retargets*) (send gmr :apply))   ;; GMR hidden: still the reference
+    ;; a new start (first frame, back to the top, a jump): forget the previous answer
+    (when (or (null last) (<= i last) (> (- i last) 30)) (send qp :reset) (setq last nil))
+    ;; frames skipped (drawing slower than the BVH): solve the frame as many times (up to 8) with the dt of one
+    ;; frame -- the QP moves from the previous answer at most by the speed limits x dt per solve
+    (send qp :set-param "dt" ft)
+    (dotimes (k (if last (min 8 (- i last)) 1)) (send qp :solve-robot ref :out r :offset off))
+    (setf (elt st 4) i)
+    (setq d (send qp :diag) c (round (elt d 28)))
+    ;; statistics: frames, GMR / QP colliding frames, frames with a foot on the floor, COM outside, QP ms
+    (incf (elt stats 0))
+    (if (> (elt d 3) 0) (incf (elt stats 1)))
+    (if (> (elt d 17) 0) (incf (elt stats 2)))
+    (when (/= c 0) (incf (elt stats 3))
+      (if (< (elt d 24) 0) (incf (elt stats 4))))
+    (setf (elt stats 5) (+ (elt stats 5) (elt d 36)))
+    ;; violations (the marks are drawn by eusview-viewer :draw-objects)
+    (setq *eusview-qp-marks* nil)
+    (setq ans (send qp :answer))
+    (setq eq (send qp :eval (car ans) (cadr ans) c))
+    (eusview-qp-show r qp (car eq) (cadr eq) (caddr eq) :offset off)
+    (setq eq (copy-seq (car eq)))
+    (when (member gmr *eusview-bvh-retargets*)
+      (setq eg (send qp :eval-robot ref c))
+      (eusview-qp-show ref qp (car eg) (cadr eg) (caddr eg))
+      (setq eg (car eg)))
+    (setq *eusview-bvh-qp-info*
+          (format nil "~AQP: ~A (~4,2f ms)" (if eg (format nil "GMR: ~A / " (eusview-qp-describe eg)) "")
+                  (eusview-qp-describe eq) (elt d 36)))))
+
+(defun eusview-bvh-qp-summary ()
+  "GMR -> QP of the frames played so far (status line)"
+  (let ((s (and *eusview-bvh-qp* (elt *eusview-bvh-qp* 5))))
+    (if (and s (> (elt s 0) 0))
+        (format nil (if (eusview-ja-p) "GMR+QP ~4,2f ms/コマ・衝突 ~A%→~A%・重心が外 ~A%"
+                      "GMR+QP ~4,2f ms/frame, collision ~A% -> ~A%, COM out ~A%")
+                (/ (elt s 5) (elt s 0)) (round (* 100.0 (/ (elt s 1) (float (elt s 0)))))
+                (round (* 100.0 (/ (elt s 2) (float (elt s 0)))))
+                (round (* 100.0 (/ (elt s 4) (float (max 1 (elt s 3))))))) "")))
+
+(defun eusview-bvh-qp-robots () (if *eusview-bvh-qp* (list (elt *eusview-bvh-qp* 2))))
+(defun eusview-bvh-view (mcd &optional kind (ft 0.033333))
   "skeleton and the retarget robots in the viewer, looking at the root path of the whole file"
   (let* ((m (send mcd :model)) (n (send mcd :frame-length)) (pts nil) bb)
     (setq *eusview-bvh-model* m *eusview-bvh-mode* t)
     (send mcd :frame 0)
-    (if kind (eusview-protect (eusview-bvh-make-retargets kind mcd)))
+    (if kind (eusview-protect (eusview-bvh-make-retargets kind mcd ft)))
     (send *eusview-viewer* :objects
-          (append (list m) (mapcar #'(lambda (rt) (send rt :robot)) *eusview-bvh-retargets*)))
+          (append (list m) (mapcar #'(lambda (rt) (send rt :robot)) *eusview-bvh-retargets*) (eusview-bvh-qp-robots)))
     (do ((i 0 (+ i (max 1 (/ n 40))))) ((>= i n))
       (send mcd :frame i)
       (dolist (l (send m :links)) (push (copy-seq (send l :worldpos)) pts)))
     (send mcd :frame 0)
-    (dolist (rt *eusview-bvh-retargets*)
-      (dolist (b (send (send rt :robot) :bodies))
+    (dolist (r (append (mapcar #'(lambda (rt) (send rt :robot)) *eusview-bvh-retargets*) (eusview-bvh-qp-robots)))
+      (dolist (b (send r :bodies))
+        (send b :worldcoords)
         (if (find-method b :vertices) (setq pts (append (mapcar #'copy-seq (send b :vertices)) pts)))))
     (setq bb (make-bounding-box pts))
     (send *eusview-viewer* :look-all bb)
@@ -132,7 +198,8 @@
 (defun eusview-bvh-leave ()
   "back to the robot"
   (when *eusview-bvh-mode*
-    (setq *eusview-bvh-mode* nil *eusview-bvh-model* nil)
+    (setq *eusview-bvh-mode* nil *eusview-bvh-model* nil *eusview-bvh-qp* nil)
+    (eusview-qp-clear (apply #'append (mapcar #'cdr *eusview-bvh-robots*)))
     (when *eusview-robot*
       (send *eusview-viewer* :objects (list *eusview-robot*))
       (send *eusview-viewer* :look-all)
@@ -156,23 +223,27 @@
       (eusview-message "BVH ~A/~A: ~A" kind name *eusview-last-error*)
       (return-from eusview-bvh-play-file t)) ;; skip this file
     (setq n (send mcd :frame-length))
-    (eusview-bvh-view mcd kind)
+    (eusview-bvh-view mcd kind ft)
     (setq t0 (eusview-now-ms))
     (while (and (< i n) (not *eusview-stop*))
       (send mcd :frame i)
       (dolist (rt *eusview-bvh-retargets*) (eusview-protect (send rt :apply)))
+      (if *eusview-bvh-qp* (eusview-protect (eusview-bvh-qp-step i ft)))
       (send *eusview-viewer* :draw-objects)
       (when (> (- (eusview-now-ms) tlast) 300)
         (setq tlast (eusview-now-ms))
         (eusview-bvh-show-status
-         (format nil (if (eusview-ja-p) "BVH 再生中: ~A/~A（フレーム ~A/~A, ~A fps, ~Ax~A）"
-                       "BVH playing: ~A/~A (frame ~A/~A, ~A fps, ~Ax~A)")
+         (format nil (if (eusview-ja-p) "BVH 再生中: ~A/~A（フレーム ~A/~A, ~A fps, ~Ax~A）~A"
+                       "BVH playing: ~A/~A (frame ~A/~A, ~A fps, ~Ax~A)~A")
                  kind name (1+ i) n (round (/ 1.0 ft)) *eusview-bvh-speed*
-                 (if (> count 1) (format nil (if (eusview-ja-p) ", ~A 回目" ", #~A") count) ""))))
+                 (if (> count 1) (format nil (if (eusview-ja-p) ", ~A 回目" ", #~A") count) "")
+                 (if *eusview-bvh-qp* (format nil "  ~A  [~A]" *eusview-bvh-qp-info* (eusview-bvh-qp-summary)) ""))))
       (x::window-main-one)
       (funcall *eusview-orig-usleep* 5000)
       ;; the frame of the elapsed time (frames are skipped when drawing is slower)
       (setq i (max (1+ i) (floor (/ (* (- (eusview-now-ms) t0) 0.001 *eusview-bvh-speed*) ft)))))
+    (if *eusview-bvh-qp*
+        (format t ";; eusview-bvh: ~A/~A ~A: ~A~%" kind name (send (elt *eusview-bvh-qp* 2) :name) (eusview-bvh-qp-summary)))
     (not *eusview-stop*)))
 
 (defun eusview-bvh-run (mode kind idx)
@@ -218,7 +289,7 @@
 ;;;
 ;;; BVH panel
 ;;;
-(defclass eusview-bvh-panel :super x::panel :slots (speed-item robot-item names-item gmr-item info-item))
+(defclass eusview-bvh-panel :super x::panel :slots (speed-item robot-item names-item gmr-item qp-item info-item))
 (defmethod eusview-bvh-panel
   (:create
    (&rest args)
@@ -232,6 +303,7 @@
      (setq robot-item (send self :create-item x::button-item (eusview-bvh-robot-label) self :robot))
      (setq names-item (send self :create-item x::button-item "joint names: ON " self :names))
      (setq gmr-item (send self :create-item x::button-item "GMR: ON " self :gmr))
+     (setq qp-item (send self :create-item x::button-item "QP: ON " self :qp))
      (send self :create-item x::button-item "back to robot" self :leave)
      (send self :create-item x::button-item "close" self :close)
      (setq info-item (send self :create-item x::xft-label-item "" :width (- width 20)))
@@ -272,6 +344,12 @@
    (send gmr-item :label (if *eusview-bvh-show-gmr* "GMR: ON " "GMR: off"))
    (send gmr-item :redraw)
    (send self :changed))
+  (:qp
+   (&rest args)
+   (setq *eusview-bvh-show-qp* (not *eusview-bvh-show-qp*))
+   (send qp-item :label (if *eusview-bvh-show-qp* "QP: ON " "QP: off"))
+   (send qp-item :redraw)
+   (send self :changed))
   (:changed
    ()
    (eusview-bvh-show-status
@@ -285,7 +363,7 @@
     (if n (format nil "robot: ~A ~A" (string-upcase (string *eusview-bvh-robot-group*)) n) "robot: none")))
 
 ;;;
-;;; BVH as a motion of the robot of the robot panel: kind -> file -> method (joint names / GMR)
+;;; BVH as a motion of the robot of the robot panel: kind -> file -> method (joint names / GMR / GMR + QP)
 ;;;
 (defvar *eusview-bvh-robot-method* :names)
 (defvar *eusview-bvh-robot-panel* nil)
@@ -307,14 +385,14 @@
      self))
   (:method
    (&rest args)
-   (setq *eusview-bvh-robot-method* (if (eq *eusview-bvh-robot-method* :names) :gmr :names))
+   (setq *eusview-bvh-robot-method* (case *eusview-bvh-robot-method* (:names :gmr) (:gmr :gmrqp) (t :names)))
    (send method-item :label (eusview-bvh-method-label))
    (send method-item :redraw))
   (:play (sel &rest args) (eusview-play-motion (list :bvh (car sel) (cadr sel) *eusview-bvh-robot-method*)))
   (:stop (&rest args) (setq *eusview-stop* t *eusview-next-motion* nil))
   (:close (&rest args) (send self :stop) (send self :unmap)))
 (defun eusview-bvh-method-label ()
-  (if (eq *eusview-bvh-robot-method* :names) "method: joint names" "method: GMR        "))
+  (case *eusview-bvh-robot-method* (:names "method: joint names") (:gmr "method: GMR        ") (t "method: GMR + QP   ")))
 
 (defun eusview-bvh-file-menus (pan kind files width)
   "a menubar of the files of kind (menus of 20); items call (send pan :play (list kind index))"

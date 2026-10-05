@@ -2,11 +2,14 @@
 ;;; eusview-retarget.l : BVH -> robot (KXR / KHR / JSK) for eusview-bvh.l
 ;;;	2026.10.5
 ;;;
-;;;  The same specification as the EusView app: mnist/eusview/bvh/RETARGET.md
+;;;  The same specification as the EusView app: eusview/bvh/RETARGET.md
 ;;;   method 1 (:names)  joint names: the bvh-robot-model classes of kxreus bvh/*-demo.l
 ;;;                      (lafan1-, mocopi-, sfu-, rikiya-bvh-robot-model; their :copy-state-to,
 ;;;                      as bvh-demo.l). The root orientation follows the BVH root.
 ;;;   method 2 (:gmr)    GMR-like: positions (and the foot orientation) of the body parts with IK.
+;;;   GMR + QP (:gmrqp)  method 2 changed by the whole-body QP (eusview-qp.l, eusview/bvh/QP.md):
+;;;                      no self-collision, joint limits, COM above the support polygon (robot panel keys;
+;;;                      the BVH panel solves frame by frame in eusview-bvh.l)
 ;;;                      part position of the robot = robot root + C s (human part - human root)
 ;;;                      (C: human -> robot world at frame 0, s: leg / arm length ratio),
 ;;;                      limb IK (:inverse-kinematics, from the previous answer, :stop 10):
@@ -85,9 +88,9 @@
     (kxr-make-robot name :viewer nil :model *eusview-kxr-model*)))
 
 (defun eusview-bvh-robot-pair (name)
-  "two instances of robot name (method 1, method 2)"
+  "three instances of robot name (method 1, method 2, GMR + QP of eusview-qp.l)"
   (or (cdr (assoc name *eusview-bvh-robots* :test #'equal))
-      (let ((p (list (eusview-bvh-make-robot name) (eusview-bvh-make-robot name))))
+      (let ((p (list (eusview-bvh-make-robot name) (eusview-bvh-make-robot name) (eusview-bvh-make-robot name))))
         (push (cons name p) *eusview-bvh-robots*)
         p)))
 
@@ -225,6 +228,9 @@
   (let ((z 1e10))
     (dolist (b (send r :bodies))
       (when (find-method b :vertices)
+        ;; the vertices are updated by the body's own :worldcoords (they were those of an old pose:
+        ;; kxrl2l6a6h2 floated 44 mm above the floor)
+        (send b :worldcoords)
         (dolist (v (send b :vertices)) (if (< (elt v 2) z) (setq z (elt v 2))))))
     (if (< z 1e9) z (eusview-bvh-feet-z r))))
 
@@ -234,20 +240,48 @@
 (defvar *eusview-key-roots* nil) ;; ((ms . coords) ...) root of the robot for the keys (physics off)
 
 (defun eusview-bvh-retarget-keys (robot kind file method &key (fps 15) (max-sec 60))
-  "((ms . angle-vector) ...) and sets *eusview-key-roots*"
+  "((ms . angle-vector) ...) and sets *eusview-key-roots*. method :names, :gmr or :gmrqp
+   (:gmrqp: the GMR keys changed by the whole-body QP of eusview-qp.l, with the support feet planned
+   for the whole motion (wbqp_plan_contacts: the COM moves before a foot is lifted))"
   (let* ((l (eusview-bvh-load kind file)) (mcd (car l)) (ft (cadr l))
          (n (send mcd :frame-length)) (av-save (copy-seq (send robot :angle-vector)))
          (c-save (send robot :copy-worldcoords))
-         rt keys roots (tm 0) (dtm (/ 1000.0 fps)))
+         (qp (if (eq method :gmrqp) (or (get robot :eusview-qp) (setf (get robot :eusview-qp) (instance eusview-qp :init robot)))))
+         rt keys roots qs rs (tm 0) (dtm (/ 1000.0 fps)))
     ;; the root path starts where the robot is now (horizontally)
-    (setq rt (instance eusview-retarget :init robot method mcd
+    (setq rt (instance eusview-retarget :init robot (if qp :gmr method) mcd
                        :offset (float-vector (elt (send c-save :worldpos) 0) (elt (send c-save :worldpos) 1) 0)))
     (while (and (< (floor (/ (* tm 0.001) ft)) n) (<= tm (* 1000 max-sec)))
       (send mcd :frame (floor (/ (* tm 0.001) ft)))
       (send rt :apply)
       (push (cons tm (copy-seq (send robot :angle-vector))) keys)
       (push (cons tm (send robot :copy-worldcoords)) roots)
+      (when qp (push (send qp :q-of robot) qs) (push (send qp :root-of robot) rs))
       (setq tm (+ tm dtm)))
+    (when qp
+      ;; GMR + QP: every key from the previous answer
+      (let* ((cs (send qp :plan-contacts (reverse qs) (reverse rs))) (con (car cs)) (sup (cadr cs))
+             (k2 nil) (r2 nil) (nc 0) (nc2 0) (ms 0.0) d)
+        (send qp :reset)
+        (send qp :set-param "dt" (/ 1.0 fps))
+        ;; in time order (the robot is set to each GMR key again)
+        (let ((kk (reverse keys)) (rts (reverse roots)))
+          (dotimes (i (length kk))
+            (send robot :angle-vector (copy-seq (cdr (elt kk i))))
+            (send robot :newcoords (send (cdr (elt rts i)) :copy-worldcoords))
+            (send robot :worldcoords)
+            (let ((q (send qp :q-of robot)) (rr (send qp :root-of robot)))
+              (send qp :solve q rr (elt con i) (elt sup i))
+              (setq d (send qp :diag))
+              (if (> (elt d 3) 0) (incf nc))
+              (if (> (elt d 17) 0) (incf nc2))
+              (setq ms (+ ms (elt d 36)))
+              (let ((ans (send qp :answer))) (send qp :apply robot (car ans) (cadr ans)))
+              (push (cons (car (elt kk i)) (copy-seq (send robot :angle-vector))) k2)
+              (push (cons (car (elt kk i)) (send robot :copy-worldcoords)) r2))))
+        (format t ";; eusview-bvh-retarget-keys: GMR + QP ~A keys, ~4,2f ms/key, collision ~A -> ~A keys~%"
+                (length k2) (/ ms (max 1 (length k2))) nc nc2)
+        (setq keys k2 roots r2)))
     (send robot :angle-vector av-save)
     (send robot :newcoords c-save)
     (send robot :worldcoords)

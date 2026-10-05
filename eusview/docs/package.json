@@ -1,0 +1,10 @@
+{
+  "name": "eusview-docs",
+  "version": "1.0.0",
+  "private": true,
+  "description": "EusView slides (build_eusview.js -> eusview.pptx)",
+  "dependencies": {
+    "pptxgenjs": "^4.0.1",
+    "jszip": "^3.10.1"
+  }
+}

@@ -1,0 +1,12 @@
+# EusView (Android) の物理: ODE 0.16.5 (third_party/ode の静的ライブラリ) + odesim + JNI, 全身の QP: wbqp + JNI
+#   odesim.h / odesim.cpp は eusview/ios/EusView/Physics/ のコピー (変えずに同期する: make -C eusview/android sync-odesim)
+#   wbqp.h / wbqp.cpp は eusview/ios/EusView/QP/ のコピー (同じく make -C eusview/android sync-wbqp, make sync で両方)
+cmake_minimum_required(VERSION 3.22.1)
+project(eusviewode CXX)
+set(ODE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../../../third_party/ode)
+add_library(ode STATIC IMPORTED)
+set_target_properties(ode PROPERTIES IMPORTED_LOCATION ${ODE_DIR}/lib/${ANDROID_ABI}/libode.a)
+add_library(eusviewode SHARED odesim.cpp odesim_jni.cpp wbqp.cpp wbqp_jni.cpp)
+target_include_directories(eusviewode PRIVATE ${ODE_DIR}/include)
+target_compile_options(eusviewode PRIVATE -O2 -include algorithm)
+target_link_libraries(eusviewode ode log)
