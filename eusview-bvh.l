@@ -69,31 +69,62 @@
   "motion-capture-data of file (the skeleton on the floor at the origin) and its frame time"
   (let* ((sc (or (cdr (assoc kind *eusview-bvh-scale* :test #'equal)) 10.0))
          (ft (or (cdr (assoc kind *eusview-bvh-frame-time* :test #'equal)) (eusview-bvh-file-frame-time file)))
-         (mcd (load-mcd file :scale sc :coords (if (member kind *eusview-bvh-z-up* :test #'equal) (make-coords)
-                                              (make-coords :rpy (list 0 0 pi/2)))))
+         (cls (eusview-bvh-class kind))
+         ;; the classes of bvh/*-demo.l (and jskeus tum-) set their own coords (z up, facing the robots)
+         (mcd (if (eq cls bvh-robot-model)
+                  (load-mcd file :scale sc :coords (if (member kind *eusview-bvh-z-up* :test #'equal) (make-coords)
+                                                     (make-coords :rpy (list 0 0 pi/2))))
+                (load-mcd file :scale sc :bvh-robot-model-class cls)))
          (m (send mcd :model)) bb root dv)
     (send mcd :frame 0)
     (send m :worldcoords)
     (setq bb (make-bounding-box (mapcar #'(lambda (l) (copy-seq (send l :worldpos))) (send m :links))))
     (setq root (copy-seq (send (car (send m :links)) :worldpos)))
     (setq dv (float-vector (- (elt root 0)) (- (elt root 1)) (- (elt (send bb :minpoint) 2))))
-    (if *eusview-bvh-show-robot* (setq dv (v+ dv (float-vector 0 600 0))))
     (send m :translate dv :world)
     (send m :worldcoords)
     (list mcd ft)))
 
-(defun eusview-bvh-view (mcd)
-  "skeleton (and the robot) in the viewer, looking at the root path of the whole file"
+(defvar *eusview-bvh-robot-group* :kxr)   ;; :kxr :khr :jsk or nil (RETARGET.md)
+(defvar *eusview-bvh-show-names* t)        ;; method 1 robot
+(defvar *eusview-bvh-show-gmr* t)          ;; method 2 robot
+(defvar *eusview-bvh-retargets* nil)       ;; eusview-retarget instances of the current file
+
+(defun eusview-bvh-make-retargets (kind mcd)
+  "the method 1 / method 2 robots beside the skeleton (skeleton at y 0, then -gap, -2 gap)"
+  (setq *eusview-bvh-retargets* nil)
+  (let* ((name (cdr (assoc *eusview-bvh-robot-group* *eusview-bvh-robot-names*))) pair h gap)
+    (when name
+      (setq pair (eusview-bvh-robot-pair name))
+      (send (car pair) :reset-pose)
+      (setq h (- (elt (send (send (car pair) :worldcoords) :worldpos) 2) 0))
+      (setq h (let ((bb (make-bounding-box (flatten (mapcar #'(lambda (b) (if (find-method b :vertices) (send b :vertices))) (send (car pair) :bodies))))))
+                (elt (send bb :diagonal) 2)))
+      (setq gap (+ 450 (* 0.6 h)))
+      (when (and *eusview-bvh-show-names* (eusview-bvh-names-p kind))
+        (push (instance eusview-retarget :init (car pair) :names mcd :offset (float-vector 0 (- gap) 0))
+              *eusview-bvh-retargets*))
+      (when *eusview-bvh-show-gmr*
+        (push (instance eusview-retarget :init (cadr pair) :gmr mcd :offset (float-vector 0 (* -2 gap) 0))
+              *eusview-bvh-retargets*))
+      (dolist (rt *eusview-bvh-retargets*) (send rt :apply)))
+    *eusview-bvh-retargets*))
+
+(defun eusview-bvh-view (mcd &optional kind)
+  "skeleton and the retarget robots in the viewer, looking at the root path of the whole file"
   (let* ((m (send mcd :model)) (n (send mcd :frame-length)) (pts nil) bb)
     (setq *eusview-bvh-model* m *eusview-bvh-mode* t)
+    (send mcd :frame 0)
+    (if kind (eusview-protect (eusview-bvh-make-retargets kind mcd)))
     (send *eusview-viewer* :objects
-          (append (list m) (if (and *eusview-bvh-show-robot* *eusview-robot*) (list *eusview-robot*))))
+          (append (list m) (mapcar #'(lambda (rt) (send rt :robot)) *eusview-bvh-retargets*)))
     (do ((i 0 (+ i (max 1 (/ n 40))))) ((>= i n))
       (send mcd :frame i)
       (dolist (l (send m :links)) (push (copy-seq (send l :worldpos)) pts)))
     (send mcd :frame 0)
-    (if (and *eusview-bvh-show-robot* *eusview-robot*)
-        (dolist (b (send *eusview-robot* :bodies)) (setq pts (append (send b :vertices) pts))))
+    (dolist (rt *eusview-bvh-retargets*)
+      (dolist (b (send (send rt :robot) :bodies))
+        (if (find-method b :vertices) (setq pts (append (mapcar #'copy-seq (send b :vertices)) pts)))))
     (setq bb (make-bounding-box pts))
     (send *eusview-viewer* :look-all bb)
     (send *eusview-viewer* :draw-objects)))
@@ -125,10 +156,11 @@
       (eusview-message "BVH ~A/~A: ~A" kind name *eusview-last-error*)
       (return-from eusview-bvh-play-file t)) ;; skip this file
     (setq n (send mcd :frame-length))
-    (eusview-bvh-view mcd)
+    (eusview-bvh-view mcd kind)
     (setq t0 (eusview-now-ms))
     (while (and (< i n) (not *eusview-stop*))
       (send mcd :frame i)
+      (dolist (rt *eusview-bvh-retargets*) (eusview-protect (send rt :apply)))
       (send *eusview-viewer* :draw-objects)
       (when (> (- (eusview-now-ms) tlast) 300)
         (setq tlast (eusview-now-ms))
@@ -186,7 +218,7 @@
 ;;;
 ;;; BVH panel
 ;;;
-(defclass eusview-bvh-panel :super x::panel :slots (speed-item robot-item info-item))
+(defclass eusview-bvh-panel :super x::panel :slots (speed-item robot-item names-item gmr-item info-item))
 (defmethod eusview-bvh-panel
   (:create
    (&rest args)
@@ -196,7 +228,10 @@
      (send self :create-item x::button-item "auto play" self :auto)
      (send self :create-item x::button-item "stop" self :stop)
      (setq speed-item (send self :create-item x::button-item "speed: 1x  " self :speed))
-     (setq robot-item (send self :create-item x::button-item "robot: hide" self :robot))
+     ;; robots beside the skeleton (RETARGET.md): group, method 1 (joint names), method 2 (GMR)
+     (setq robot-item (send self :create-item x::button-item (eusview-bvh-robot-label) self :robot))
+     (setq names-item (send self :create-item x::button-item "joint names: ON " self :names))
+     (setq gmr-item (send self :create-item x::button-item "GMR: ON " self :gmr))
      (send self :create-item x::button-item "back to robot" self :leave)
      (send self :create-item x::button-item "close" self :close)
      (setq info-item (send self :create-item x::xft-label-item "" :width (- width 20)))
@@ -207,23 +242,7 @@
        (dolist (k *eusview-bvh-kinds*)
          (send self :kind-menus (car k) (cdr k) (- width 20))))
      self))
-  (:kind-menus
-   (kind files width)
-   "a menubar of kind: menus of 20 files"
-   (let ((bar (send self :create-menubar :height 30 :width width)) (n (length files)) (rows 20))
-     (send self :locate-item bar)
-     (dotimes (c (ceiling (/ (float n) rows)))
-       (let ((menu (instance x::menu-panel :create :font (x::font-id "*-fixed-bold-r-normal-*-18-*"))))
-         (dotimes (r rows)
-           (let ((i (+ r (* rows c))))
-             (when (< i n)
-               (send menu :create-item (if (eusview-ja-p) x::xft-button-item x::button-item)
-                     (format nil "~3D  ~A" (1+ i) (eusview-bvh-name kind (elt files i)))
-                     self (list :play kind i)))))
-         (send bar :create-item x::menu-button-item
-               (if (= c 0) (format nil " ~A (~A) 1- " kind n) (format nil " ~A- " (1+ (* rows c))))
-               self nil :menu menu :border-width 2)))
-     bar))
+  (:kind-menus (kind files width) (eusview-bvh-file-menus self kind files width))
   (:show (str) (send info-item :value str))
   (:auto (&rest args) (eusview-bvh-request :auto (car (car *eusview-bvh-kinds*)) 0))
   (:play (sel &rest args) (eusview-bvh-request :repeat (car sel) (cadr sel)))
@@ -236,13 +255,89 @@
    (send speed-item :redraw))
   (:robot
    (&rest args)
-   (setq *eusview-bvh-show-robot* (not *eusview-bvh-show-robot*))
-   (send robot-item :label (if *eusview-bvh-show-robot* "robot: show" "robot: hide"))
+   (setq *eusview-bvh-robot-group*
+         (let ((l '(:kxr :khr :jsk nil))) (cadr (member *eusview-bvh-robot-group* l))))
+   (send robot-item :label (eusview-bvh-robot-label))
    (send robot-item :redraw)
+   (send self :changed))
+  (:names
+   (&rest args)
+   (setq *eusview-bvh-show-names* (not *eusview-bvh-show-names*))
+   (send names-item :label (if *eusview-bvh-show-names* "joint names: ON " "joint names: off"))
+   (send names-item :redraw)
+   (send self :changed))
+  (:gmr
+   (&rest args)
+   (setq *eusview-bvh-show-gmr* (not *eusview-bvh-show-gmr*))
+   (send gmr-item :label (if *eusview-bvh-show-gmr* "GMR: ON " "GMR: off"))
+   (send gmr-item :redraw)
+   (send self :changed))
+  (:changed
+   ()
    (eusview-bvh-show-status
-    (if (eusview-ja-p) "ロボットの表示は次のファイルから変わります" "the robot is shown / hidden from the next file")))
+    (if (eusview-ja-p) "ロボットの表示は次のファイル（次の繰り返し）から変わります"
+      "the robots change from the next file (next repeat)")))
   (:leave (&rest args) (send self :stop) (eusview-bvh-leave))
   (:close (&rest args) (send self :stop) (eusview-bvh-leave) (send self :unmap)))
+
+(defun eusview-bvh-robot-label ()
+  (let ((n (cdr (assoc *eusview-bvh-robot-group* *eusview-bvh-robot-names*))))
+    (if n (format nil "robot: ~A ~A" (string-upcase (string *eusview-bvh-robot-group*)) n) "robot: none")))
+
+;;;
+;;; BVH as a motion of the robot of the robot panel: kind -> file -> method (joint names / GMR)
+;;;
+(defvar *eusview-bvh-robot-method* :names)
+(defvar *eusview-bvh-robot-panel* nil)
+(defclass eusview-bvh-robot-panel :super x::panel :slots (kind method-item info-item))
+(defmethod eusview-bvh-robot-panel
+  (:create
+   (k &rest args)
+   (let ((width 1000) (files (eusview-bvh-files k)))
+     (setq kind k)
+     (send-super* :create :width width :height 140 :title (format nil "EusView BVH -> ~A: ~A" *eusview-name* k) args)
+     (setq method-item (send self :create-item x::button-item (eusview-bvh-method-label) self :method))
+     (send self :create-item x::button-item "stop" self :stop)
+     (send self :create-item x::button-item "close" self :close)
+     (setq info-item (send self :create-item x::xft-label-item
+                           (if (eusview-ja-p) "ファイルを選ぶと、このロボットで繰り返し再生（physics ON ならサーボの目標）"
+                             "choose a file: played repeatedly on this robot (physics ON: servo targets)")
+                           :width (- width 20)))
+     (eusview-bvh-file-menus self k files (- width 20))
+     self))
+  (:method
+   (&rest args)
+   (setq *eusview-bvh-robot-method* (if (eq *eusview-bvh-robot-method* :names) :gmr :names))
+   (send method-item :label (eusview-bvh-method-label))
+   (send method-item :redraw))
+  (:play (sel &rest args) (eusview-play-motion (list :bvh (car sel) (cadr sel) *eusview-bvh-robot-method*)))
+  (:stop (&rest args) (setq *eusview-stop* t *eusview-next-motion* nil))
+  (:close (&rest args) (send self :stop) (send self :unmap)))
+(defun eusview-bvh-method-label ()
+  (if (eq *eusview-bvh-robot-method* :names) "method: joint names" "method: GMR        "))
+
+(defun eusview-bvh-file-menus (pan kind files width)
+  "a menubar of the files of kind (menus of 20); items call (send pan :play (list kind index))"
+  (let ((bar (send pan :create-menubar :height 30 :width width)) (n (length files)) (rows 20))
+    (send pan :locate-item bar)
+    (dotimes (c (ceiling (/ (float n) rows)))
+      (let ((menu (instance x::menu-panel :create :font (x::font-id "*-fixed-bold-r-normal-*-18-*"))))
+        (dotimes (r rows)
+          (let ((i (+ r (* rows c))))
+            (when (< i n)
+              (send menu :create-item (if (eusview-ja-p) x::xft-button-item x::button-item)
+                    (format nil "~3D  ~A" (1+ i) (eusview-bvh-name kind (elt files i)))
+                    pan (list :play kind i)))))
+        (send bar :create-item x::menu-button-item
+              (if (= c 0) (format nil " ~A (~A) 1- " kind n) (format nil " ~A- " (1+ (* rows c))))
+              pan nil :menu menu :border-width 2)))
+    bar))
+
+(defun eusview-bvh-open-robot-panel (kind)
+  (eusview-bvh-scan)
+  (when *eusview-bvh-robot-panel* (eusview-protect (send *eusview-bvh-robot-panel* :unmap)))
+  (setq *eusview-bvh-robot-panel* (instance eusview-bvh-robot-panel :create kind))
+  (eusview-protect (send *eusview-bvh-robot-panel* :move 620 700)))
 
 (defun eusview-bvh-open-panel ()
   (eusview-bvh-scan)

@@ -5385,5 +5385,13 @@ live: トグル(live: off / ON)．中継 eusview-live.py が動いていなければ python3 で
 BVH: EusView パネルの BVH ボタンで BVH のパネル(eusview-bvh.l)を開き，kxreus/bvh/<種類>/
   (lafan1, mocopi, rikiya, sfu, tum-kitchen)の BVH を骨格で再生する(jskeus の load-mcd,
   scale は bvh/*-demo.l と同じ 10, tum-kitchen は 1)．auto play で全種類を順に，メニューで
-  選んだファイルは stop まで繰り返す．speed, robot: hide/show(ロボットを横に並べる)．
+  選んだファイルは stop まで繰り返す．speed．
+  BVH パネルの robot (KXR kxrl2l6a6h2 / KHR khr20h2 / JSK sample-robot / none) を選ぶと，
+  方法1(joint names: bvh/*-demo.l の :copy-state-to の関節名の対応)と方法2(GMR: 体の部位の
+  位置を limb ごとの :inverse-kinematics で合わせる)のロボットを棒人形の横に並べて同じ時刻で
+  再生する(eusview-retarget.l, 仕様は mnist/eusview/bvh/RETARGET.md)．
+  ロボットのパネルの BVH メニュー: 種類→ファイル→方法を選ぶと，BVH から移した関節角を
+  そのロボットの動作として繰り返す．physics ON ならサーボの目標(腰は ODE)，OFF なら腰は BVH．
+  (eusview-bvh-export-retarget "mocopi/greeting1.bvh" "kxrl2l6a6h2" :names 0 100 10)
+  で関節角とルートを ~/.cache/eusview/retarget-*.json に書き出す(アプリの照合用)．
 

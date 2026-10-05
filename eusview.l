@@ -37,6 +37,10 @@
 ;;;                                 speed（0.5x/1x/2x/4x）, robot: hide / show（ロボットを横に並べる）,
 ;;;                                 back to robot。状態の行に「BVH 再生中: 種類/ファイル（フレーム i/n, fps）」。
 ;;;                                 BVH の表示中は physics は使えない。live は骨格を送らない
+;;;                                 robot: KXR kxrl2l6a6h2 / KHR khr20h2 / JSK sample-robot / none,
+;;;                                 joint names: ON/off（方法 1, bvh/*-demo.l の :copy-state-to）,
+;;;                                 GMR: ON/off（方法 2, 部位の位置を IK で合わせる）のロボットを棒人形の横に並べる
+;;;                                 （eusview-retarget.l, 仕様は mnist/eusview/bvh/RETARGET.md）
 ;;;   ロボットのパネル（ロボットごと）:
 ;;;     zero / reset-pose / init-pose ...   そのロボットにある姿勢
 ;;;     motion 0- / 20- ...         プロジェクトのモーション表（RCB4 のエミュレーションで再生）。
@@ -50,6 +54,11 @@
 ;;;                                 今の姿勢で床に置く。姿勢・スライダー・モーションはサーボの目標になる。
 ;;;                                 状態の行に経過時間・接触点の数・腰の位置
 ;;;     servo: on / OFF             トグル。サーボ on / off（脱力）（eusview-physics.l のとき）
+;;;     BVH（メニュー）             種類 → ファイル → 方法（joint names / GMR）を選ぶと、BVH から移した関節角を
+;;;                                 このロボットの動作として繰り返す。physics OFF: 腰は BVH の腰に合わせる,
+;;;                                 physics ON: 関節角はサーボの目標で、腰は ODE が決める（転ぶなどの違いを見る）
+;;;   (eusview-bvh-export-retarget "mocopi/greeting1.bvh" "kxrl2l6a6h2" :names 0 100 10)
+;;;                                 方法 1 / 2 の関節角とルートを ~/.cache/eusview/retarget-*.json に書く（アプリの照合用）
 ;;;     live: off / ON              トグル。関節角を EusView アプリへ送る（eusview-live.py が中継, 下を参照）
 ;;;     関節のスライダー
 ;;;
@@ -69,6 +78,7 @@
 (require :eusview-physics) ;; ODE without kxrdyna.l (libeusviewode.so, make eusview-ode)
 (require :eusview-xft)     ;; Japanese labels (motion names, status) with Xft
 (require :eusview-bvh)     ;; BVH playback (kxreus/bvh, the skeleton)
+(require :eusview-retarget) ;; BVH -> robots (joint names / GMR, mnist/eusview/bvh/RETARGET.md)
 
 (defvar *eusview-kxr-robots*
   '("kxrl2l5a3h2" "kxrl2l6a6h2" "kxrl4t" "kxrl4r" "kxrl4d" "kxrl6" "kxra6g"
@@ -520,6 +530,10 @@
      (t
       (while (and (<= tm tend) (not *eusview-stop*))
         (send r :angle-vector (copy-seq (eusview-interpolate keys tm)))
+        ;; BVH motions: the root follows the BVH root (physics off)
+        (when *eusview-key-roots*
+          (send r :newcoords (send (eusview-key-root tm) :copy-worldcoords))
+          (send r :worldcoords))
         (send *eusview-viewer* :draw-objects)
         (x::window-main-one)
         (funcall *eusview-orig-usleep* (round (/ 1000000.0 *eusview-fps*)))
@@ -556,7 +570,39 @@
     (when *eusview-bvh-next*
       (let ((r *eusview-bvh-next*)) (setq *eusview-bvh-next* nil) (apply #'eusview-bvh-request r))))))
 
+(defun eusview-play-bvh-motion-loop (spec)
+  "spec (:bvh kind index method): BVH retargeted to the robot, repeated until stop"
+  (let* ((kind (elt spec 1)) (files (eusview-bvh-files kind)) (file (and files (elt files (elt spec 2))))
+         (method (elt spec 3)) (name (and file (eusview-bvh-name kind file))) keys ret (count 0))
+    (cond
+     ((null file) (eusview-message "no motion ~A" spec))
+     ((and (eq method :names) (not (eusview-bvh-names-p kind)))
+      (eusview-message (if (eusview-ja-p) "~A: 関節名の対応表（bvh/*-demo.l の :copy-state-to）がありません。GMR を使ってください"
+                         "~A: no joint name mapping (:copy-state-to of bvh/*-demo.l); use GMR") kind))
+     (t
+      (eusview-show-playing (format nil "BVH ~A/~A (~A) ..." kind name (string-downcase (string method))))
+      (eusview-message (if (eusview-ja-p) "BVH ~A/~A を ~A に移しています（~A）..." "retargeting BVH ~A/~A to ~A (~A) ...")
+                       kind name *eusview-name* (string-downcase (string method)))
+      (dotimes (i 3) (x::window-main-one))
+      (setq ret (eusview-protect (setq keys (eusview-bvh-retarget-keys *eusview-robot* kind file method)) t))
+      (cond
+       ((not (eq ret t)) (setq *eusview-key-roots* nil) (eusview-message "BVH ~A/~A: ~A" kind name *eusview-last-error*))
+       ((< (length keys) 2) (setq *eusview-key-roots* nil))
+       (t
+        (unwind-protect
+            (while (not *eusview-stop*)
+              (incf count)
+              (eusview-show-playing (format nil (if (eusview-ja-p) "BVH ~A/~A（~A, ~A 回目）" "BVH ~A/~A (~A, #~A)")
+                                            kind name (string-downcase (string method)) count))
+              (eusview-message (if (eusview-ja-p) "再生中: BVH ~A/~A（~A, ~A 回目, ~4,1f 秒）" "playing: BVH ~A/~A (~A, #~A, ~4,1f s)")
+                               kind name (string-downcase (string method)) count (/ (car (car (last keys))) 1000.0))
+              (setq ret (eusview-protect (eusview-play-keys keys) t))
+              (unless (eq ret t) (eusview-message "BVH: ~A" *eusview-last-error*) (setq *eusview-stop* t)))
+          (setq *eusview-key-roots* nil))))))))
+
 (defun eusview-play-motion-loop (num)
+  (if (consp num) (return-from eusview-play-motion-loop (eusview-play-bvh-motion-loop num)))
+  (setq *eusview-key-roots* nil)
   (let* ((ri *eusview-ri*) (mc (and ri (send ri :project-file)
                                      (find num (send ri :project-file :mcodes)
                                            :key #'(lambda (m) (send m :number)))))
@@ -939,6 +985,12 @@
      (dolist (m (eusview-pose-methods r))
        (send self :create-item x::button-item (string-downcase (string m)) self (list :pose m)))
      (send self :create-item x::button-item "look-all" self :look-all)
+     ;; BVH as a motion of this robot: kind -> file -> method (eusview-bvh.l)
+     (when *eusview-bvh-kinds*
+       (let ((menu (instance x::menu-panel :create)))
+         (dolist (k *eusview-bvh-kinds*)
+           (send menu :create-item x::button-item (format nil "~A (~A)" (car k) (length (cdr k))) self (list :bvh (car k))))
+         (send self :create-item x::menu-button-item "BVH" nil nil :menu menu :border-width 2)))
      (send self :create-item x::button-item "stop" self :stop)
      ;; toggles: the label shows the state
      (setq physics-item (send self :create-item x::button-item "physics: off" self :physics))
@@ -974,6 +1026,7 @@
   (:pose (sel &rest args) (eusview-pose (car sel)))
   (:look-all (&rest args) (send *eusview-viewer* :look-all) (send *eusview-viewer* :draw-objects))
   (:stop (&rest args) (setq *eusview-stop* t *eusview-next-motion* nil) (eusview-message "stop"))
+  (:bvh (sel &rest args) (eusview-bvh-open-robot-panel (car sel)))
   (:show-playing
    (str)
    (send playing-item :value
@@ -1065,6 +1118,7 @@
   "EusView demo: robot chooser (KXR/KHR/JSK), poses, motions, physics, live"
   (eusview-make-viewer)
   (xft-init)
+  (eusview-protect (eusview-bvh-scan))
   (unless *eusview-panel*
     (setq *eusview-panel* (instance eusview-panel :create))
     (eusview-protect (send *eusview-viewer* :move 0 0) (send *eusview-panel* :move 620 0)))
@@ -1079,9 +1133,10 @@
   (if *eusview-live* (eusview-live-close))
   (eusview-live-stop-relay)
   (setq *eusview-bvh-next* nil)
-  (dolist (w (list *eusview-robot-panel* *eusview-panel* *eusview-bvh-panel*))
+  (dolist (w (list *eusview-robot-panel* *eusview-panel* *eusview-bvh-panel* *eusview-bvh-robot-panel*))
     (if w (eusview-protect (send w :destroy))))
-  (setq *eusview-robot-panel* nil *eusview-panel* nil *eusview-bvh-panel* nil *eusview-bvh-mode* nil)
+  (setq *eusview-robot-panel* nil *eusview-panel* nil *eusview-bvh-panel* nil *eusview-bvh-robot-panel* nil
+        *eusview-bvh-mode* nil)
   (when *eusview-viewer*
     (eusview-protect (send *eusview-viewer* :destroy))
     (setq *eusview-viewer* nil))

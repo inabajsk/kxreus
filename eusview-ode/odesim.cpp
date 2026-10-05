@@ -7,6 +7,7 @@
 #include <vector>
 #include <memory>
 #include <cmath>
+#include <algorithm>
 
 struct Link {
   dBodyID body;
@@ -211,7 +212,7 @@ void odesim_step(OdeSim *s, double dt, int n)
         if (v > j.vmax) v = j.vmax;
         if (v < -j.vmax) v = -j.vmax;
         f = j.fmax;
-      } else f = j.fmax * 0.01;   // 脱力: 少しだけ摩擦
+      } else f = std::min(j.fmax * 0.01, 0.05);   // 脱力: 少しだけ摩擦 (上限 0.05 N·m. fmax が実質無制限 (500000) でも崩れるように)
       if (j.type == 0) { dJointSetHingeParam(j.j, dParamVel, v); dJointSetHingeParam(j.j, dParamFMax, f); }
       else { dJointSetSliderParam(j.j, dParamVel, v); dJointSetSliderParam(j.j, dParamFMax, f); }
     }

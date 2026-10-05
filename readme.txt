@@ -46,7 +46,10 @@ EusView demo (eusview.l, like the EusView iPhone/Mac app):
     ;; physics / servo / live buttons are toggles; a chosen motion repeats until stop
     ;; live: starts eusview-live.py (python3) if no relay runs, shows ws://<LAN IP>:8766/ for the iPhone
     ;; BVH button: plays kxreus/bvh/<kind>/*.bvh as the skeleton (auto play through all kinds,
-    ;; or a file from the menus repeated until stop; speed, robot hide/show) -- eusview-bvh.l
+    ;; or a file from the menus repeated until stop; speed) -- eusview-bvh.l
+    ;; robots beside the skeleton: KXR / KHR / JSK, joint names (bvh/*-demo.l :copy-state-to)
+    ;; and GMR (IK of the body parts) -- eusview-retarget.l (spec: mnist/eusview/bvh/RETARGET.md)
+    ;; robot panel "BVH" menu: kind -> file -> method, played as a motion (physics ON: servo targets)
     ;; KHR3 projects: projects/Hello_khr3, Hello_khr3sl5a3h2 ("khr3semi" robots use the latter)
     ;; Japanese labels (motion names, status) with Xft: eusview-xft.l
     ;; (also used by kxrviewer.l robot-control-panel for the motion menus; falls back to the
