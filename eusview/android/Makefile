@@ -7,7 +7,7 @@
 #   make sync-odesim   iOS 版の odesim.{h,cpp} をコピーし直す,  make sync-wbqp  iOS 版の wbqp.{h,cpp} (全身の QP) をコピーし直す
 #   make sync  両方,  make ode  ODE の静的ライブラリを作り直す
 #   make test-retarget / make test-json   JVM の単体テスト (BVH の移し替え / 共通の JSON の読み手)
-#   make test-qp   GMR + QP の JVM の単体テスト (デスクトップ版の JNI ライブラリ ../desktop/build/native/<os>-<arch> を使う. 先に make -C ../desktop native)
+#   make test-qp   GMR + QP (と QP + バランス・物理で倒れるまでの時間) の JVM の単体テスト (デスクトップ版の JNI ライブラリ ../desktop/build/native/<os>-<arch> を使う. 先に make -C ../desktop native)
 #   共通のコード (デスクトップ版と同じ) は ../shared/kotlin
 JAVA_HOME ?= $(firstword $(wildcard $(HOME)/Library/Java/jdk-17*/Contents/Home))
 ANDROID_HOME ?= $(HOME)/Library/Android/sdk

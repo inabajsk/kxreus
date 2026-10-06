@@ -14,10 +14,13 @@
 		347382AFB82648CB2BCE69E0 /* LiveLink.swift in Sources */ = {isa = PBXBuildFile; fileRef = C57880CE2A6998FE9D48959C /* LiveLink.swift */; };
 		4C6F220F5D1D437AA6B25922 /* odesim.cpp in Sources */ = {isa = PBXBuildFile; fileRef = BB8DADFD1D96ED4BFD9CDE2B /* odesim.cpp */; };
 		5146C9B30331824FF33F3350 /* RobotModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50E711C5719A9E79D4D29C51 /* RobotModel.swift */; };
+		5559CB7D2594763F5F8B6456 /* RobotPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C22EBECD4F867C21397B3B6 /* RobotPicker.swift */; };
 		8709C8B7E34B67203AA55068 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 81350E5C23ACD2B78FC8F65E /* Assets.xcassets */; };
+		9CAF79D39FA9641E7E729154 /* FallRecovery.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8797B863C60EAEB729D0A745 /* FallRecovery.swift */; };
 		AEA3FF5156AEA1369094C726 /* robots in Resources */ = {isa = PBXBuildFile; fileRef = 9726BC3042A9BB0B37BA590B /* robots */; };
 		B93D491E8302AA6BEF53FAEC /* PhysicsSim.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F8A5ECB7C693A9932DF8CA3 /* PhysicsSim.swift */; };
 		BD2AAB5E69A1A51D84517CF0 /* wbqp.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E5D2282F964BDC036496823D /* wbqp.cpp */; };
+		BDD7A41554562006853756F5 /* BalanceStabilizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 614D4B36D9876FE56FAA9BEA /* BalanceStabilizer.swift */; };
 		C99861263DE82D5819ACD732 /* EusViewApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = F26AED0C884CD996504231E9 /* EusViewApp.swift */; };
 		DCCBFBD2431EFC004612C322 /* WholeBodyQP.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AFC10E40C4C315D78ADC79F /* WholeBodyQP.swift */; };
 		E9981F9B84B268D7BAD1C4E3 /* RobotView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 318F26F270BBC356DC13F6CF /* RobotView.swift */; };
@@ -32,7 +35,10 @@
 		3F8A5ECB7C693A9932DF8CA3 /* PhysicsSim.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhysicsSim.swift; sourceTree = "<group>"; };
 		50E711C5719A9E79D4D29C51 /* RobotModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RobotModel.swift; sourceTree = "<group>"; };
 		55E3BE2DFE625A448EF84159 /* BVHData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BVHData.swift; sourceTree = "<group>"; };
+		5C22EBECD4F867C21397B3B6 /* RobotPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RobotPicker.swift; sourceTree = "<group>"; };
+		614D4B36D9876FE56FAA9BEA /* BalanceStabilizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BalanceStabilizer.swift; sourceTree = "<group>"; };
 		81350E5C23ACD2B78FC8F65E /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		8797B863C60EAEB729D0A745 /* FallRecovery.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FallRecovery.swift; sourceTree = "<group>"; };
 		96FF86C92ADBF9E2FB88F34A /* RobotScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RobotScene.swift; sourceTree = "<group>"; };
 		9726BC3042A9BB0B37BA590B /* robots */ = {isa = PBXFileReference; lastKnownFileType = folder; name = robots; path = ../robots; sourceTree = SOURCE_ROOT; };
 		9AFC10E40C4C315D78ADC79F /* WholeBodyQP.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WholeBodyQP.swift; sourceTree = "<group>"; };
@@ -126,6 +132,7 @@
 				F26AED0C884CD996504231E9 /* EusViewApp.swift */,
 				C57880CE2A6998FE9D48959C /* LiveLink.swift */,
 				50E711C5719A9E79D4D29C51 /* RobotModel.swift */,
+				5C22EBECD4F867C21397B3B6 /* RobotPicker.swift */,
 				96FF86C92ADBF9E2FB88F34A /* RobotScene.swift */,
 				318F26F270BBC356DC13F6CF /* RobotView.swift */,
 			);
@@ -136,6 +143,8 @@
 		FFCC1A7292E9A10E89ADD4FB /* Physics */ = {
 			isa = PBXGroup;
 			children = (
+				614D4B36D9876FE56FAA9BEA /* BalanceStabilizer.swift */,
+				8797B863C60EAEB729D0A745 /* FallRecovery.swift */,
 				BB8DADFD1D96ED4BFD9CDE2B /* odesim.cpp */,
 				1F53A7056DD00F74AC0D7465 /* odesim.h */,
 				3F8A5ECB7C693A9932DF8CA3 /* PhysicsSim.swift */,
@@ -244,10 +253,13 @@
 				2079FA284CAED65CF5E22A2D /* BVHData.swift in Sources */,
 				FADF9E6C469706328A405970 /* BVHRetarget.swift in Sources */,
 				0A1CEEE33C232B3CA352964C /* BVHView.swift in Sources */,
+				BDD7A41554562006853756F5 /* BalanceStabilizer.swift in Sources */,
 				C99861263DE82D5819ACD732 /* EusViewApp.swift in Sources */,
+				9CAF79D39FA9641E7E729154 /* FallRecovery.swift in Sources */,
 				347382AFB82648CB2BCE69E0 /* LiveLink.swift in Sources */,
 				B93D491E8302AA6BEF53FAEC /* PhysicsSim.swift in Sources */,
 				5146C9B30331824FF33F3350 /* RobotModel.swift in Sources */,
+				5559CB7D2594763F5F8B6456 /* RobotPicker.swift in Sources */,
 				28A2D53F6F19171CC479A4D2 /* RobotScene.swift in Sources */,
 				E9981F9B84B268D7BAD1C4E3 /* RobotView.swift in Sources */,
 				DCCBFBD2431EFC004612C322 /* WholeBodyQP.swift in Sources */,

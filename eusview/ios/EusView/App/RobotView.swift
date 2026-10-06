@@ -1,6 +1,11 @@
 // RobotView.swift : ロボットの 3D 表示と操作 (関節・姿勢・動作・接続)
-//   動作: JSON の動作と, BVH から移した動作 (種類 → ファイル → 方法 (関節名 / GMR / GMR + QP), BVHRetarget.swift, WholeBodyQP.swift)
-//   起動の引数 -open <ロボット> -bvhmotion <種類>/<名前> -method names|gmr|gmrqp -physics 1 で BVH の動作を再生 (確認用)
+//   動作: JSON の動作と, BVH から移した動作 (種類 → ファイル → 方法 (関節名 / GMR / GMR + QP / GMR + QP + バランス),
+//     BVHRetarget.swift, WholeBodyQP.swift). GMR + QP + バランスを物理オンで再生するときは, コマごとの計画 (QPFrame) を
+//     BalanceStabilizer に渡して足首で傾きを直す (eusview/bvh/QP.md「QP + バランス」)
+//   GMR + MPC: QP + バランスの計画 (wbqp_plan_balance) をしたうえで, 物理オンなら毎コマ物理の今の関節角とルートのリンクの姿勢から
+//     閉ループの MPC (wbqp_mpc_step) を解き, その答えをサーボの目標にする (倒れたら起き上がり, 続きに戻るとき wbqp_reset).
+//     物理オフでは閉ループにならないので QP + バランスの関節角で表示する
+//   起動の引数 -open <ロボット> -bvhmotion <種類>/<名前> -method names|gmr|gmrqp|balance|mpc -physics 1 で BVH の動作を再生 (確認用)
 import SwiftUI
 import SceneKit
 import simd
@@ -40,10 +45,14 @@ final class RobotState: ObservableObject {
   @Published var physics = false      // 物理モード (ODE)
   @Published var servoOn = true
   @Published var simInfo = ""
+  @Published var recInfo = ""          // BVH の動作を物理で再生するとき: 倒れた回数・起き上がり (FallRecovery)
   // BVH から移した動作
   @Published var bvhProgress: Double?
   @Published var bvhInfo = ""
   @Published var bvhMotion: RobotMotion?
+  /// GMR + QP + バランスの動作の計画 (コマごとの contact と計画のルート). 物理で再生するとき BalanceStabilizer に渡す.
+  ///   mpc: GMR + MPC のとき, 計画をした WholeBodyQP (物理オンで毎コマ wbqp_mpc_step. このときは stab を使わない)
+  private var bvhPlan: (name: String, frames: [QPFrame], stab: BalanceStabilizer, mpc: WholeBodyQP?)?
   final class CancelFlag: @unchecked Sendable { var cancelled = false }
   private var bvhToken = CancelFlag()
   weak var view: SCNView?
@@ -66,6 +75,7 @@ final class RobotState: ObservableObject {
   func setPhysics(_ on: Bool) {
     simTimer?.invalidate(); simTimer = nil; sim = nil
     physics = on
+    if let q = bvhPlan?.mpc { wbqp_reset(q.h) }   // 物理を作り直した: MPC の速さの見積もりなどをやり直す
     if !on { rs.setAngles(angles); return }
     let s = PhysicsSim(model: rs.model, angles: angles)
     s.setServo(servoOn)
@@ -115,6 +125,10 @@ final class RobotState: ObservableObject {
     let from = angles
     var lead = sim != nil && !m.frames.isEmpty ? Int(0.8 * max(m.fps, 1)) : 0
     let leadN = lead
+    // BVH の動作を物理で再生するとき: 倒れたら起き上がりの動作をしてから, 倒れたコマの続きを再生する (FallRecovery.swift)
+    let isBVH = m.name == bvhMotion?.name
+    var rec: FallRecovery? = nil
+    recInfo = ""
     timer = Timer.scheduledTimer(withTimeInterval: Double(1 / max(m.fps, 1)), repeats: true) { [weak self] t in
       Task { @MainActor in
         guard let self else { return }
@@ -124,8 +138,38 @@ final class RobotState: ObservableObject {
           lead -= 1
           return
         }
-        if i >= m.frames.count { i = 0; self.lastRootXY = nil }
-        if self.sim != nil { self.set(m.frames[i]) }   // 物理モード: 動作の関節角をサーボの目標にする
+        if i >= m.frames.count { i = 0; self.lastRootXY = nil; rec?.reset() }
+        if let sim = self.sim {   // 物理モード: 動作の関節角をサーボの目標にする
+          if isBVH {
+            if rec == nil { rec = FallRecovery(model: self.rs.model) }
+            if let r = rec, let ov = r.step(sim: sim, dt: 1 / Double(max(m.fps, 1)), resume: m.frames[i], replace: { a in
+              self.angles = a; self.setPhysics(true)    // 起き上がりの動作がない・起き上がれない: 続きの姿勢で置き直す
+            }) {
+              self.sim?.setTargets(ov)
+              if r.phase == .blend, let q = self.bvhPlan?.mpc { wbqp_reset(q.h) }   // 起き上がった: 続きに戻るとき MPC をやり直す
+              self.recInfo = r.summary + (r.current.isEmpty ? "" : "・\(r.current) 中")
+              return                                    // 起き上がるまで動作のコマは進めない
+            }
+            if let r = rec, r.falls > 0 { self.recInfo = r.summary }
+          }
+          if let pl = self.bvhPlan, pl.name == m.name, i < pl.frames.count, let q = pl.mpc {
+            // GMR + MPC (閉ループ): 物理の今の関節角 (rad/m) とルートのリンクの姿勢, 計画のそのコマから毎コマ解き直す
+            if i == 0 { wbqp_reset(q.h) }
+            let rl = q.rootLink
+            var qo = [Double](repeating: 0, count: self.rs.model.joints.count)
+            let st = wbqp_mpc_step(q.h, Int32(i), q.toQ(sim.jointValues()), WholeBodyQP.pose12(sim.linkPoses()[rl]),
+                                   q.toQ(pl.frames[i].q), WholeBodyQP.pose12(pl.frames[i].root), &qo, nil)
+            self.angles = m.frames[i]
+            sim.setTargets(st >= 0 ? q.toAngles(qo) : m.frames[i])
+          } else if let pl = self.bvhPlan, pl.name == m.name, i < pl.frames.count {
+            // GMR + QP + バランス: 計画の体の傾きと物理の体の傾きの差を足首で戻す
+            if i == 0 { pl.stab.reset() }
+            let a = pl.stab.adjust(m.frames[i], planRoot: pl.frames[i].root, contact: pl.frames[i].diag.contact,
+                                   poses: sim.linkPoses(), dt: 1 / max(m.fps, 1))
+            self.angles = m.frames[i]
+            sim.setTargets(a)
+          } else { self.set(m.frames[i]) }
+        }
         else {
           self.rs.setFrame(m, i); self.angles = self.rs.angles
           if follow, let r = m.root, i < r.count { self.followCamera(SIMD2(r[i][0], r[i][1])) }
@@ -163,6 +207,9 @@ final class RobotState: ObservableObject {
       var m: RobotMotion?
       var err: String?
       var qpInfo = ""
+      var plan: [QPFrame]?
+      var planQP: WholeBodyQP?
+      var feet = [Int]()
       do {
         let mo = try BVHMotion(url: url)
         let rt = BVHRetargeter(model: model, motion: mo, tables: tables)
@@ -170,10 +217,15 @@ final class RobotState: ObservableObject {
         let prog: (Double) -> Void = { p in
           if p - lastP >= 0.02 || p >= 1 { lastP = p; Task { @MainActor in self?.bvhProgress = p } }
         }
-        if method == .gmrqp {
-          // GMR + 全身 QP (自己衝突・可動範囲・重心, WholeBodyQP.swift / wbqp.cpp)
-          if let (mm, fr) = makeGMRQPMotion(rt: rt, name: name, progress: prog, cancelled: { token.cancelled }) {
+        if method == .gmrqp || method == .balance || method == .mpc {
+          // GMR + 全身 QP (自己衝突・可動範囲・重心, WholeBodyQP.swift / wbqp.cpp). バランス: 動作全体を見て重心の軌道を決める
+          if let (mm, fr, qp) = makeGMRQPMotion(rt: rt, name: name, balance: method == .balance || method == .mpc, progress: prog, cancelled: { token.cancelled }) {
             m = mm
+            if method == .balance || method == .mpc {
+              plan = fr
+              if method == .mpc { planQP = qp }   // 計算はここで終わっている (このあと画面のスレッドだけが使う)
+              feet = ["lleg", "rleg"].compactMap { rt.limbs[$0] }.map { $0.footLink ?? $0.endLink }
+            }
             let n = Double(max(1, fr.count))
             let coll = fr.filter { $0.diag.before.n_collide > 0 }.count, collA = fr.filter { $0.diag.after.n_collide > 0 }.count
             let com = fr.filter { $0.diag.contact != 0 && $0.diag.before.com_margin < 0 }.count, comA = fr.filter { $0.diag.contact != 0 && $0.diag.after.com_margin < 0 }.count
@@ -190,6 +242,7 @@ final class RobotState: ObservableObject {
         self.bvhProgress = nil
         if let m {
           self.bvhMotion = m
+          self.bvhPlan = plan.map { (m.name, $0, BalanceStabilizer(model: model, feet: feet), planQP) }
           self.bvhInfo = String(format: "%d コマを %.1f 秒で計算（%.2f ms/コマ）", m.frames.count, sec, sec * 1000 / Double(max(1, m.frames.count))) + qpInfo
           NSLog("EusView BVH motion %@: %@", name, self.bvhInfo)
           self.play(m, follow: true)
@@ -199,6 +252,8 @@ final class RobotState: ObservableObject {
     }
   }
   func cancelBVH() { bvhToken.cancelled = true }
+  var hasBalancePlan: Bool { bvhPlan != nil && bvhPlan?.name == bvhMotion?.name }
+  var hasMPCPlan: Bool { hasBalancePlan && bvhPlan?.mpc != nil }
   func stop() { timer?.invalidate(); timer = nil; playing = nil }
   /// 起動の引数で BVH の動作を再生する (確認用, 一度だけ)
   static var launchDone = false
@@ -210,7 +265,7 @@ final class RobotState: ObservableObject {
     guard let e = all.first(where: { "\($0.kind)/\($0.file.name)" == arg }) else { bvhInfo = "\(arg) がありません"; return }
     if UserDefaults.standard.string(forKey: "physics") == "1" { setPhysics(true) }
     let mm = UserDefaults.standard.string(forKey: "method")
-    playBVH(e, method: mm == "names" ? .names : (mm == "gmrqp" || mm == "qp") ? .gmrqp : .gmr)
+    playBVH(e, method: mm == "names" ? .names : (mm == "gmrqp" || mm == "qp") ? .gmrqp : mm == "balance" ? .balance : mm == "mpc" ? .mpc : .gmr)
   }
   func shutdown() { stop(); simTimer?.invalidate(); simTimer = nil; sim = nil }
 }
@@ -225,7 +280,12 @@ struct RobotView: View {
     VStack(spacing: 0) {
       SceneViewRep(rs: st.rs, follow: st).ignoresSafeArea(edges: .horizontal)
         .overlay(alignment: .topLeading) {
-          if st.physics { Text(st.simInfo).font(.caption2.monospacedDigit()).padding(6).background(.thinMaterial, in: RoundedRectangle(cornerRadius: 6)).padding(8) }
+          if st.physics {
+            VStack(alignment: .leading, spacing: 2) {
+              Text(st.simInfo)
+              if !st.recInfo.isEmpty { Text(st.recInfo).foregroundStyle(.red) }
+            }.font(.caption2.monospacedDigit()).padding(6).background(.thinMaterial, in: RoundedRectangle(cornerRadius: 6)).padding(8)
+          }
         }
       HStack {
         Toggle("物理（ODE）", isOn: Binding(get: { st.physics }, set: { st.setPhysics($0) })).fixedSize()
@@ -292,13 +352,19 @@ struct RobotView: View {
               Button("やめる") { st.cancelBVH() }.font(.caption)
             }
           } else {
-            Button { bvhPicker = true } label: { Label("BVH から選ぶ（種類 → ファイル → 関節名 / GMR / GMR + QP）", systemImage: "figure.walk") }
+            Button { bvhPicker = true } label: { Label("BVH から選ぶ（種類 → ファイル → 関節名 / GMR / GMR + QP / + バランス / + MPC）", systemImage: "figure.walk") }
             if let m = st.bvhMotion {
               Button { st.playing == m.name ? st.stop() : st.play(m, follow: true) } label: {
                 Label("\(m.name)（\(m.frames.count) コマ）", systemImage: st.playing == m.name ? "stop.fill" : "play.fill")
               }
             }
-            if !st.bvhInfo.isEmpty { Text(st.bvhInfo + (st.physics ? "・物理オン: 関節角をサーボの目標に" : "・物理オフ: 腰も BVH のように動かす")).font(.caption2).foregroundStyle(.secondary) }
+            if !st.bvhInfo.isEmpty {
+              Text(st.bvhInfo + (st.physics ? (st.hasMPCPlan ? "・物理オン: 毎コマ閉ループの MPC（wbqp_mpc_step）の答えをサーボの目標に"
+                                                : "・物理オン: 関節角をサーボの目標に" + (st.hasBalancePlan ? "（足首で傾きを直す）" : ""))
+                                 : st.hasMPCPlan ? "・物理オフ: GMR + MPC は物理オンのときだけ働きます（今は QP + バランスの関節角で表示）"
+                                 : "・物理オフ: 腰も BVH のように動かす"))
+                .font(.caption2).foregroundStyle(.secondary)
+            }
           }
         } header: { Text("BVH") }
       }
@@ -314,7 +380,7 @@ struct RobotView: View {
   }
 }
 
-/// ロボットの画面の「動作」→ BVH: 種類 → ファイル (名前で探す) → 方法 (関節名 / GMR)
+/// ロボットの画面の「動作」→ BVH: 種類 → ファイル (名前で探す) → 方法 (関節名 / GMR / GMR + QP / GMR + QP + バランス / GMR + MPC)
 struct BVHMotionPicker: View {
   let pick: (BVHEntry, RetargetMethod) -> Void
   let index = loadBVHIndex()
@@ -334,9 +400,13 @@ struct BVHMotionPicker: View {
           Text("関節名").tag(RetargetMethod.names)
           Text("GMR").tag(RetargetMethod.gmr)
           Text("GMR + QP").tag(RetargetMethod.gmrqp)
+          Text("+ バランス").tag(RetargetMethod.balance)
+          Text("+ MPC").tag(RetargetMethod.mpc)
         }.pickerStyle(.segmented).padding(.horizontal, 8).padding(.top, 8)
         Text(method == .names ? "関節名で対応（EusLisp の :copy-state-to と同じ）" : method == .gmr ? "GMR: 部位の位置を IK で合わせる"
-             : "GMR のあと全身 QP で自己衝突・関節の可動範囲・重心を直し, 床に着いた足を止める")
+             : method == .gmrqp ? "GMR のあと全身 QP で自己衝突・関節の可動範囲・重心を直し, 床に着いた足を止める"
+             : method == .balance ? "GMR + QP + バランス: 動作全体を見て両足が浮かない接地と ZMP が足の裏に入る重心の軌道を決め, 重心を最優先にして解く（物理では足首で傾きを直す）"
+             : "GMR + MPC: QP + バランスの計画に対し, 物理の今の状態から毎コマ重心の MPC と全身 QP を解き直す閉ループ（キャプチャポイントで着地をずらす. 物理オンのときだけ）")
           .font(.caption2).foregroundStyle(.secondary).padding(.horizontal, 8).padding(.bottom, 4)
         List((k?.files ?? []).filter { search.isEmpty || $0.name.localizedCaseInsensitiveContains(search) }, id: \.self) { f in
           Button {

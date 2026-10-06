@@ -428,7 +428,7 @@ section("3. 使い方");
 {
   const s = slide("CONTENT", "画面の使い方（iPhone・Mac・Android 共通）", "Ubuntu の kxreus 版も同じ項目をボタンとメニューで持つ。");
   table(s, [["場所", "できること"],
-    ["一覧", "KXR / KHR / JSK のタブ、名前で検索。選ぶと 3D 表示"],
+    ["一覧", "KXR / KHR / JSK のタブ → 身体の形の分類 → 画像と名前、名前で検索。選ぶと 3D 表示"],
     ["3D", "1 本指で回転、2 本指で移動・拡大（Mac はマウスとトラックパッド）"],
     ["関節", "関節ごとのスライダー（可動範囲の中で）"],
     ["姿勢", "reset-pose・sit-pose などへ 0.6 秒でなめらかに"],
@@ -440,8 +440,24 @@ section("3. 使い方");
   video(s, "android_motion", 7.9, 1.35, 4.85, 5.5);
 }
 {
+  const s = slide("CONTENT", "ロボットを選ぶ — 身体の形の分類と画像", "一覧の画像は desktop の make thumbs で 121 体を描いた（reset-pose・斜め前から・320×320, 計 2.1 MB）。分類は robots/make_catalog.py が名前と関節の構成から作る catalog.json。どちらも iPhone・Mac・Android・デスクトップで共通。");
+  shot(s, "sim_pick_khr", 0.6, 1.3, 2.4, 5.35);
+  shot(s, "and_pick", 3.1, 1.3, 2.4, 5.35);
+  shot(s, "desk_pick_quad", 5.65, 1.3, 3.0, 3.75, { noCaption: true });
+  table(s, [["KXR（36）", "体"], ["二足・脚 6 軸", "11"], ["二足・脚 5 軸", "5"], ["二足 + 足の車輪", "5"], ["上半身・台車", "6"], ["四足", "8"], ["六足", "1"]],
+    8.85, 1.3, 1.9, [1.4, 0.5], 10.5, { rowH: 0.36 });
+  table(s, [["KHR（43）", "体"], ["KHR-2 系", "10"], ["KHR-3 系", "6"], ["脚 5 軸", "5"], ["脚 6 軸", "7"], ["腰つき", "11"], ["その他", "4"]],
+    10.85, 1.3, 1.9, [1.4, 0.5], 10.5, { rowH: 0.36 });
+  bullets(s, [
+    "グループ → 分類のボタン → 画像と名前・関節の数。「すべて」は分類ごとに見出しを付けて並べる",
+    "名前で探すと分類をまたいで探す。選んだ分類はグループごとに覚えておく",
+    "Android とデスクトップは共通の RobotPicker.kt（Compose）、iPhone・Mac は RobotPicker.swift",
+    "腰が原点のロボット（JSK の一部）は脚が床の下に隠れるので、いちばん低い点を床に上げてから撮る",
+  ], 5.65, 4.05, 7.1, 2.8, 11);
+}
+{
   const s = slide("CONTENT", "スマートフォンの画面 — iPhone", "同じアプリを iOS シミュレータ（iPhone 16 Pro）で撮ったもの。Android（Pixel 7a）の画面は「2. 開発環境」の動画を参照。");
-  shot(s, "sim_list", 0.6, 1.3, 2.95, 5.35);
+  shot(s, "sim_pick", 0.6, 1.3, 2.95, 5.35);
   shot(s, "sim_robot", 3.65, 1.3, 2.95, 5.35);
   shot(s, "sim_physics", 6.7, 1.3, 2.95, 5.35);
   shot(s, "sim_bvh_motion", 9.75, 1.3, 2.95, 5.35);
@@ -459,7 +475,7 @@ section("3. 使い方");
     "make deb      # .deb（JRE・データ・アイコン）",
   ].join("\n"), 8.45, 1.3, 4.3, 2.45, 11);
   bullets(s, [
-    "左: ロボットの一覧（KXR / KHR / JSK, 検索）・BVH・表示",
+    "左: ロボットの一覧（KXR / KHR / JSK → 分類 → 画像, 検索）・BVH・表示",
     "右: 3D（マウスで回転・移動・拡大）、物理・サーボ・置き直す、関節 / 姿勢 / 動作 / 接続",
     "3D は OpenGL で描いて画面に出す（Mac と Linux で同じ作り）",
     "Mac で KXR 50〜54 コマ/秒。Ubuntu の実機では未確認",
@@ -852,10 +868,11 @@ section("7. まとめ");
     ["Ubuntu（kxreus の EusView）", "Mac の XQuartz で確認。Ubuntu の実機では未確認"],
     ["Android（Pixel 7a）", "ビルド・インストール・表示・動作・物理・live を確認（物理の計算 1.5〜6 ms/コマ）。2 本指の操作は未確認"],
     ["デスクトップ版（統合ウインドウ）", "Mac で確認（Compose Desktop）。Ubuntu の実機では未確認"],
+    ["ロボットの一覧", "画像と身体の形の分類で選ぶ（iPhone シミュレータ・Pixel 7a・デスクトップ版で確認。Mac Catalyst はビルドのみ）"],
     ["BVH・GMR・全身 QP", "4 環境 + kxreus で再生・移し替え・QP。lafan1 の踊り・寝転ぶ動きは QP でも違反が残る"],
     ["ロボット", "121 体（KXR 36・KHR 43・JSK 42）。KHR の -cad 版は元のファイルがなく未対応"],
     ["物理", "eusdyna の作り方 + 摩擦・接触点・CFM を調整。自分どうしの当たりは未対応"]],
-    0.6, 1.35, 12.1, [3.4, 8.7], 12, { rowH: 0.52 });
+    0.6, 1.35, 12.1, [3.4, 8.7], 12, { rowH: 0.47 });
   bullets(s, [
     "次の候補: Ubuntu 実機での確認、ZMP（先読み）を入れた QP、ロボットどうしの当たり、実機 KXR の関節角を live で映す",
   ], 0.6, 6.15, 12.1, 0.75, 13);
@@ -882,6 +899,42 @@ section("7. まとめ");
     x = x.replace(/<a:ea typeface="[^"]*"\s*\/>/g, `<a:ea typeface="${THEME.bodyFontFace}"/>`);
     zip.file(f, x);
   }
+  // 動画: スライドを開いたらそのページの動画を全部同時に再生し, 繰り返す (pptxgenjs はクリックで再生のみ)
+  //   1 本目 = 前の後 (自動), 2 本目から = 1 本目と同時. p:video で繰り返し
+  for (const f of Object.keys(zip.files).filter((f) => /ppt\/slides\/slide\d+\.xml$/.test(f))) {
+    let x = await zip.file(f).async("string");
+    const ids = [...x.matchAll(/<p:pic>\s*<p:nvPicPr>\s*<p:cNvPr id="(\d+)"[\s\S]*?<\/p:nvPicPr>/g)].filter((m) => m[0].includes("<a:videoFile")).map((m) => m[1]);
+    if (!ids.length || x.includes("<p:timing>")) continue;
+    // 動画の <p:pic> を spTree の最後 (いちばん手前) へ移す. 後ろにほかの図形があると LibreOffice は 1 本しか再生しない
+    const pics = [...x.matchAll(/<p:pic>[\s\S]*?<\/p:pic>/g)].map((m) => m[0]).filter((t) => t.includes("<a:videoFile"));
+    for (const t of pics) x = x.replace(t, "");
+    x = x.replace("</p:spTree>", pics.join("") + "</p:spTree>");
+    let n = 4;
+    const calls = ids.map((id, i) => {
+      const a = n++, b = n++;
+      return `<p:par><p:cTn id="${a}" presetID="1" presetClass="mediacall" presetSubtype="0" fill="hold" nodeType="${i ? "withEffect" : "afterEffect"}"><p:stCondLst><p:cond delay="0"/></p:stCondLst><p:childTnLst>` +
+        `<p:cmd type="call" cmd="playFrom(0.0)"><p:cBhvr><p:cTn id="${b}" dur="1" fill="hold"/><p:tgtEl><p:spTgt spid="${id}"/></p:tgtEl></p:cBhvr></p:cmd></p:childTnLst></p:cTn></p:par>`;
+    }).join("");
+    const media = ids.map((id) => `<p:video><p:cMediaNode vol="80000" mute="1"><p:cTn id="${n++}" repeatCount="indefinite" fill="hold"><p:stCondLst><p:cond delay="indefinite"/></p:stCondLst></p:cTn><p:tgtEl><p:spTgt spid="${id}"/></p:tgtEl></p:cMediaNode></p:video>`).join("");
+    const timing = `<p:timing><p:tnLst><p:par><p:cTn id="1" dur="indefinite" restart="never" nodeType="tmRoot"><p:childTnLst>` +
+      `<p:seq concurrent="1" nextAc="seek"><p:cTn id="2" dur="indefinite" nodeType="mainSeq"><p:childTnLst>` +
+      `<p:par><p:cTn id="3" fill="hold"><p:stCondLst><p:cond delay="indefinite"/><p:cond evt="onBegin" delay="0"><p:tn val="2"/></p:cond></p:stCondLst><p:childTnLst>` +
+      `<p:par><p:cTn id="${n++}" fill="hold"><p:stCondLst><p:cond delay="0"/></p:stCondLst><p:childTnLst>${calls}</p:childTnLst></p:cTn></p:par>` +
+      `</p:childTnLst></p:cTn></p:par></p:childTnLst></p:cTn>` +
+      `<p:prevCondLst><p:cond evt="onPrev" delay="0"><p:tgtEl><p:sldTgt/></p:tgtEl></p:cond></p:prevCondLst>` +
+      `<p:nextCondLst><p:cond evt="onNext" delay="0"><p:tgtEl><p:sldTgt/></p:tgtEl></p:cond></p:nextCondLst></p:seq>` +
+      media + `</p:childTnLst></p:cTn></p:par></p:tnLst></p:timing>`;
+    x = x.includes("</p:clrMapOvr>") ? x.replace("</p:clrMapOvr>", "</p:clrMapOvr>" + timing) : x.replace("</p:cSld>", "</p:cSld>" + timing);
+    zip.file(f, x);
+  }
   fs.writeFileSync(OUT, await zip.generateAsync({ type: "nodebuffer", compression: "DEFLATE" }));
+  // 最後に pptx-video-sync（~/.claude/skills/pptx-video-sync）を通す: 動画を最前面へ・一斉再生・繰り返し・クリックで一時停止.
+  //   上の後処理はツールがないときの代わり (ツールがあれば timing を作り直す)
+  const { execFileSync } = require("child_process");
+  const sync = [process.env.HOME + "/.local/bin/pptx-video-sync", process.env.HOME + "/.claude/skills/pptx-video-sync/pptx-video-sync"].find((f) => fs.existsSync(f));
+  if (sync) {
+    execFileSync(sync, [OUT], { stdio: "inherit" });
+    execFileSync(sync, ["--check", OUT], { stdio: "inherit" });
+  } else console.warn("pptx-video-sync がありません: 動画の timing は簡易版 (README の入れ方を参照)");
   console.log("wrote", OUT);
 })();

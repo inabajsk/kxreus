@@ -44,7 +44,7 @@
  {
   "name": "desk_main",
   "title_ja": "デスクトップ版: 1 つのウィンドウ",
-  "caption_ja": "左にロボットの一覧, 中央に 3D, 右に物理と関節・姿勢・動作・接続の欄（Compose Desktop + OpenGL）",
+  "caption_ja": "左に画像つきのロボットの一覧（分類で絞る）, 中央に 3D, 右に物理と関節・姿勢・動作・接続の欄",
   "platform": "Mac (Compose Desktop, Intel Iris Plus 655)",
   "what": "-open kxrl2l6a6h2"
  },
@@ -82,5 +82,110 @@
   "caption_ja": "EusLisp の EusView デモ（eusview.l）。mocopi greeting1 を KXR に移し, 関節名・GMR・GMR+QP を並べる。GMR の衝突のリンクが赤（衝突 16, −20 mm）, GMR+QP は衝突なし。下は BVH パネル",
   "platform": "Mac (jskeus irteusgl + XQuartz)",
   "what": "eusview.l → (eusview \"kxrl2l6a6h2\") → BVH パネル, robot KXR, joint names / GMR / QP ON, mocopi greeting1 を 0.5x で再生中のフレーム 230（ビューアと BVH パネルの 2 つのウィンドウを縦に並べた）"
+ },
+ {
+  "name": "sim_pick",
+  "title_ja": "iPhone: ロボットを画像で選ぶ",
+  "caption_ja": "KXR の「すべて」。身体の形の分類ごとに見出し、画像・名前・関節の数。上のボタンで分類を絞る",
+  "platform": "ios-simulator",
+  "what": "起動直後（KXR, すべて）"
+ },
+ {
+  "name": "desk_pick",
+  "title_ja": "デスクトップ: ロボットを画像で選ぶ",
+  "caption_ja": "左の一覧は分類のボタン（折り返して全部見せる）と画像の並び。選んだロボットは枠で示す",
+  "platform": "desktop",
+  "what": "-open kxrl2l6a6h2"
+ },
+ {
+  "name": "desk_pick_quad",
+  "title_ja": "デスクトップ: 四足に絞る",
+  "caption_ja": "分類「四足」（8 体）に絞り kxrl4r2a3 を表示",
+  "platform": "desktop",
+  "what": "-open kxrl4r2a3（設定 robotCategory.kxr=quad）"
+ },
+ {
+  "name": "sim_pick_khr",
+  "title_ja": "iPhone: KHR の腰つきに絞る",
+  "caption_ja": "KHR の分類「腰つき」（11 体）。選んだ分類のボタンは見える位置まで横に送る",
+  "platform": "ios-simulator",
+  "what": "defaults robotGroup=khr, robotCategory.khr=t1"
+ },
+ {
+  "name": "and_pick",
+  "title_ja": "Android: ロボットを画像で選ぶ",
+  "caption_ja": "Pixel 7a（暗い表示）。KHR の分類のボタンは折り返して全部見せる",
+  "platform": "android",
+  "what": "起動直後（KHR, すべて）"
+ },
+ {
+  "name": "desk_balance_aiming",
+  "title_ja": "デスクトップ: QP+バランスを物理で比べる（aiming1）",
+  "caption_ja": "lafan1 aiming1 × khr20h2。左 GMR+QP・右 QP+バランスを ODE で動かした姿勢。物理 14.8 秒で 2 体とも立っている（別の回で 38 秒まで両方立っている）",
+  "platform": "desktop",
+  "what": "-bvh lafan1/aiming1_subject1 -robot khr20h2 -method balance -bvhphysics 1"
+ },
+ {
+  "name": "desk_balance_walk",
+  "title_ja": "デスクトップ: QP+バランスを物理で比べる（walk1）",
+  "caption_ja": "lafan1 walk1 × khr20h2, 物理 11.9 秒。GMR+QP は 6.8 秒で倒れて起き上がり中（左, 起きあがり(仰向け)）, QP+バランス（足首で安定化）は立って歩いている（20.0 秒で倒れる）",
+  "platform": "desktop",
+  "what": "-bvh lafan1/walk1_subject1 -robot khr20h2 -method balance -bvhphysics 1"
+ },
+ {
+  "name": "and_balance",
+  "title_ja": "Android: QP+バランスを物理で比べる",
+  "caption_ja": "Pixel 7a, lafan1 walk1 × khr20h2, 物理 22.1 秒。GMR+QP は 6.8 秒で倒れ 2 回起き上がって続きを再生中, QP+バランスは 20.5 秒で倒れて起き上がり中（うつぶせ）。QP 0.8 ms/コマ",
+  "platform": "android",
+  "what": "--es bvh lafan1/walk1_subject1 --es robot khr20h2 --es method balance --es bvhphysics 1（release 版）"
+ },
+ {
+  "name": "sim_balance_aiming",
+  "title_ja": "iPhone: 物理で比べる（aiming1 × KHR）",
+  "caption_ja": "lafan1 aiming1 を khr20h2 に移し, GMR+QP（左）と QP+バランス（右）を ODE で動かす。30.7 秒でどちらも立っている（腰の傾き 60° 以内）。QP+バランスは 7.71 ms/コマ（計画を含む）, ZMP を緩めたコマ 957",
+  "platform": "iOS Simulator (iPhone 16 Pro, iOS 26.3)",
+  "what": "-bvh lafan1/aiming1_subject1 -robot khr20h2 -method balance -bvhphysics 1 -stick 0（物理を始めて約 31 秒）"
+ },
+ {
+  "name": "sim_balance_walk",
+  "title_ja": "iPhone: 物理で比べる（walk1 × KHR）",
+  "caption_ja": "lafan1 walk1。GMR+QP は 6.8 秒で倒れて起き上がりの動作中（左奥）, QP+バランスは 13 秒で立って歩いている（QP+バランスは 19.7 秒で倒れた。qptest と同じ値）",
+  "platform": "iOS Simulator (iPhone 16 Pro, iOS 26.3)",
+  "what": "-bvh lafan1/walk1_subject1 -robot khr20h2 -method balance -bvhphysics 1 -stick 0（物理を始めて約 13 秒）"
+ },
+ {
+  "name": "sim_recover",
+  "title_ja": "iPhone: 倒れたら起き上がって続きを再生",
+  "caption_ja": "walk1 × khr20h2 の物理で比べる（47 秒）。GMR+QP は 4 回倒れて 4 回起き上がり, 倒れたコマの続き（動作のコマ 640）を再生している。QP+バランスは起き上がりの動作（HLO014_起きあがり(うつぶせ)）の最中で画面の外",
+  "platform": "iOS Simulator (iPhone 16 Pro, iOS 26.3)",
+  "what": "-bvh lafan1/walk1_subject1 -robot khr20h2 -method balance -bvhphysics 1 -stick 0（物理を始めて約 47 秒, FallRecovery.swift）"
+ },
+ {
+  "name": "desk_recover",
+  "title_ja": "デスクトップ: 倒れたら起き上がって続ける",
+  "caption_ja": "lafan1 walk1 × khr20h2 を物理で比べる, 物理 24.7 秒。GMR+QP（倒れた 2 回・起き上がり 2 回）も QP+バランス（倒れた 1 回・起き上がり 1 回）も起き上がりの動作のあと, 倒れたコマの続きを再生している（FallRecovery）",
+  "platform": "desktop",
+  "what": "-bvh lafan1/walk1_subject1 -robot khr20h2 -method balance -bvhphysics 1"
+ },
+ {
+  "name": "sim_mpc_walk",
+  "title_ja": "iPhone: 物理で比べる 3 体（GMR+QP・QP+バランス・GMR+MPC）",
+  "caption_ja": "lafan1 walk1 × khr20h2, 物理 13.7 秒。GMR+QP は 6.8 秒で倒れて起き上がりの動作中（左奥）, QP+バランスと GMR+MPC（閉ループの MPC, wbqp_mpc_step）は立って歩いている。このあと GMR+MPC は 15.0 秒, QP+バランスは 19.7 秒で倒れた（qptest と同じ値）",
+  "platform": "iOS Simulator (iPhone 16 Pro, iOS 26.3)",
+  "what": "-bvh lafan1/walk1_subject1 -robot khr20h2 -method mpc -bvhphysics 1（物理を始めて約 14 秒）"
+ },
+ {
+  "name": "desk_mpc_walk",
+  "title_ja": "デスクトップ: 物理で比べる 3 体（GMR+QP・QP+バランス・GMR+MPC）",
+  "caption_ja": "lafan1 walk1 × khr20h2, 物理 19.8 秒。GMR+QP は 6.8 秒（倒れた 2 回・起き上がり 1 回）, GMR+MPC（閉ループの MPC, wbqp_mpc_step）は 8.9 秒で倒れて起き上がり, QP+バランスは立っている（このあと 20.0 秒で倒れた）。GMR+MPC が iOS（15.0 秒）と違うのは, 計画は同じで, 物理の小さな数値の差が 200 コマあたりから広がるため",
+  "platform": "desktop",
+  "what": "-bvh lafan1/walk1_subject1 -robot khr20h2 -method mpc -bvhphysics 1（物理を始めて約 20 秒）"
+ },
+ {
+  "name": "and_mpc_walk",
+  "title_ja": "Android: 物理で比べる 3 体（GMR+QP・QP+バランス・GMR+MPC）",
+  "caption_ja": "Pixel 7a（release 版）, lafan1 walk1 × khr20h2, 物理 24.4 秒。GMR+QP 6.8 秒, GMR+MPC 8.9 秒, QP+バランス 20.5 秒で倒れ, 起き上がりの動作をしてから続きを再生。計算は GMR+QP 12.6 秒・QP+バランス 18.7 秒（7840 コマ）",
+  "platform": "Android (Pixel 7a)",
+  "what": "adb shell am start -n jp.jsk.eusview/.MainActivity --es bvh lafan1/walk1_subject1 --es robot khr20h2 --es method mpc --es bvhphysics 1"
  }
 ]

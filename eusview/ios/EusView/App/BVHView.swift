@@ -6,7 +6,19 @@
 //     (BVHRetarget.swift, eusview/bvh/RETARGET.md). GMR + QP は全身 QP (WholeBodyQP.swift / wbqp.cpp, eusview/bvh/QP.md) で
 //     自己衝突・関節の可動範囲・重心を直したもの. 開いたときに裏で全部のコマを計算する (再生より速いので, 計算したコマから見せる)
 //   ・違反の表示 (GMR と GMR + QP): 衝突しているリンクを赤, 可動範囲の端のリンクを橙, 重心 (球) と床への投影, 支持多角形 (緑 = 中, 赤 = 外)
-//   起動の引数 -robot kxr|khr|jsk|<名前> -method all|both|names|gmr|qp|gmrqp -violations 0|1
+//   ・QP + バランス (5 体目, トグルで出し入れ): 動作全体を先に見て, 両足が浮かない接地・一歩ずつの踏み出し・ZMP が支持多角形に入る
+//     重心の軌道を決め (wbqp_plan_balance), その重心を最優先にして解いたもの (runGMRQPBalance, eusview/bvh/QP.md「QP + バランス」).
+//     GMR + QP と同じく裏で全部のコマを計算し, 計算したコマから表示する
+//   ・物理で比べる (トグル): GMR + QP と QP + バランスをそれぞれ PhysicsSim (ODE) で動かす. 今のコマの姿勢で 0.5 秒置いてから,
+//     コマの関節角をサーボの目標にして実時間で進める (QP + バランスだけ BalanceStabilizer で足首を直す). 表示は物理のリンクの姿勢.
+//     腰 (ルートのリンク) の上向きが 60° より傾いたら「倒れた」(初めて倒れた時刻を出す). 倒れたら FallRecovery.swift で起き上がりの動作をして,
+//     倒れたコマの続きを再生する (体ごとに動作のコマを止める. 倒れた回数・起き上がりの回数も出す).
+//     再生を最初に戻す・コマを動かす・ファイルやロボットを変えると作り直す
+//   ・GMR+MPC (物理で比べるときの 3 体目, トグルで出し入れ): QP + バランスの計画 (wbqp_plan_balance をした WholeBodyQP の h) に対して,
+//     毎コマ物理の今の関節角とルートのリンクの姿勢から閉ループの MPC (wbqp_mpc_step) で重心を計画し直し, その答えをサーボの目標にする
+//     (キャプチャポイントで振り出す足の着地もずらす. C++ の中). QP + バランスの裏の計算が終わってから始める (同じ h を使うので).
+//     最初に戻す・起き上がって続きに戻るときは wbqp_reset (計画は残る). 物理なしでは出さない (閉ループなので)
+//   起動の引数 -robot kxr|khr|jsk|<名前> -method all|both|names|gmr|qp|gmrqp|balance|mpc -violations 0|1 -bvhphysics 0|1
 import SwiftUI
 import SceneKit
 import simd
@@ -252,6 +264,8 @@ final class RetargetFigure {
     rs.nodes[rootLink].simdTransform = rootLinkPose
   }
   func remove() { holder.removeFromParentNode() }
+  /// 物理のリンクのワールドの姿勢 (holder の座標) で表示する
+  func setWorld(_ w: [simd_float4x4]) { rs.setWorldPoses(w) }
 
   // MARK: 違反の表示 (衝突のリンク = 赤, 可動範囲の端 = 橙, 重心と支持多角形)
   private var tint = [Int32]()
@@ -322,6 +336,9 @@ final class QPCache: @unchecked Sendable {
   func append(_ f: QPFrame) { lock.lock(); frames.append(f); lock.unlock() }
   func frame(_ i: Int) -> QPFrame? { lock.lock(); defer { lock.unlock() }; return i < frames.count ? frames[i] : nil }
   var count: Int { lock.lock(); defer { lock.unlock() }; return frames.count }
+  var complete: Bool { count >= total }
+  /// 全部のコマ (計算が終わってから使う)
+  var all: [QPFrame] { lock.lock(); defer { lock.unlock() }; return frames }
   /// 計算したコマの集計: (QP の ms/コマ, 衝突の割合 前・後, 重心が外の割合 前・後)
   func summary() -> (Double, Double, Double, Double, Double) {
     lock.lock(); defer { lock.unlock() }
@@ -369,7 +386,14 @@ final class BVHPlayer: ObservableObject {
   @Published var showNames = true { didSet { layout(); show() } }
   @Published var showGMR = true { didSet { layout(); show() } }
   @Published var showQP = true { didSet { layout(); show() } }
+  @Published var showBal = false { didSet { if showBal && !oldValue { startBal() }; layout(); show() } }
+  @Published var physCompare = false { didSet { if physCompare && !oldValue { showQP = true; showBal = true; showMPC = true }; resetPhysics() } }
+  /// GMR+MPC (閉ループ) の体: 物理で比べるときだけ出す
+  @Published var showMPC = false { didSet { guard showMPC != oldValue else { return }; layout(); if physCompare { resetPhysics(from: frame) }; show() } }
   @Published var showViolations = true { didSet { show() } }
+  @Published var balProgress: Double?
+  @Published var balInfo = ""
+  @Published var physInfo = [(String, Int)]()      // 物理で比べる: 体ごとの状態 (文字, 0 = 立っている, 1 = 倒れた, 2 = 計算中)
   @Published var qpProgress: Double?
   @Published var qpInfo = ""
   @Published var frameInfo = ""
@@ -378,8 +402,45 @@ final class BVHPlayer: ObservableObject {
   @Published var gmrMs = 0.0
   private var robotModel: RobotModel?
   private var rt: BVHRetargeter?
-  private var figNames: RetargetFigure?, figGMR: RetargetFigure?, figQP: RetargetFigure?
+  private var figNames: RetargetFigure?, figGMR: RetargetFigure?, figQP: RetargetFigure?, figBal: RetargetFigure?, figMPC: RetargetFigure?
   private var qpCache: QPCache?
+  private var balCache: QPCache?
+  /// QP + バランスの計画をした WholeBodyQP (裏の計算が終わってから入れる). GMR+MPC の wbqp_mpc_step に使う
+  private var balQP: WholeBodyQP?
+  private var balToken = Flag()
+  /// 物理で比べる: 1 体ぶん (sim の座標 → 表示 (計画のコマ) の座標は A)
+  ///   倒れたら FallRecovery で起き上がってから, 倒れたコマの続きを再生する (その間, この体の動作のコマ idx は進めない)
+  final class PhysRun {
+    let name: String
+    var sim: PhysicsSim
+    let fig: RetargetFigure
+    let plan: QPCache
+    let stab: BalanceStabilizer?
+    let mpc: WholeBodyQP?         // GMR+MPC: 毎コマ wbqp_mpc_step の答えを目標にする
+    let rec: FallRecovery
+    var A: simd_float4x4
+    var display: [simd_float4x4]
+    var idx: Int                  // この体が再生している動作のコマ
+    var fell: Double?             // 初めて倒れた時刻 (始めてからの秒)
+    var diverged = false
+    init(name: String, sim: PhysicsSim, fig: RetargetFigure, plan: QPCache, stab: BalanceStabilizer?, mpc: WholeBodyQP? = nil, A: simd_float4x4, idx: Int) {
+      self.name = name; self.sim = sim; self.fig = fig; self.plan = plan; self.stab = stab; self.mpc = mpc; self.A = A; self.idx = idx
+      rec = FallRecovery(model: sim.model)
+      display = sim.linkPoses().map { A * $0 }
+    }
+  }
+
+  /// sim の座標 (関節角 0 の向きで原点に置いた体) → 表示の座標: 腰 (ルートのリンク) の水平の位置と向き (ヨー) を target に合わせる
+  static func align(_ s0: simd_float4x4, to target: simd_float4x4) -> simd_float4x4 {
+    let R = target.rot3 * s0.rot3.transpose
+    let fx = R * SIMD3<Float>(1, 0, 0)
+    let Rz = simd_float3x3(simd_quatf(angle: atan2(fx.y, fx.x), axis: SIMD3(0, 0, 1)))
+    let p = Rz * s0.pos3
+    return simd_float4x4(rot: Rz, pos: SIMD3(target.pos3.x - p.x, target.pos3.y - p.y, 0))
+  }
+  private var phys = [PhysRun]()
+  private var physStart = 0, physFrame = 0
+  private var physResetAt: Date?          // コマを動かしたとき: 少し待ってから作り直す
   private var qpEval: WholeBodyQP?        // 表示の評価用 (計算用とは別)
   final class Flag: @unchecked Sendable { var cancelled = false }
   private var qpToken = Flag()
@@ -405,8 +466,11 @@ final class BVHPlayer: ObservableObject {
     case "qp": showNames = false; showGMR = false
     case "gmrqp": showNames = false
     case "both": showQP = false
+    case "balance": showNames = false; showGMR = false; showBal = true
+    case "mpc": showNames = false; showGMR = false; showBal = true; showMPC = true   // GMR+QP・QP+バランス・GMR+MPC (-bvhphysics 1 と)
     default: break
     }
+    if UserDefaults.standard.string(forKey: "bvhphysics") == "1" { physCompare = true }
     if UserDefaults.standard.string(forKey: "violations") == "0" { showViolations = false }
     if UserDefaults.standard.string(forKey: "stick") == "0" { showStick = false }
     if let sp = UserDefaults.standard.string(forKey: "speed"), let v = Double(sp) { speed = v }
@@ -444,7 +508,7 @@ final class BVHPlayer: ObservableObject {
       await MainActor.run {
         guard self.robot == c else { return }
         self.loadingRobot = false
-        if let m, robotSupportsRetarget(m) { self.robotModel = m; self.rebuild() }
+        if let m, robotSupportsRetarget(m) { self.robotModel = m; self.rebuild(); self.resetCamera() }
         else { self.robotInfo = "\(c.name): 関節名が <limb>-<joint>-<r|p|y> ではないので移せません" }
       }
     }
@@ -452,8 +516,11 @@ final class BVHPlayer: ObservableObject {
 
   /// モーションかロボットが変わったとき: 移し替えとロボットの表示を作り直す
   func rebuild() {
-    figNames?.remove(); figGMR?.remove(); figQP?.remove(); figNames = nil; figGMR = nil; figQP = nil; rt = nil
+    figNames?.remove(); figGMR?.remove(); figQP?.remove(); figBal?.remove(); figMPC?.remove()
+    figNames = nil; figGMR = nil; figQP = nil; figBal = nil; figMPC = nil; rt = nil
     qpToken.cancelled = true; qpCache = nil; qpEval = nil; qpProgress = nil; qpInfo = ""; frameInfo = ""
+    balToken.cancelled = true; balCache = nil; balQP = nil; balProgress = nil; balInfo = ""
+    phys = []; physInfo = []
     if robot.group.isEmpty { robotInfo = "" }
     if let m = robotModel, let mo = motion, let t = tables {
       let r = BVHRetargeter(model: m, motion: mo, tables: t)
@@ -462,14 +529,141 @@ final class BVHPlayer: ObservableObject {
       if r.gmrOK {
         figGMR = RetargetFigure(model: m, parent: bs.base)
         figQP = RetargetFigure(model: m, parent: bs.base)
+        figBal = RetargetFigure(model: m, parent: bs.base)
+        figMPC = RetargetFigure(model: m, parent: bs.base)
         qpEval = WholeBodyQP(model: m, rt: r, fps: mo.fps)
         startQP(model: m, motion: mo, tables: t)
+        if showBal { startBal() }
       }
       robotInfo = String(format: "%@・脚の比 %.2f・腕の比 %.2f%@", m.name, r.sLeg, r.sArm,
                          r.method1OK ? "" : "・関節名の表がない種類")
     } else if robotModel != nil, tables == nil { robotInfo = "retarget_tables.json がありません" }
     layout()
+    resetPhysics()
     show()
+  }
+
+  /// QP + バランスを裏で全部のコマ計算する (動作全体の GMR → 接地と重心の軌道の計画 → コマごとの QP. 計算したコマから表示する)
+  func startBal() {
+    guard balCache == nil, let model = robotModel, let mo = motion, let t = tables, rt?.gmrOK == true else { return }
+    let token = Flag()
+    balToken = token
+    let cache = QPCache(total: mo.frames)
+    balCache = cache
+    balProgress = 0
+    let name = "\(entry.kind)/\(entry.file.name)"
+    Task.detached(priority: .userInitiated) { [weak self] in
+      let t0 = Date()
+      let rt2 = BVHRetargeter(model: model, motion: mo, tables: t)
+      let qp = WholeBodyQP(model: model, rt: rt2, fps: mo.fps)
+      var lastP = -1.0, slack = 0
+      let done = runGMRQPBalance(rt: rt2, qp: qp, progress: { p in
+        if p - lastP >= 0.02 { lastP = p; Task { @MainActor in if !token.cancelled { self?.balProgress = p } } }
+      }, cancelled: { token.cancelled }, zmpSlack: &slack, emit: { _, f in cache.append(f) })
+      let sec = Date().timeIntervalSince(t0)
+      guard done else { return }
+      let s = cache.summary()
+      NSLog("EusView QP+balance %@ %@: %d frames in %.2f s (%.2f ms/frame), ZMP slack %d frames, collide %.1f%%",
+            name, model.name, cache.count, sec, sec * 1000 / Double(max(1, cache.count)), slack, s.2)
+      await MainActor.run {
+        guard let self, !token.cancelled else { return }
+        self.balProgress = nil
+        self.balQP = qp            // 裏の計算は終わった (もう qp を触らない) ので, GMR+MPC で使ってよい
+        self.balInfo = String(format: "QP+バランス %.2f ms/コマ（計画を含む）・ZMP を緩めたコマ %d・衝突 %.0f%%", sec * 1000 / Double(max(1, cache.count)), slack, s.2)
+      }
+    }
+  }
+
+  // MARK: 物理で比べる
+
+  /// 物理を作り直す (コマ from の姿勢で 0.5 秒置く). 両方の計算が終わるまでは作らない (tick で待つ).
+  ///   GMR+MPC は QP + バランスの計画 (balQP) から始め, wbqp_reset で MPC の状態をやり直す (from のコマで初期化される)
+  func resetPhysics(from: Int = 0) {
+    phys = []; physInfo = []; physResetAt = nil
+    guard physCompare, let m = robotModel, let mo = motion, let r = rt else { return }
+    guard let qc = qpCache, qc.complete, let bc = balCache, bc.complete, let bq = balQP, let fq = figQP, let fb = figBal else {
+      physInfo = [("物理で比べる: GMR+QP と QP+バランスを計算中", 2)]
+      return
+    }
+    let start = max(0, min(from, mo.frames - 1))
+    let rl = m.links.firstIndex { $0.parent < 0 } ?? 0
+    let feet = ["lleg", "rleg"].compactMap { r.limbs[$0] }.map { $0.footLink ?? $0.endLink }
+    var runs: [(String, RetargetFigure, QPCache, Bool, WholeBodyQP?)] = [("GMR+QP", fq, qc, false, nil), ("QP+バランス", fb, bc, true, nil)]
+    if showMPC, let fm = figMPC { runs.append(("GMR+MPC", fm, bc, false, bq)) }
+    for (name, fig, cache, bal, mpc) in runs {
+      guard let f0 = cache.frame(start) else { continue }
+      let sim = PhysicsSim(model: m, angles: f0.q)
+      // sim の座標 (関節角 0 の向きで原点に置く) → 計画のそのコマの腰の水平の位置と向き
+      let A = BVHPlayer.align(sim.linkPoses()[rl], to: f0.root)
+      sim.step(0.5)
+      if let q = mpc { wbqp_reset(q.h) }   // MPC の速さの見積もりなどをやり直す (計画は残る)
+      phys.append(PhysRun(name: name, sim: sim, fig: fig, plan: cache, stab: bal ? BalanceStabilizer(model: m, feet: feet) : nil, mpc: mpc, A: A, idx: start))
+    }
+    physStart = start; physFrame = start
+    time = Double(start) / mo.fps
+    frame = start
+    if start == 0 { resetCamera() }       // 初めから: カメラも初めのコマに戻す
+    updatePhysInfo()
+  }
+
+  /// 物理を 1/fps 秒進める (i: 再生の時計のコマ). 体ごとに, 動作のコマ r.idx の関節角をサーボの目標にして r.idx を進める.
+  ///   倒れたら FallRecovery の起き上がりの動作を目標にし, r.idx は進めない (起き上がってから倒れたコマの続きを再生する)
+  private func stepPhysics(_ i: Int, fps: Double) {
+    guard let m = robotModel else { return }
+    let rl = m.links.firstIndex { $0.parent < 0 } ?? 0
+    let bUp = m.links[rl].rest.rot3.transpose * SIMD3<Float>(0, 0, 1)
+    for r in phys where !r.diverged {
+      guard let f = r.plan.frame(min(r.idx, r.plan.total - 1)) else { continue }
+      let ov = r.rec.step(sim: r.sim, dt: 1 / fps, resume: f.q, replace: { a in
+        // 起き上がれない (起き上がりの動作がない) とき: 今の場所で続きの姿勢で床に置き直す
+        let cur = r.A * r.sim.linkPoses()[rl]
+        let ns = PhysicsSim(model: m, angles: a)
+        r.A = BVHPlayer.align(ns.linkPoses()[rl], to: cur)
+        r.sim = ns
+        if let q = r.mpc { wbqp_reset(q.h) }
+      })
+      if let ov {
+        r.sim.setTargets(ov)
+        r.stab?.reset()
+        if r.rec.phase == .blend, let q = r.mpc { wbqp_reset(q.h) }   // 起き上がった: 続きに戻るとき MPC をやり直す (qptest の simulateRecover と同じ)
+      } else {
+        if let q = r.mpc {
+          // 閉ループの MPC: 物理の今の関節角 (rad/m) とルートのリンクの姿勢 (sim の座標) と, 計画のそのコマから
+          let k = min(r.idx, r.plan.total - 1)
+          let qm = q.toQ(r.sim.jointValues()), rm = WholeBodyQP.pose12(r.sim.linkPoses()[rl])
+          var qo = [Double](repeating: 0, count: m.joints.count)
+          let st = wbqp_mpc_step(q.h, Int32(k), qm, rm, q.toQ(f.q), WholeBodyQP.pose12(f.root), &qo, nil)
+          r.sim.setTargets(st >= 0 ? q.toAngles(qo) : f.q)
+        } else if let st = r.stab {
+          r.sim.setTargets(st.adjust(f.q, planRoot: f.root, contact: f.diag.contact, poses: r.sim.linkPoses(), dt: Float(1 / fps)))
+        } else { r.sim.setTargets(f.q) }
+        r.idx += 1
+      }
+      r.sim.step(1 / fps)
+      let P = r.sim.linkPoses()
+      if P.contains(where: { w in (0..<3).contains { k in !w.columns.3[k].isFinite || abs(w.columns.3[k]) > 100 } }) {
+        r.diverged = true
+        if r.fell == nil { r.fell = Double(i - physStart) / fps }
+        continue
+      }
+      r.display = P.map { r.A * $0 }
+      let up = P[rl].rot3 * bUp
+      if r.fell == nil, acos(max(-1, min(1, up.z))) * 180 / .pi > 60 { r.fell = Double(i - physStart) / fps }
+    }
+  }
+
+  private func updatePhysInfo() {
+    guard let mo = motion, !phys.isEmpty else { return }
+    let t = Double(physFrame - physStart) / mo.fps
+    physInfo = phys.map { r in
+      if let f = r.fell {
+        var s = String(format: "%@: %.1f 秒で倒れた%@・%@", r.name, f, r.diverged ? "（物理が発散）" : "", r.rec.summary)
+        if !r.rec.current.isEmpty { s += "・\(r.rec.current) 中" }
+        else if r.idx != physFrame { s += "・動作のコマ \(r.idx + 1)" }
+        return (s, 1)
+      }
+      return (String(format: "%@: 立っている（%.1f 秒）", r.name, t), 0)
+    }
   }
 
   /// GMR + QP を裏で全部のコマ計算する (計算したコマから表示する)
@@ -511,6 +705,8 @@ final class BVHPlayer: ObservableObject {
     if let f = figNames { f.holder.isHidden = !showNames; if showNames { items.append(f.holder) } }
     if let f = figGMR { f.holder.isHidden = !showGMR; if showGMR { items.append(f.holder) } }
     if let f = figQP { f.holder.isHidden = !showQP; if showQP { items.append(f.holder) } }
+    if let f = figBal { f.holder.isHidden = !showBal; if showBal { items.append(f.holder) } }
+    if let f = figMPC { let on = showMPC && physCompare; f.holder.isHidden = !on; if on { items.append(f.holder) } }   // 物理なしでは出さない
     for (i, n) in items.enumerated() {
       let off = (Float(i) - Float(items.count - 1) / 2) * d
       let sc: Float = n === bs.stick ? 1 : k
@@ -543,7 +739,9 @@ final class BVHPlayer: ObservableObject {
     guard let v = view, let cam = v.pointOfView else { return }
     var c = SIMD3<Float>(0, 0, 0.9)
     if let m = motion { let w = m.frame(frame); c.x = w[0].columns.3.x; c.y = w[0].columns.3.y }
-    let n = Float([showStick, figNames != nil && showNames, figGMR != nil && showGMR, figQP != nil && showQP].filter { $0 }.count)
+    if let p = physCenter() { c.x = p.x; c.y = p.y }
+    let n = Float([showStick, figNames != nil && showNames, figGMR != nil && showGMR, figQP != nil && showQP, figBal != nil && showBal,
+                   figMPC != nil && showMPC && physCompare].filter { $0 }.count)
     let r: Float = 1.2 + 0.6 * max(0, n - 1)
     let t = BVHScene.sk(c)
     cam.simdPosition = t + BVHScene.sk(SIMD3(r * 2.3, -r * 0.7, r * 0.8))
@@ -560,7 +758,29 @@ final class BVHPlayer: ObservableObject {
     if let lf = launchFrame {
       guard let m = motion, m.frames > 0, rt != nil else { return }
       if let c = qpCache, figQP != nil, c.count <= min(lf, m.frames - 1), qpProgress != nil { return }
+      if showBal, let c = balCache, figBal != nil, c.count <= min(lf, m.frames - 1), balProgress != nil { return }
       launchFrame = nil; playing = false; seek(lf); resetCamera(); return
+    }
+    // 物理で比べる: 計算が終わったら (またはコマを動かしてから少し経ったら) 作り直す
+    if physCompare, let m = motion, m.frames > 0 {
+      // 計算が終わったときは初めのコマから, コマを動かしたときはそのコマから
+      if phys.isEmpty, physResetAt.map({ now >= $0 }) ?? true, balCache?.complete == true, balQP != nil, qpCache?.complete == true { resetPhysics(from: physResetAt != nil ? frame : 0) }
+      if !phys.isEmpty {
+        guard playing else { return }
+        time += min(dt, 0.1) * speed
+        let target = min(m.frames - 1, Int(time * m.fps))
+        let t0 = Date()
+        while physFrame <= target && Date().timeIntervalSince(t0) < 0.04 { stepPhysics(physFrame, fps: m.fps); physFrame += 1 }
+        time = min(time, Double(physFrame) / m.fps)    // 物理の計算が実時間に追いつかないときは再生を遅らせる
+        frame = max(physStart, physFrame - 1)
+        updatePhysInfo()
+        if physFrame >= m.frames {
+          if auto && list.count > 1 { next(); return }
+          frame = 0; time = 0; resetPhysics()            // 最後まで行ったら最初から作り直す
+        }
+        show()
+        return
+      }
     }
     guard playing, let m = motion, m.frames > 0 else { return }
     time += min(dt, 0.1) * speed
@@ -596,13 +816,35 @@ final class BVHPlayer: ObservableObject {
         if showViolations, let e = qpEval { vG = e.view(angles: a, rootLinkPose: pose, support: cached?.diag.contact ?? -1) }
         f.showViolations(vG, size: size)
       }
-      if let f = figQP, showQP {
+      if let f = figQP, showQP, let r = phys.first(where: { $0.fig === f }) {
+        f.holder.opacity = 1; f.setWorld(r.display); f.showViolations(nil, size: size)
+      } else if let f = figQP, showQP {
         if let c = cached {
           f.holder.opacity = 1
           f.set(c.q, rootLinkPose: c.root)
           if showViolations, let e = qpEval { vQ = e.view(angles: c.q, rootLinkPose: c.root, support: c.diag.contact) }
           f.showViolations(vQ, size: size)
         } else { f.holder.opacity = 0.25 }    // まだ計算していないコマ
+      }
+      // QP + バランス (物理で比べるときは物理のリンクの姿勢)
+      var vB: QPView? = nil
+      if let f = figBal, showBal {
+        if let r = phys.first(where: { $0.fig === f }) {
+          f.holder.opacity = 1; f.setWorld(r.display); f.showViolations(nil, size: size)
+        } else if let c = balCache?.frame(frame) {
+          f.holder.opacity = 1
+          f.set(c.q, rootLinkPose: c.root)
+          if showViolations, let e = qpEval { vB = e.view(angles: c.q, rootLinkPose: c.root, support: c.diag.contact) }
+          f.showViolations(vB, size: size)
+        } else { f.holder.opacity = 0.25 }
+      }
+      // GMR+MPC (物理で比べるときだけ. 物理を作るまでは QP + バランスの計画を薄く出す)
+      if let f = figMPC, showMPC, physCompare {
+        if let r = phys.first(where: { $0.fig === f }) {
+          f.holder.opacity = 1; f.setWorld(r.display); f.showViolations(nil, size: size)
+        } else if let c = balCache?.frame(frame) {
+          f.holder.opacity = 0.25; f.set(c.q, rootLinkPose: c.root); f.showViolations(nil, size: size)
+        } else { f.holder.opacity = 0.25 }
       }
       // このコマの違反 (GMR → GMR + QP)
       func d(_ v: QPView?) -> String {
@@ -613,10 +855,15 @@ final class BVHPlayer: ObservableObject {
         s += e.com_margin.isNaN ? "・足が浮く" : String(format: "・重心 %@%.0f mm", e.com_margin < 0 ? "外 " : "", abs(e.com_margin) * 1000)
         return s
       }
-      frameInfo = showViolations && (vG != nil || vQ != nil) ? "GMR: \(d(vG))\nQP: \(d(vQ))" : ""
+      var lines = [String]()
+      if vG != nil { lines.append("GMR: \(d(vG))") }
+      if vQ != nil { lines.append("QP: \(d(vQ))") }
+      if vB != nil { lines.append("バランス: \(d(vB))") }
+      frameInfo = showViolations ? lines.joined(separator: "\n") : ""
     }
-    // カメラが腰の水平の動きについていく
-    let root = SIMD3<Float>(w[0].columns.3.x, w[0].columns.3.y, 0)
+    // カメラが腰の水平の動きについていく (物理で比べるときは物理の立っている体の腰. 全部倒れたら倒れた体の真ん中)
+    var root = SIMD3<Float>(w[0].columns.3.x, w[0].columns.3.y, 0)
+    if let c = physCenter() { root = SIMD3(c.x, c.y, 0) }
     if follow, let lr = lastRoot, let v = view, let cam = v.pointOfView {
       let d = BVHScene.sk(root - lr)
       cam.simdPosition += d
@@ -627,10 +874,24 @@ final class BVHPlayer: ObservableObject {
     lastRoot = root
   }
 
-  func seek(_ f: Int) { guard let m = motion else { return }; frame = max(0, min(m.frames - 1, f)); time = Double(frame) / m.fps; show() }
+  /// 物理で比べるときのカメラの中心: 立っている体 (なければ全部) の腰の表示の位置 (base = EusLisp の座標)
+  func physCenter() -> SIMD3<Float>? {
+    let standing = phys.filter { !$0.diverged && $0.rec.phase == .playing && $0.rec.tilt($0.display) < 60 }
+    let alive = standing.isEmpty ? phys.filter { !$0.diverged } : standing
+    guard !alive.isEmpty, let m = robotModel else { return nil }
+    let rl = m.links.firstIndex { $0.parent < 0 } ?? 0
+    return alive.reduce(SIMD3<Float>(0, 0, 0)) { $0 + $1.fig.holder.simdConvertPosition($1.display[rl].pos3, to: bs.base) } / Float(alive.count)
+  }
+
+  func seek(_ f: Int) {
+    guard let m = motion else { return }
+    frame = max(0, min(m.frames - 1, f)); time = Double(frame) / m.fps
+    if physCompare { phys = []; physInfo = [("物理で比べる: 作り直します", 2)]; physResetAt = Date().addingTimeInterval(0.3) }
+    show()
+  }
   func next() { current = (current + 1) % list.count; load() }
   func prev() { current = (current - 1 + list.count) % list.count; load() }
-  func shutdown() { timer?.invalidate(); timer = nil; qpToken.cancelled = true }
+  func shutdown() { timer?.invalidate(); timer = nil; qpToken.cancelled = true; balToken.cancelled = true; phys = [] }
 }
 
 struct BVHPlayerView: View {
@@ -660,6 +921,13 @@ struct BVHPlayerView: View {
         Text(legend + (st.showGMR && st.gmrMs > 0 ? String(format: "・GMR %.2f ms/コマ", st.gmrMs) : "")).foregroundStyle(.secondary)
         if let p = st.qpProgress { Text(String(format: "GMR + QP を計算中 %.0f%%", p * 100)).foregroundStyle(.orange) }
         if !st.qpInfo.isEmpty { Text(st.qpInfo).foregroundStyle(.secondary) }
+        if st.showBal, let p = st.balProgress { Text(String(format: "QP + バランス を計算中 %.0f%%", p * 100)).foregroundStyle(.orange) }
+        if st.showBal, !st.balInfo.isEmpty { Text(st.balInfo).foregroundStyle(.secondary) }
+        if st.physCompare {
+          ForEach(Array(st.physInfo.enumerated()), id: \.offset) { _, x in
+            Text(x.0).font(.caption.bold()).foregroundStyle(x.1 == 1 ? .red : x.1 == 2 ? .orange : .green)
+          }
+        }
         if !st.frameInfo.isEmpty { Text(st.frameInfo) }
       }
       if let e = st.error { Text(e).foregroundStyle(.red) }
@@ -673,7 +941,9 @@ struct BVHPlayerView: View {
     if st.showStick { a.append("棒人形") }
     if st.showNames { a.append("関節名") }
     if st.showGMR { a.append("GMR") }
-    if st.showQP { a.append("GMR+QP") }
+    if st.showQP { a.append(st.physCompare ? "GMR+QP（物理）" : "GMR+QP") }
+    if st.showBal { a.append(st.physCompare ? "QP+バランス（物理）" : "QP+バランス") }
+    if st.showMPC && st.physCompare { a.append("GMR+MPC（物理）") }
     return "左から " + a.joined(separator: "・")
   }
 
@@ -723,6 +993,9 @@ struct BVHPlayerView: View {
           Toggle("関節名", isOn: $st.showNames).fixedSize()
           Toggle("GMR", isOn: $st.showGMR).fixedSize()
           Toggle("GMR+QP", isOn: $st.showQP).fixedSize()
+          Toggle("QP+バランス", isOn: $st.showBal).fixedSize()
+          Toggle("物理で比べる", isOn: $st.physCompare).fixedSize()
+          if st.physCompare { Toggle("GMR+MPC", isOn: $st.showMPC).fixedSize() }
           Toggle("違反", isOn: $st.showViolations).fixedSize()
         }
         Spacer(minLength: 0)

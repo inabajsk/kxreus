@@ -4,12 +4,12 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose")
 }
 
-// ロボットの JSON (eusview/robots/<グループ>/*.json) を APK の assets/robots/ に入れる.
+// ロボットの JSON・一覧の画像 (eusview/robots/<グループ>/*.{json,png}, catalog.json) を APK の assets/robots/ に入れる.
 // git には入れず, ビルドのたびに build/generated/robotAssets/robots/ へコピーする
 val robotsDir = rootProject.file("../robots")
 val robotAssetsDir = layout.buildDirectory.dir("generated/robotAssets")
 val copyRobots by tasks.registering(Sync::class) {
-    from(robotsDir) { include("*/*.json") }
+    from(robotsDir) { include("*/*.json", "*/*.png", "catalog.json") }
     into(robotAssetsDir.map { it.dir("robots") })
 }
 

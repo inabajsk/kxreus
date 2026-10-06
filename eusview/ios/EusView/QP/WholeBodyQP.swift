@@ -106,6 +106,9 @@ final class WholeBodyQP {
   func rootT(_ rootLinkPose: simd_float4x4) -> simd_float4x4 { rootLinkPose * simd_inverse(rootRest) }
 }
 
+/// 裏のスレッドで作った (計画した) ものを画面のスレッドに渡すため. 同時に 2 つのスレッドから使わないこと (使う側で守る)
+extension WholeBodyQP: @unchecked Sendable {}
+
 /// GMR → QP を全部のコマで (または途中まで) 計算する. 足の先読み (preview コマ) のため GMR を少し先まで解く.
 ///   emit(i, frame) をコマごとに呼ぶ (別のスレッド). cancelled() が true ならやめる. 戻り値: 最後まで計算したか
 @discardableResult
@@ -139,12 +142,53 @@ func runGMRQP(rt: BVHRetargeter, qp: WholeBodyQP, from start: Int = 0, progress:
   return true
 }
 
-/// GMR + QP の全部のコマを動作 (RobotMotion) にする (ロボットの画面の「動作」用)
-func makeGMRQPMotion(rt: BVHRetargeter, name: String, progress: ((Double) -> Void)? = nil, cancelled: (() -> Bool)? = nil) -> (RobotMotion, [QPFrame])? {
+/// GMR + QP + バランス: 動作全体の GMR を先に解き, 両足が浮かない接地と, ZMP が支持多角形に入る重心の軌道を決めて
+///   (wbqp_plan_balance), その重心を最優先にしてコマごとに解く. zmpSlack: ZMP の制約を緩めたコマの数
+@discardableResult
+func runGMRQPBalance(rt: BVHRetargeter, qp: WholeBodyQP, progress: ((Double) -> Void)? = nil,
+                     cancelled: (() -> Bool)? = nil, zmpSlack: UnsafeMutablePointer<Int>? = nil, emit: (Int, QPFrame) -> Void) -> Bool {
+  let n = rt.motion.frames
+  guard n > 0 else { return true }
+  let nj = rt.model.joints.count
+  var angles = [[Float]](), poses = [simd_float4x4]()
+  angles.reserveCapacity(n); poses.reserveCapacity(n)
+  var qRef = [Double](), rootRef = [Double]()
+  qRef.reserveCapacity(n * nj); rootRef.reserveCapacity(n * 12)
+  rt.resetGMR()
+  for _ in 0..<8 { _ = rt.gmr(0) }
+  for i in 0..<n {
+    if i % 100 == 0 { if cancelled?() == true { return false }; progress?(0.3 * Double(i) / Double(n)) }
+    let r = rt.gmr(i)
+    let pose = rt.rootLinkPose(r.root)
+    angles.append(r.angles); poses.append(pose)
+    qRef += qp.toQ(r.angles); rootRef += WholeBodyQP.pose12(pose)
+  }
+  var contact = [Int32](repeating: 0, count: n), support = [Int32](repeating: 0, count: n), com = [Double](repeating: 0, count: n * 5)
+  let ns = wbqp_plan_balance(qp.h, Int32(n), qRef, rootRef, &contact, &support, &com)
+  zmpSlack?.pointee = Int(ns)
+  progress?(0.6)
+  qp.reset()
+  for i in 0..<n {
+    if i % 50 == 0 { if cancelled?() == true { return false }; progress?(0.6 + 0.4 * Double(i) / Double(n)) }
+    com.withUnsafeBufferPointer { wbqp_set_com_target(qp.h, $0.baseAddress! + i * 5) }
+    emit(i, qp.solve(angles: angles[i], rootLinkPose: poses[i], contact: contact[i], support: support[i]))
+  }
+  wbqp_set_com_target(qp.h, nil)
+  progress?(1)
+  return true
+}
+
+/// GMR + QP (balance = true なら GMR + QP + バランス) の全部のコマを動作 (RobotMotion) にする (ロボットの画面の「動作」用).
+///   QPFrame も返す (バランスの動作を物理で再生するとき, コマごとの contact と計画のルートを BalanceStabilizer に渡す).
+///   WholeBodyQP も返す (バランスなら wbqp_plan_balance の計画が入っている. GMR + MPC の wbqp_mpc_step に使う)
+func makeGMRQPMotion(rt: BVHRetargeter, name: String, balance: Bool = false, progress: ((Double) -> Void)? = nil,
+                     cancelled: (() -> Bool)? = nil) -> (RobotMotion, [QPFrame], WholeBodyQP)? {
   let qp = WholeBodyQP(model: rt.model, rt: rt, fps: rt.motion.fps)
   var out = [QPFrame]()
   out.reserveCapacity(rt.motion.frames)
-  guard runGMRQP(rt: rt, qp: qp, progress: progress, cancelled: cancelled, emit: { _, f in out.append(f) }) else { return nil }
+  let ok = balance ? runGMRQPBalance(rt: rt, qp: qp, progress: progress, cancelled: cancelled, emit: { _, f in out.append(f) })
+                   : runGMRQP(rt: rt, qp: qp, progress: progress, cancelled: cancelled, emit: { _, f in out.append(f) })
+  guard ok else { return nil }
   var frames = [[Float]](), roots = [[Float]]()
   let xy0 = out.first.map { SIMD2($0.root.columns.3.x, $0.root.columns.3.y) } ?? .zero
   for f in out {
@@ -152,5 +196,5 @@ func makeGMRQPMotion(rt: BVHRetargeter, name: String, progress: ((Double) -> Voi
     T.columns.3.x -= xy0.x; T.columns.3.y -= xy0.y
     frames.append(f.q); roots.append(T.rootArray)
   }
-  return (RobotMotion(name: name, fps: Float(rt.motion.fps), frames: frames, root: roots), out)
+  return (RobotMotion(name: name, fps: Float(rt.motion.fps), frames: frames, root: roots), out, qp)
 }

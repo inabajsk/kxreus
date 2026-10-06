@@ -21,8 +21,12 @@ object Platform {
 
 /** 起動の引数 (確認用. iOS 版の起動の引数と同じ名前)
  *  bvh: home | auto | auto:<種類> | <種類> | <種類>/<名前>,  robot: kxr | khr | jsk | <名前>,
- *    method: all (既定) | both | names | gmr | qp | gmrqp,  violations: 0 (違反の表示を消す),  stick: 0,  frame: <n> (そのコマで止める)
- *  open: <ロボットの名前> と bvhmotion: <種類>/<名前>, method: names | gmr | gmrqp, physics: 1 でロボットの画面の BVH の動作 */
+ *    method: all (既定) | both | names | gmr | qp | gmrqp | balance (GMR+QP と QP+バランス) | mpc (物理で比べる 3 体: GMR+QP・QP+バランス・GMR+MPC),
+ *    violations: 0 (違反の表示を消す),  stick: 0,
+ *    frame: <n> (そのコマで止める),  bvhphysics: 1 (物理で比べる: GMR+QP と QP+バランスと GMR+MPC を物理で動かす)
+ *  open: <ロボットの名前> と bvhmotion: <種類>/<名前>, method: names | gmr | gmrqp | balance (GMR + QP + バランス) | mpc (GMR + MPC, 閉ループ),
+ *    physics: 1 でロボットの画面の BVH の動作
+ *  Android は adb shell am start ... --es <名前> <値> で同じ名前 */
 object Launch {
     var extras: Map<String, String> = emptyMap()
     fun get(k: String): String? = extras[k]

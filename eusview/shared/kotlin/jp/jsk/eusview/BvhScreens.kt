@@ -159,11 +159,14 @@ fun BvhPlayerScreen(list: List<BvhEntry>, start: Int, auto: Boolean, onBack: () 
                     }
                     if (st.robot.group.isNotEmpty()) {
                         Text(st.robotInfo, fontSize = small, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        val a = listOfNotNull("棒人形".takeIf { st.showStick }, "関節名".takeIf { st.showNames }, "GMR".takeIf { st.showGmr }, "GMR+QP".takeIf { st.showQp })
+                        val a = listOfNotNull("棒人形".takeIf { st.showStick }, "関節名".takeIf { st.showNames }, "GMR".takeIf { st.showGmr }, "GMR+QP".takeIf { st.showQp }, "QP+バランス".takeIf { st.showBalance }, "GMR+MPC".takeIf { st.physCompare && st.showMpc })
                         Text("左から " + a.joinToString("・") + (if (st.showGmr && st.gmrMs > 0) String.format("・GMR %.2f ms/コマ", st.gmrMs) else ""),
                             fontSize = small, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         st.qpProgress?.let { Text(String.format("GMR + QP を計算中 %.0f%%", it * 100), fontSize = small, color = Color(0xFFFF9500)) }
                         if (st.qpInfo.isNotEmpty()) Text(st.qpInfo, fontSize = small, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        st.balProgress?.let { Text(String.format("QP + バランスを計算中 %.0f%%", it * 100), fontSize = small, color = Color(0xFFFF9500)) }
+                        if (st.balInfo.isNotEmpty()) Text(st.balInfo, fontSize = small, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        if (st.physInfo.isNotEmpty()) Text(st.physInfo, fontSize = small, fontWeight = FontWeight.Bold)
                         if (st.frameInfo.isNotEmpty()) Text(st.frameInfo, fontSize = small, fontFamily = FontFamily.Monospace)
                     }
                     st.error?.let { Text(it, fontSize = small, color = MaterialTheme.colorScheme.error) }
@@ -202,7 +205,7 @@ fun BvhPlayerScreen(list: List<BvhEntry>, start: Int, auto: Boolean, onBack: () 
     }
 }
 
-/** ロボットを選ぶ (なし / KXR / KHR / JSK の既定, ほかのロボット) と, 棒人形・関節名・GMR・GMR+QP・違反・人の大きさの切り替え */
+/** ロボットを選ぶ (なし / KXR / KHR / JSK の既定, ほかのロボット) と, 棒人形・関節名・GMR・GMR+QP・QP+バランス・物理で比べる (GMR+MPC)・違反・人の大きさの切り替え */
 @Composable
 fun RetargetControls(st: BvhPlayer) {
     var menu by remember { mutableStateOf(false) }
@@ -229,6 +232,12 @@ fun RetargetControls(st: BvhPlayer) {
             FilterChip(st.showNames, { st.setShow(names = !st.showNames) }, { Text("関節名", fontSize = 12.sp) })
             FilterChip(st.showGmr, { st.setShow(gmr = !st.showGmr) }, { Text("GMR", fontSize = 12.sp) })
             FilterChip(st.showQp, { st.setShow(qp = !st.showQp) }, { Text("GMR+QP", fontSize = 12.sp) })
+            FilterChip(st.showBalance, { st.setShow(balance = !st.showBalance) }, { Text("QP+バランス", fontSize = 12.sp) })
+            FilterChip(st.physCompare, { st.setPhysics(!st.physCompare) }, { Text("物理で比べる", fontSize = 12.sp) })
+            if (st.physCompare) {
+                FilterChip(st.showMpc, { st.setShow(mpc = !st.showMpc) }, { Text("GMR+MPC", fontSize = 12.sp) })   // 閉ループの MPC (物理のときだけ)
+                TextButton({ st.restartPhysics() }) { Text("最初に戻す", fontSize = 12.sp) }
+            }
             FilterChip(st.showViolations, { st.setShow(violations = !st.showViolations) }, { Text("違反", fontSize = 12.sp) })
             FilterChip(st.lifeSize, { st.setShow(life = !st.lifeSize) }, { Text("人の大きさ", fontSize = 12.sp) })
         }

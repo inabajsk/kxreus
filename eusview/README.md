@@ -165,6 +165,15 @@ macra, miharu, millennium, patra, penguin, saizo, tama, tamaii, taro, tot, zero�
 - 姿勢は `:reset-pose` があるもの（h6, h7, human, igoid*, kaz*, macket, macra, patra, tot, chibikaz, darwin）とないものがある。
   `init-pose`, `zero-pose`, `test-pose` は全員。モーションはない。
 
+## ロボットの一覧の画像と分類（robots/*.png, robots/catalog.json, 2026-10-06）
+
+- どの環境でも一覧は「グループ（KXR / KHR / JSK）→ 身体の形の分類 → 画像と名前・関節の数」で選ぶ
+  （iPhone・Mac: `ios/EusView/App/RobotPicker.swift`, Android・デスクトップ: `shared/kotlin/.../RobotPicker.kt`）。
+- 画像: `cd desktop && make thumbs`（`ONLY=名前の一部` で一部だけ）。デスクトップ版の OpenGL で reset-pose を斜め前から 320×320 で描き,
+  `robots/<グループ>/<名前>.png` に置く（121 枚・2.1 MB）。腰が原点のロボットは脚が床に隠れるので, いちばん低い点を床に上げてから描く。
+- 分類: `python3 robots/make_catalog.py` → `robots/catalog.json`（名前と関節の構成から。KXR 6 分類, KHR 6 分類, JSK は 1 つ）。
+  ロボットを足したら両方を作り直す。分類にないロボット（端末に置いた JSON など）は「その他」に入る。
+
 ## 物理パラメータ（eus2physics.l, JSON の `"physics"`）
 
 `~/prog/rcb4eus/odedyna.l`（`robot2drobot`, `ode-module`, `motor-module`）と kxrdyna.l の `kxr-dyna`
@@ -275,6 +284,14 @@ make run            # ./gradlew assembleDebug → adb install -r → 起動
 - ロボットの JSON はビルドのときに `robots/` から APK にコピーする（git では重ねない）。
 - 物理は iOS 版の `odesim.{h,cpp}` をそのまま使い（`make sync-odesim`）, `PhysicsSim.swift` を Kotlin に移した。
   ODE は `android/third_party/build-ode-android.sh` で作った静的ライブラリ（arm64-v8a, x86_64）をリポジトリに入れてある。
+- BVH の画面の「QP+バランス」（GMR+QP の右に 5 体目, 重心の軌道を先に決めてから解く `runGmrQpBalance`）と「物理で比べる」
+  （GMR+QP と QP+バランスを ODE で動かし「立っている」/「x.x 秒で倒れた」を出す, QP+バランスは足首で安定化 `BalanceStabilizer.kt`）。
+  ロボットの画面の方法「QP+バランス」。adb の `--es method balance --es bvhphysics 1`（2026-10-06）。
+- 物理で再生していて倒れたら（腰が 60° より 0.3 秒傾く）, ロボットの起き上がりの動作（うつ伏せ / 仰向け）をしてから倒れたコマの続きを再生する
+  （`FallRecovery.kt` = iOS の `FallRecovery.swift`。物理で比べるの 2 体と, ロボットの画面の BVH の動作。情報欄に「倒れた n 回・起き上がり n 回」）。
+- 「GMR+MPC（閉ループ）」: 物理で比べるに 3 体目（チップ「GMR+MPC」, 物理なしでは出さない）。QP+バランスの計画（同じ WholeBodyQp の h）に対して,
+  毎コマ物理の関節角とルートのリンクの姿勢から `wbqp_mpc_step`（JNI `WbqpNative.mpcStep`, `WholeBodyQp.mpcStep`）でサーボの目標を出す。
+  起き上がりのあと続きに戻るとき `reset`。ロボットの画面の方法「GMR + MPC」（物理オフなら QP+バランスの関節角）。`--es method mpc`（2026-10-06）。
 
 ## Ubuntu デスクトップ版（desktop/, 2026-10-05）
 
@@ -292,6 +309,12 @@ make deb        # Ubuntu: build/compose/binaries/main/deb/eusview_1.0.0-1_<arch>
 - 3D は LWJGL の OpenGL 3.2 core で画面の外（FBO, 4x MSAA）に描き, 読み出して Compose に画像で出す
   （Android 版と同じメッシュ・床・光・色）。macOS は CGL, Linux は EGL（だめなら GLFW の見えないウィンドウ）。
 - 物理は Android 版と同じ `odesim.{h,cpp}` + `odesim_jni.cpp` を CMake でこの PC 用の `libeusviewode.{so,dylib}` にする。
+- BVH の画面の「QP+バランス」と「物理で比べる」は Android 版と同じ（共通のコード）。`-method balance -bvhphysics 1`。
+  lafan1 walk1 × khr20h2 で GMR+QP は 6.8 秒, QP+バランスは 20.0 秒で倒れる（Mac の qptest は 6.8 / 19.7 秒, `make -C android test-qp` の `balance`）。
+  倒れたら起き上がってから続ける（`FallRecovery.kt`）。khr20h2 は「起きあがり(うつぶせ)/(仰向け)」で起き上がる（`test-qp` の `recovery`: 40 秒で倒れた 4 回・起き上がり 3 回）。
+- GMR+MPC（閉ループ）も Android 版と同じ（`-method mpc` で GMR+QP・QP+バランス・GMR+MPC の 3 体を物理で比べる）。walk1 × khr20h2 で
+  GMR+MPC は 8.9 秒, aiming1 × khr20h2 は 20.5 秒で倒れる（`test-qp` の `balance`。Mac の qptest は 15.0 / 20.5 秒）。walk1 は計画（QP+バランスの答え）が
+  qptest と同じで, MPC の目標も 200 コマ目までは 0.001° 以内で一致し, そのあと物理の小さな数値の差が広がって倒れる時刻が変わる（設定に敏感, QP.md）。
 
 ## BVH（モーションキャプチャ）の再生（iPhone / Mac / Android, 2026-10-05）
 

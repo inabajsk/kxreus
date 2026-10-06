@@ -1,6 +1,6 @@
 // EusView デスクトップ版 (Ubuntu / Mac): jskeus / kxreus のロボットモデル (eus2json.l で書き出した JSON) を表示する
 //   iPhone / Mac / Android 版と同じ機能を 1 つのウィンドウに:
-//   ・左: ロボットの一覧 (KXR / KHR / JSK, 名前で探す) と BVH
+//   ・左: ロボットの一覧 (KXR / KHR / JSK → 身体の形の分類 → 画像と名前, 名前で探す. 共通の RobotPicker.kt) と BVH
 //   ・右: 3D 表示 (左ドラッグで回転, 右ドラッグ・Shift + ドラッグで移動, ホイールで拡大縮小) と
 //         物理（ODE）・サーボ・置き直す, 関節 / 姿勢 / 動作 / 接続 の欄 (共通の RobotPanels.kt)
 //   起動の引数 (確認用, iOS 版と同じ名前): -open <ロボット> -physics 1 -bvhmotion <種類>/<名前> -method names|gmr
@@ -91,6 +91,8 @@ fun parseArgs(args: Array<String>): Map<String, String> {
 fun main(args: Array<String>) {
     System.setProperty("apple.awt.application.name", "EusView")   // macOS のメニューバーの名前
     Launch.extras = parseArgs(args)
+    Thumbnails.decode = { b -> org.jetbrains.skia.Image.makeFromEncoded(b).toComposeImageBitmap() }
+    Launch.get("thumbs")?.let { Thumbs.run(File(it), Launch.get("only")); return }
     val store = DesktopStore.create()
     Platform.store = store
     OdeLib.load = {
@@ -133,14 +135,13 @@ private val themeNames = listOf("auto" to "自動", "light" to "明るい", "dar
 fun MainLayout(store: DesktopStore, theme: String, setTheme: (String) -> Unit) {
     val files = remember { store.robotFiles() }
     val launchOpen = remember { Launch.get("open")?.let { n -> files.firstOrNull { it.name == n } } }
-    var group by remember { mutableStateOf(launchOpen?.group ?: store.getString("robotGroup") ?: "kxr") }
-    var search by remember { mutableStateOf("") }
     var selected by remember { mutableStateOf(launchOpen) }
     var bvh by remember { mutableStateOf(Launch.get("bvh") != null) }
-    val shown = files.filter { it.group == group && (search.isEmpty() || it.name.contains(search, ignoreCase = true)) }
+    // 一覧の画像は JSON の隣の <名前>.png (desktop の make thumbs)
+    val pickerItems = remember(files) { files.map { PickerRobot(it.path, it.group, it.name, it.path.removeSuffix(".json") + ".png") } }
     Row(Modifier.fillMaxSize()) {
         // ---- 左: ロボットの一覧 ----
-        Column(Modifier.width(300.dp).fillMaxHeight()) {
+        Column(Modifier.width(352.dp).fillMaxHeight()) {
             Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 4.dp, top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                 Text("EusLisp ロボット", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
                 TextButton({ bvh = true; selected = null }) {
@@ -148,33 +149,11 @@ fun MainLayout(store: DesktopStore, theme: String, setTheme: (String) -> Unit) {
                     Text("BVH", color = if (bvh) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface)
                 }
             }
-            SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp)) {
-                robotGroups.forEachIndexed { i, g ->
-                    SegmentedButton(selected = group == g, onClick = { group = g; store.putString("robotGroup", g) },
-                        shape = SegmentedButtonDefaults.itemShape(i, robotGroups.size), icon = {}) {
-                        Text("${g.uppercase()}（${files.count { it.group == g }}）", maxLines = 1, fontSize = 12.sp)
-                    }
-                }
-            }
-            OutlinedTextField(search, { search = it }, Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
-                placeholder = { Text("名前で探す") }, singleLine = true, leadingIcon = { Icon(Icons.Filled.Search, null) })
             Box(Modifier.weight(1f).fillMaxWidth()) {
                 if (files.isEmpty()) Text("ロボットの JSON が見つかりません\n${store.description}", Modifier.padding(16.dp),
                     color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
-                else if (shown.isEmpty()) Text("このグループのロボットはありません", Modifier.align(Alignment.Center),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-                else {
-                    val ls = rememberLazyListState(initialFirstVisibleItemIndex = shown.indexOf(selected).coerceAtLeast(0))
-                    LazyColumn(Modifier.fillMaxSize(), state = ls) {
-                        items(shown, key = { it.path }) { f ->
-                            val on = selected?.path == f.path && !bvh
-                            Text(f.name, Modifier.fillMaxWidth().clickable { selected = f; bvh = false }
-                                .background(if (on) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surface)
-                                .padding(horizontal = 20.dp, vertical = 10.dp), maxLines = 1, overflow = TextOverflow.Ellipsis)
-                            HorizontalDivider(Modifier.padding(start = 20.dp))
-                        }
-                    }
-                }
+                else RobotPicker(pickerItems, if (bvh) null else selected?.path, { p -> selected = files.first { it.path == p.key }; bvh = false },
+                    Modifier.fillMaxSize(), cell = 100.dp)
             }
             Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                 Text("表示", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(start = 8.dp))

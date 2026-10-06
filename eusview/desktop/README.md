@@ -35,6 +35,7 @@ sudo apt install ./build/compose/binaries/main/deb/eusview_1.0.0-1_*.deb
 cd eusview/desktop
 make native      # ODE は ../ios/third_party/ODE.xcframework/macos-x86_64（Intel Mac）. Apple Silicon は make ode
 make run ARGS="-open kxrl2l6a6h2 -physics 1 -motion 1"
+make thumbs      # ロボットの一覧の画像 ../robots/<グループ>/<名前>.png（ONLY=名前の一部）
 make dist        # build/compose/binaries/main/app/eusview.app（JRE・データ入り）
 ```
 JDK は `~/Library/Java/jdk-17*`（なければ `/usr/libexec/java_home -v 17`）。

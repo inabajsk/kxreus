@@ -43,8 +43,10 @@ func loadRetargetTables(url: URL? = nil) -> RetargetTables? {
   return try? JSONDecoder().decode(RetargetTables.self, from: d)
 }
 
-enum RetargetMethod: String, CaseIterable { case names, gmr, gmrqp
-  var title: String { switch self { case .names: return "関節名"; case .gmr: return "GMR"; case .gmrqp: return "GMR + QP" } }
+enum RetargetMethod: String, CaseIterable { case names, gmr, gmrqp, balance, mpc
+  var title: String {
+    switch self { case .names: return "関節名"; case .gmr: return "GMR"; case .gmrqp: return "GMR + QP"; case .balance: return "GMR + QP + バランス"; case .mpc: return "GMR + MPC" }
+  }
 }
 
 /// 関節名が <limb>-<joint>-<r|p|y> の決まりのロボットか (両脚と片腕以上)
@@ -588,7 +590,7 @@ final class BVHRetargeter {
     resetGMR()
     for i in 0..<motion.frames {
       if i % 200 == 0 { if cancelled?() == true { return nil }; progress?(Double(i) / Double(max(1, motion.frames))) }
-      let r = method == .names ? method1(i) : gmr(i)   // GMR + QP の QP は WholeBodyQP.swift (makeGMRQPMotion)
+      let r = method == .names ? method1(i) : gmr(i)   // GMR + QP (+ バランス) は WholeBodyQP.swift (makeGMRQPMotion)
       var T = r.root
       if xy0 == nil { xy0 = SIMD2(T.columns.3.x, T.columns.3.y) }
       T.columns.3.x -= xy0!.x; T.columns.3.y -= xy0!.y

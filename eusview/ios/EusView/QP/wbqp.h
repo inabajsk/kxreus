@@ -105,6 +105,30 @@ int wbqp_contact_of(WbQP *h, const double *q_ref, const double root_ref[12], int
    q_ref: n x 関節の数, root_ref: n x 12 */
 void wbqp_plan_contacts(WbQP *h, int n, const double *q_ref, const double *root_ref, int *contact, int *support);
 
+/* ---- QP + バランス (倒れないことを最優先にする) ----
+   動作全体を先に見る: (1) contact / support を決め, 両足が浮くコマをなくし, 足を替えるときは両足で支える時間 (bal_ds コマ) をとる,
+   (2) 今の QP で一度解いて重心の参照と着いた足の位置 (支持多角形) を集め, (3) ZMP (台車の模型) が支持多角形 (bal_margin·L 内側) に入る
+   重心の軌道を先読みの MPC (bal_block × bal_blocks コマ) で決める.
+   接地は「低くて止まっている足」(bal_contact_vel), 振り出す足は bal_lift·L まで上げる.
+   com_out: n x 5 (重心 x y z, 左・右の足を上げる高さ). contact, support も書き換える.
+   そのあと wbqp_reset して, コマごとに wbqp_set_com_target(&com_out[i * 5]) → wbqp_solve(contact[i], support[i]).
+   戻り値: ZMP の制約を緩めたコマの数 (0 なら全部のコマで ZMP が支持多角形の中) */
+int wbqp_plan_balance(WbQP *h, int n, const double *q_ref, const double *root_ref, int *contact, int *support, double *com_out);
+/* 次の wbqp_solve で重心 (x, y) を com[0..1] に合わせる (緩めの重み w_slack_com でいちばん強い制約. 静的な重心の制約は使わない).
+   com[3], com[4]: 浮いている左・右の足の目標を上げる高さ (m). NULL で外す */
+void wbqp_set_com_target(WbQP *h, const double com[5]);
+
+/* ---- 閉ループの MPC (物理・実機の今の状態から毎コマ計画し直す. wbqp_plan_balance のあとで使う) ----
+   i: 今のコマ, q_meas / root_meas: 今の関節角とルートのリンクの姿勢 (物理なら PhysicsSim の値),
+   q_plan / root_plan: そのコマの計画 (QP + バランスの答え). 今の重心と速さ (差分, mpc_vel_filter でならす) から
+   重心の MPC (ZMP が支持多角形の中) を解き, 次の重心 (mpc_lead 秒先) を最優先にして, 着いている足は今の場所のまま,
+   浮いた足と手は計画 (計画とのずれだけずらす) で全身 QP を解く. 振り出している足の着地は, キャプチャポイント
+   ξ = c + c'/ω のずれ × e^{ω T} (T = 着地までの時間) だけずらす (cp_gain, cp_max·L, cp_filter. 支持多角形と重心の参照もずらして解く).
+   q_out: サーボの目標の関節角.
+   info (NULL 可, 8 個): 今の重心 x y, 狙う重心 x y, キャプチャポイントのずれ (m), 着地のずらし (m), ZMP の緩め (m), MPC の状態. 戻り値: QP の状態 (-2 = 計画がない) */
+int wbqp_mpc_step(WbQP *h, int i, const double *q_meas, const double root_meas[12],
+                  const double *q_plan, const double root_plan[12], double *q_out, double info[8]);
+
 #ifdef __cplusplus
 }
 #endif

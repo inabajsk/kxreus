@@ -1,7 +1,13 @@
 // EusView: jskeus / kxreus のロボットモデル (eus2json.l で書き出した JSON) を iPhone で表示するアプリ
-//   ・ロボットを選ぶ → SceneKit で表示 (1 本指で回転, 2 本指で移動・拡大)
+//   ・ロボットを選ぶ (KXR / KHR / JSK → 身体の形の分類 → 画像と名前, RobotPicker.swift) → SceneKit で表示 (1 本指で回転, 2 本指で移動・拡大)
 //   ・関節角のスライダー, 姿勢 (reset-pose など), 動作の再生
 //   ・接続: Mac などの EusLisp から WebSocket で関節角を受け取って動かす ({"angles": [...]} など)
+//   ・BVH (BVHView.swift): 棒人形・関節名・GMR・GMR + QP・QP + バランスを並べる. QP + バランス = 動作全体を先に見て
+//     両足が浮かない一歩ずつの接地と ZMP が足の裏に入る重心の軌道を決め (wbqp_plan_balance), 重心を最優先にして解く (eusview/bvh/QP.md).
+//     「物理で比べる」で GMR + QP と QP + バランスと GMR + MPC を ODE で動かし, 倒れるまでの秒数を出す (QP + バランスは BalanceStabilizer で足首を直す.
+//     GMR + MPC は QP + バランスの計画に対して毎コマ物理の今の状態から閉ループの MPC (wbqp_mpc_step) を解く)
+//   ・ロボットの画面の BVH の動作に「GMR + QP + バランス」(物理オンでは BalanceStabilizer を通す) と「GMR + MPC」(物理オンのときだけ閉ループ)
+//   起動の引数 (確認用): -bvh <種類/名前> -robot <名前> -method balance|mpc -bvhphysics 1 / -open <名前> -bvhmotion <種類/名前> -method balance|mpc -physics 1
 import SwiftUI
 import SceneKit
 
@@ -42,7 +48,6 @@ struct RobotListView: View {
   @State var bvhLaunch = UserDefaults.standard.string(forKey: "bvh") != nil
   /// 起動の引数 -open <ロボットの名前> でそのロボットの画面を開く (確認用, RobotView の -bvhmotion と組み合わせる)
   @State var openLaunch = UserDefaults.standard.string(forKey: "open") != nil && UserDefaults.standard.string(forKey: "bvh") == nil
-  var shown: [RobotFile] { files.filter { $0.group == group && (search.isEmpty || $0.name.localizedCaseInsensitiveContains(search)) } }
   var body: some View {
     NavigationStack {
       VStack(spacing: 0) {
@@ -50,11 +55,8 @@ struct RobotListView: View {
           ForEach(robotGroups, id: \.self) { g in Text("\(g.uppercased())（\(files.filter { $0.group == g }.count)）").tag(g) }
         }
         .pickerStyle(.segmented).padding(.horizontal).padding(.vertical, 8)
-        List(shown, id: \.self) { f in
-          NavigationLink(f.name) { RobotLoaderView(url: f.url) }
-        }
-        .listStyle(.plain)
-        .overlay { if shown.isEmpty { Text("このグループのロボットはありません").foregroundStyle(.secondary) } }
+        // 身体の形の分類 → 画像と名前 (RobotPicker.swift)
+        RobotPickerView(files: files, group: $group, search: search)
       }
       .navigationTitle("EusLisp ロボット")
       .toolbar {

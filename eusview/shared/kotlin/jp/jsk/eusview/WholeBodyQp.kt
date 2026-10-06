@@ -35,6 +35,14 @@ object WbqpNative {
                                   qOut: DoubleArray, rootOut: DoubleArray, diag: DoubleArray?): Int
     @JvmStatic external fun contactOf(h: Long, q: DoubleArray, root: DoubleArray, prev: Int): Int
     @JvmStatic external fun planContacts(h: Long, n: Int, q: DoubleArray, root: DoubleArray, contact: IntArray, support: IntArray)
+    /** GMR + QP + バランス: 全部のコマの参照から重心の軌道 (comOut: n × 5) と contact, support を決める. 戻り値: ZMP の制約を緩めたコマの数 */
+    @JvmStatic external fun planBalance(h: Long, n: Int, q: DoubleArray, root: DoubleArray, contact: IntArray, support: IntArray, comOut: DoubleArray): Int
+    /** 次の solve の重心の目標 (5 個: x y z, 左・右の足を上げる高さ). null で外す */
+    @JvmStatic external fun setComTarget(h: Long, com: DoubleArray?)
+    /** 閉ループの MPC (wbqp_mpc_step, planBalance のあとで毎コマ): 今の関節角 (rad / m) とルートのリンクの姿勢 (12 個), そのコマの計画 (QP + バランスの答え)
+     *  から, サーボの目標 qOut (rad / m) を出す. info: 8 個 (null 可). 戻り値: 負なら qOut を使わない (-2 = 計画がない). i = 0 で MPC の状態を初期化 */
+    @JvmStatic external fun mpcStep(h: Long, i: Int, qMeas: DoubleArray, rootMeas: DoubleArray, qPlan: DoubleArray, rootPlan: DoubleArray,
+                                    qOut: DoubleArray, info: DoubleArray?): Int
 }
 
 /** 1 つのロボットの評価 (wbqp.h の WbqpEval) */
@@ -117,7 +125,18 @@ class WholeBodyQp(val model: RobotModel, rt: BvhRetargeter, fps: Double, params:
     fun toQ(a: FloatArray) = DoubleArray(a.size) { a[it] * if (linear.getOrElse(it) { false }) 0.001 else Math.PI / 180 }
     fun toAngles(q: DoubleArray) = FloatArray(q.size) { (q[it] * if (linear[it]) 1000.0 else 180 / Math.PI).toFloat() }
 
+    /** 前のコマの答え・MPC の状態を忘れる (計画 (planBalance) は消えない). 閉ループの MPC: 最初に戻す・起き上がりから続けるとき */
     fun reset() = WbqpNative.reset(h)
+
+    /** GMR + MPC (閉ループ): runGmrQpBalance で計画したあと, 物理 (sim) の今の関節角とルートのリンクの姿勢から, コマ i のサーボの目標 (度・mm) を出す.
+     *  plan: QP + バランスのコマ i の答え. 解けなければ計画の関節角. info (null 可, 8 個): wbqp.h の wbqp_mpc_step */
+    fun mpcStep(i: Int, sim: PhysicsSim, plan: QpFrame, info: DoubleArray? = null): FloatArray {
+        val P = sim.linkPoses()[rootLink]
+        val rm = pose12(Tf(BalanceStabilizer.rot3(P), floatArrayOf(P[12], P[13], P[14])))
+        val qo = DoubleArray(model.joints.size)
+        val st = WbqpNative.mpcStep(h, i, toQ(sim.jointValues()), rm, toQ(plan.q), pose12(plan.root), qo, info)
+        return if (st >= 0 && qo.all { it.isFinite() }) toAngles(qo) else plan.q
+    }
     fun contact(angles: FloatArray, rootLinkPose: Tf, prev: Int) = WbqpNative.contactOf(h, toQ(angles), pose12(rootLinkPose), prev)
 
     /** 1 コマを解く (前のコマの答えから続ける). contact / support: bit0 左, bit1 右 (-1 = 足の高さで決める) */
@@ -174,6 +193,42 @@ fun runGmrQp(rt: BvhRetargeter, qp: WholeBodyQp, progress: ((Double) -> Unit)? =
     return true
 }
 
+/** GMR + QP + バランス (iOS 版 runGMRQPBalance と同じ): GMR を全部のコマで解き, 重心の軌道を先読みの MPC で決めて
+ *  (wbqp_plan_balance), その重心を最優先にしてコマごとに解く. emit(i, frame) をコマごとに呼ぶ (計算は 0.6 から先で出てくる).
+ *  zmpSlack: ZMP の制約を緩めたコマの数を入れる (null 可). 戻り値: 最後まで計算したか */
+fun runGmrQpBalance(rt: BvhRetargeter, qp: WholeBodyQp, progress: ((Double) -> Unit)? = null, cancelled: (() -> Boolean)? = null,
+                    zmpSlack: IntArray? = null, emit: (Int, QpFrame) -> Unit): Boolean {
+    val n = rt.motion.frames
+    if (n <= 0) return true
+    val nj = rt.model.joints.size
+    val angles = ArrayList<FloatArray>(n); val poses = ArrayList<Tf>(n)
+    val qRef = DoubleArray(n * nj); val rootRef = DoubleArray(n * 12)
+    rt.resetGMR()
+    repeat(8) { rt.gmr(0) }
+    for (i in 0 until n) {
+        if (i % 100 == 0) { if (cancelled?.invoke() == true) return false; progress?.invoke(0.3 * i / n) }
+        val (a, T) = rt.gmr(i)
+        val pose = rt.rootLinkPose(T)
+        angles.add(a); poses.add(pose)
+        qp.toQ(a).copyInto(qRef, i * nj)
+        WholeBodyQp.pose12(pose).copyInto(rootRef, i * 12)
+    }
+    val contact = IntArray(n); val support = IntArray(n); val com = DoubleArray(n * 5)
+    val ns = WbqpNative.planBalance(qp.h, n, qRef, rootRef, contact, support, com)
+    zmpSlack?.let { if (it.isNotEmpty()) it[0] = ns }
+    progress?.invoke(0.6)
+    qp.reset()
+    try {
+        for (i in 0 until n) {
+            if (i % 50 == 0) { if (cancelled?.invoke() == true) return false; progress?.invoke(0.6 + 0.4 * i / n) }
+            WbqpNative.setComTarget(qp.h, com.copyOfRange(i * 5, i * 5 + 5))
+            emit(i, qp.solve(angles[i], poses[i], contact[i], support[i]))
+        }
+    } finally { WbqpNative.setComTarget(qp.h, null) }
+    progress?.invoke(1.0)
+    return true
+}
+
 /** 計算したコマの集計: (QP の ms/コマ, 衝突の割合 前・後 %, 重心が外の割合 前・後 % (足が着いたコマのうち)) */
 fun qpSummary(fr: List<QpFrame>): DoubleArray {
     val n = maxOf(1, fr.size).toDouble()
@@ -184,14 +239,20 @@ fun qpSummary(fr: List<QpFrame>): DoubleArray {
         100 * fr.count { it.diag.contact != 0 && it.diag.after.comMargin < 0 } / wc)
 }
 
-/** GMR + QP の全部のコマを動作 (RobotMotion) にする (ロボットの画面の「動作」用). やめたら null */
-fun makeGmrQpMotion(rt: BvhRetargeter, name: String, progress: ((Double) -> Unit)? = null, cancelled: (() -> Boolean)? = null): Pair<RobotMotion, List<QpFrame>>? {
+/** GMR + QP (balance なら GMR + QP + バランス) の全部のコマを動作 (RobotMotion) にする (ロボットの画面の「動作」用). やめたら null.
+ *  keep (balance のとき): 計算が終わったら計画を持った WholeBodyQp を渡す (閉ループの MPC 用. 使い終わったら受け取った側が destroy) */
+fun makeGmrQpMotion(rt: BvhRetargeter, name: String, progress: ((Double) -> Unit)? = null, cancelled: (() -> Boolean)? = null,
+                    balance: Boolean = false, keep: ((WholeBodyQp) -> Unit)? = null): Pair<RobotMotion, List<QpFrame>>? {
     val qp = WholeBodyQp(rt.model, rt, rt.motion.fps)
+    var kept = false
     try {
         val out = ArrayList<QpFrame>(rt.motion.frames)
-        if (!runGmrQp(rt, qp, progress, cancelled) { _, f -> out.add(f) }) return null
+        val ok = if (balance) runGmrQpBalance(rt, qp, progress, cancelled) { _, f -> out.add(f) }
+                 else runGmrQp(rt, qp, progress, cancelled) { _, f -> out.add(f) }
+        if (!ok) return null
         val x0 = out.firstOrNull()?.root?.p?.get(0) ?: 0f; val y0 = out.firstOrNull()?.root?.p?.get(1) ?: 0f
         val roots = out.map { f -> f.root.xyzRot().also { it[0] -= x0; it[1] -= y0 } }
+        if (keep != null) { kept = true; keep(qp) }
         return RobotMotion(name, rt.motion.fps.toFloat(), out.map { it.q }, roots) to out
-    } finally { qp.destroy() }
+    } finally { if (!kept) qp.destroy() }
 }

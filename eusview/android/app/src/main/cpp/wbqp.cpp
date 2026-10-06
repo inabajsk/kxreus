@@ -12,6 +12,7 @@
 #include <limits>
 #include <string>
 #include <vector>
+#include <functional>
 
 namespace {
 
@@ -275,7 +276,8 @@ enum {
   P_DT, P_ITER, P_W_POSTURE, P_W_HAND, P_W_FOOT, P_W_FOOT_ROT, P_W_STANCE, P_W_STANCE_ROT, P_W_ROOT_ROT, P_W_ROOT_POS, P_W_REG, P_W_SLACK,
   P_JOINT_MARGIN, P_VMAX_DEFAULT, P_VEL_SCALE, P_D_SAFE, P_D_INFL, P_XI, P_COM_MARGIN, P_CONTACT_ON, P_CONTACT_OFF,
   P_PREVIEW, P_EXCLUDE_TREE, P_CAPSULE_COVER, P_LIMIT_TOL, P_AT_LIMIT_TOL, P_SCALE, P_EN_COLL, P_EN_COM, P_EN_STANCE, P_EN_LIMITS,
-  P_REANCHOR_DIST, P_REANCHOR_YAW, P_SOLE_TOL, P_DELTA_GAIN, P_SOLE_MAX, P_CAPSULE_SHRINK, P_CAPSULE_GRID, P_CAPSULE_MINLEN, P_MAX_COLL, P_EN_ZMP, P_ZMP_MARGIN, P_N
+  P_REANCHOR_DIST, P_REANCHOR_YAW, P_SOLE_TOL, P_DELTA_GAIN, P_SOLE_MAX, P_CAPSULE_SHRINK, P_CAPSULE_GRID, P_CAPSULE_MINLEN, P_MAX_COLL, P_EN_ZMP, P_ZMP_MARGIN,
+  P_COM_TOL, P_W_SLACK_COM, P_BAL_BLOCK, P_BAL_BLOCKS, P_BAL_MARGIN, P_BAL_W_JERK, P_BAL_W_VEL, P_BAL_DS, P_EXCLUDE_DIST, P_BAL_STEP, P_BAL_STEP_YAW, P_BAL_LIFT_ON, P_BAL_MIN_SWING, P_BAL_LIFT, P_BAL_W_SWING, P_BAL_W_SWING_ROT, P_BAL_TRAVEL, P_MPC_LEAD, P_MPC_VEL_FILTER, P_CP_GAIN, P_MPC_W_COM, P_MPC_DQ_MAX, P_MPC_SMOOTH, P_CP_MAX, P_CP_FILTER, P_N
 };
 const Param kDefaults[P_N] = {
   {"dt", 1.0 / 30}, {"iterations", 3}, {"w_posture", 1.0}, {"w_hand", 2.0}, {"w_foot", 3.0}, {"w_foot_rot", 1.0},
@@ -284,6 +286,16 @@ const Param kDefaults[P_N] = {
   {"com_margin", 0.04}, {"contact_on", 0.04}, {"contact_off", 0.08}, {"preview", 8}, {"exclude_tree", 2}, {"capsule_cover", 0.8},
   {"limit_tol", 0.0017}, {"at_limit_tol", 0.0087}, {"scale", 0}, {"collision", 1}, {"com", 1}, {"stance", 1}, {"limits", 1},
   {"reanchor_dist", 0.3}, {"reanchor_yaw", 0.5}, {"sole_tol", 0.02}, {"delta_gain", 0.2}, {"sole_max", 8}, {"capsule_shrink", 0.0}, {"capsule_grid", 2}, {"capsule_min_len", 0.15}, {"max_collision_rows", 24}, {"zmp", 0}, {"zmp_margin", 0.0},
+  {"com_tol", 0.005}, {"w_slack_com", 1e8}, {"bal_block", 3}, {"bal_blocks", 15}, {"bal_margin", 0.06}, {"bal_w_jerk", 1e-6},
+  {"bal_w_vel", 1e-3}, {"bal_ds", 4}, {"exclude_dist", 0.03}, {"bal_step", 0.2}, {"bal_step_yaw", 0.35}, {"bal_lift_on", 0.12}, {"bal_min_swing", 6}, {"bal_lift", 0.06}, {"bal_w_swing", 15.0}, {"bal_w_swing_rot", 5.0}, {"bal_travel", 0.5}, {"mpc_lead", 0.05}, {"mpc_vel_filter", 0.5}, {"cp_gain", 1.0}, {"mpc_w_com", 1.0}, {"mpc_dq_max", 0.06}, {"mpc_smooth", 0.7}, {"cp_max", 0.3}, {"cp_filter", 0.5},
+};
+
+struct P2 { double x, y; };
+// 床の上の剛体変換 (ヨーの回転 + 平行移動): 計画の座標 → 物理・実機の座標
+struct Xf2 {
+  double c = 1, s = 0, tx = 0, ty = 0;
+  P2 apply(P2 p) const { return {c * p.x - s * p.y + tx, s * p.x + c * p.y + ty}; }
+  P2 rot(P2 v) const { return {c * v.x - s * v.y, s * v.x + c * v.y}; }
 };
 
 }  // namespace
@@ -309,6 +321,14 @@ struct WbQP {
   int prevContact = 0;
   V3 comHist[2];        // 前のコマ, その前のコマの答えの重心
   int nComHist = 0;
+  bool hasComTarget = false;   // QP + バランス: 次の wbqp_solve で重心 (x, y) を合わせる (最優先)
+  V3 comTarget;
+  double footLift[2] = {0, 0}; // QP + バランス: 浮いた足の目標を上げる高さ (m)
+  struct BalPlan { int n = 0; std::vector<V3> com, cref; std::vector<std::vector<P2>> poly; std::vector<int> contact; std::vector<double> lift; std::vector<Pose> feet; } bal;
+  struct MpcState { bool valid = false; V3 com; double vel[2] = {0, 0}, acc[2] = {0, 0}, xf[4] = {1, 0, 0, 0};
+    double step[2][2] = {{0, 0}, {0, 0}}, stepStart[2][2] = {{0, 0}, {0, 0}}; int prevC[2] = {1, 1}; int ref = 0; std::vector<double> out; } mpc;
+  double travelK = 1;          // QP + バランス: 参照の水平の移動を縮める (原点 travelO から k 倍)
+  double travelO[2] = {0, 0};
   GIQP qp;
   WbQP() { for (int i = 0; i < P_N; i++) prm[i] = kDefaults[i].value; }
   double P(int i) const { return prm[i]; }
@@ -390,7 +410,6 @@ double segSeg(const V3 &p1, const V3 &q1, const V3 &p2, const V3 &q2, V3 &c1, V3
   return norm(c1 - c2);
 }
 
-struct P2 { double x, y; };
 double cross2(const P2 &o, const P2 &a, const P2 &b) { return (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x); }
 /// 凸包 (反時計回り, Andrew の方法)
 std::vector<P2> hull2(std::vector<P2> p) {
@@ -753,7 +772,8 @@ int wbqp_finalize(WbQP *h, const double *poses, int n) {
   for (int k = 0; k < n; k++) ps.push_back(std::vector<double>(poses + k * nj, poses + (k + 1) * nj));
   std::vector<std::vector<Pose>> Ws;
   for (auto &qq : ps) { std::vector<Pose> w; fk(*h, qq.data(), Pose(), w); Ws.push_back(w); }
-  double ds = h->P(P_D_SAFE) * h->L;
+  // 与えた姿勢で exclude_dist·L より近い組 (カプセルは箱を太めに包むので, もともと近い部品どうしは当たって見える) は調べない
+  double ds = std::max(h->P(P_D_SAFE), h->P(P_EXCLUDE_DIST)) * h->L;
   for (size_t a = 0; a < h->caps.size(); a++) {
     for (size_t b = a + 1; b < h->caps.size(); b++) {
       int la = h->caps[a].link, lb = h->caps[b].link;
@@ -816,6 +836,14 @@ void wbqp_reset(WbQP *h) {
   h->delta[0] = h->delta[1] = 0;
   h->prevContact = 0;
   h->nComHist = 0;
+  h->hasComTarget = false;
+  h->mpc.valid = false;
+}
+
+void wbqp_set_com_target(WbQP *h, const double com[5]) {
+  h->hasComTarget = com != nullptr && std::isfinite(com[0]) && std::isfinite(com[1]);
+  h->footLift[0] = h->footLift[1] = 0;
+  if (h->hasComTarget) { h->comTarget = V3(com[0], com[1], com[2]); h->footLift[0] = com[3]; h->footLift[1] = com[4]; }
 }
 
 int wbqp_contact_of(WbQP *h, const double *q_ref, const double root_ref[12], int prev) {
@@ -846,6 +874,438 @@ void wbqp_plan_contacts(WbQP *h, int n, const double *q_ref, const double *root_
   }
 }
 
+// MARK: - QP + バランス (動作全体を先に見て重心の軌道を決める)
+
+// 両足が浮くコマをなくし (前に着いていた足を着いたままにする), 足を替えるときは両足で支える時間を bal_ds コマ以上とる
+static void noFlightContacts(const WbQP *h, int n, int *contact) {
+  int last = 3;
+  for (int i = 0; i < n; i++) {
+    if (contact[i] == 0) contact[i] = (i > 0 ? contact[i - 1] : last);
+    last = contact[i];
+  }
+  int ds = std::max(0, (int)h->P(P_BAL_DS));
+  // 片足 → もう片足 (両足のコマが ds より短い) なら, 離れる足を後ろに延ばす
+  for (int i = 1; i < n; i++) {
+    for (int s = 0; s < 2; s++) {
+      int b = 1 << s, o = 1 << (1 - s);
+      if (!(contact[i - 1] & b) || (contact[i] & b)) continue;   // 足 s がこのコマで離れる
+      if (!(contact[i] & o)) continue;
+      int both = 0;   // 離れる前に両足だったコマの数
+      for (int k = i - 1; k >= 0 && (contact[k] & 3) == 3; k--) both++;
+      for (int k = i; k < std::min(n, i + ds - both); k++) {
+        if (!(contact[k] & o)) break;
+        contact[k] |= b;
+      }
+    }
+  }
+}
+
+// 重心の MPC (台車の模型) を 1 回解く: 状態 st (x, y ごとに c, c', c''), 躍度をブロック (bal_block コマ) ごとに一定,
+//   先読み bal_blocks ブロック. ZMP p = c - z/g c'' をブロックの終わりごとに支持多角形 (計画の poly を off だけずらす, bal_margin·L 内側) に入れ
+//   (緩めは w_slack で強く罰する), 重心と速さを計画 cref (off だけずらす) に近づけ, 躍度を小さく. u: 初めのブロックの躍度
+//   adj (NULL 可): コマ f の計画の重心のずらし (計画の座標) と, 支持多角形を作り直す関数 (キャプチャポイントで足の置き場所を変えたとき)
+struct MpcAdjust { std::function<P2(int)> comShift; std::function<std::vector<P2>(int)> polyAt; };
+static int comMpc(const WbQP *h, int i, int n, const std::vector<V3> &cref, const std::vector<std::vector<P2>> &poly, const Xf2 &xf,
+                  const double st[2][3], double u[2], double *slackOut, GIQP &qp, const MpcAdjust *adj = nullptr, double wpos = 1.0) {
+  const double L = h->L, dt = h->P(P_DT), g = 9.81;
+  const int KB = std::max(1, (int)h->P(P_BAL_BLOCK)), NB = std::clamp((int)h->P(P_BAL_BLOCKS), 2, 64), H = KB * NB;
+  const double wj = h->P(P_BAL_W_JERK), wv = h->P(P_BAL_W_VEL), wsl = h->P(P_W_SLACK);
+  const double A[3][3] = {{1, dt, dt * dt / 2}, {0, 1, dt}, {0, 0, 1}}, B[3] = {dt * dt * dt / 6, dt * dt / 2, dt};
+  // 予測: s_k = Phi_k s0 + sum_b Gam_k,b u_b  (k = 1..H)
+  std::vector<double> Phi((size_t)H * 9), Gam((size_t)H * 3 * NB, 0.0);
+  {
+    double M[3][3] = {{1, 0, 0}, {0, 1, 0}, {0, 0, 1}};
+    std::vector<double> G(3 * NB, 0.0), G2(3 * NB);
+    for (int k = 1; k <= H; k++) {
+      double M2[3][3];
+      for (int a = 0; a < 3; a++) for (int b = 0; b < 3; b++) { M2[a][b] = 0; for (int c = 0; c < 3; c++) M2[a][b] += A[a][c] * M[c][b]; }
+      int blk = (k - 1) / KB;
+      for (int b = 0; b < NB; b++) for (int a = 0; a < 3; a++) {
+        double v = 0;
+        for (int c = 0; c < 3; c++) v += A[a][c] * G[c * NB + b];
+        if (b == blk) v += B[a];
+        G2[a * NB + b] = v;
+      }
+      std::memcpy(M, M2, sizeof(M));
+      G = G2;
+      for (int a = 0; a < 3; a++) for (int b = 0; b < 3; b++) Phi[(size_t)(k - 1) * 9 + a * 3 + b] = M[a][b];
+      for (int a = 0; a < 3 * NB; a++) Gam[(size_t)(k - 1) * 3 * NB + a] = G[a];
+    }
+  }
+  const int nv = 3 * NB;   // u_x, u_y, 緩め (ブロックごと)
+  std::vector<double> Hm((size_t)nv * nv, 0.0), gv(nv, 0.0), C, cv, x;
+  auto row = [&]() -> double * { C.resize(C.size() + nv, 0.0); cv.push_back(0); return &C[C.size() - nv]; };
+  for (int b = 0; b < 2 * NB; b++) Hm[b * nv + b] += wj;
+  for (int b = 0; b < NB; b++) Hm[(2 * NB + b) * nv + 2 * NB + b] += wsl;
+  for (int k = 1; k <= H; k++) {
+    int f = std::min(n - 1, i + k);
+    const double *ph = &Phi[(size_t)(k - 1) * 9], *gm = &Gam[(size_t)(k - 1) * 3 * NB];
+    P2 vr{0, 0};
+    if (f + 1 < n) vr = xf.rot({(cref[f + 1].x - cref[f].x) / dt, (cref[f + 1].y - cref[f].y) / dt});
+    double vref[2] = {vr.x, vr.y};
+    P2 csh = adj ? adj->comShift(f) : P2{0, 0};
+    P2 crf = xf.apply({cref[f].x + csh.x, cref[f].y + csh.y});
+    for (int ax = 0; ax < 2; ax++) {
+      double cr = (ax == 0 ? crf.x : crf.y);
+      for (int rw = 0; rw < 2; rw++) {   // 位置と速さ (L で割る)
+        double w = rw == 0 ? wpos : wv;
+        double fr = ph[rw * 3 + 0] * st[ax][0] + ph[rw * 3 + 1] * st[ax][1] + ph[rw * 3 + 2] * st[ax][2];
+        double e = ((rw == 0 ? cr : vref[ax]) - fr) / L;
+        for (int a = 0; a < NB; a++) {
+          double ja = gm[rw * NB + a] / L;
+          if (ja == 0) continue;
+          gv[ax * NB + a] -= w * ja * e;
+          for (int b = 0; b < NB; b++) Hm[(ax * NB + a) * nv + ax * NB + b] += w * ja * gm[rw * NB + b] / L;
+        }
+      }
+    }
+    if (k % KB != 0) continue;   // ZMP の制約はブロックの終わりで
+    int blk = k / KB - 1;
+    std::vector<P2> pg = adj ? adj->polyAt(f) : poly[f];
+    if (pg.size() < 3) continue;
+    for (auto &p : pg) p = xf.apply(p);
+    double zc = std::max(0.05 * L, cref[f].z), kz = zc / g;
+    P2 ctr{0, 0};
+    for (auto &p : pg) { ctr.x += p.x; ctr.y += p.y; }
+    ctr.x /= pg.size(); ctr.y /= pg.size();
+    double inr = std::max(0.0, polyMargin(pg, ctr));
+    double mg = std::min(h->P(P_BAL_MARGIN) * L, 0.6 * inr);
+    for (size_t e = 0; e < pg.size(); e++) {
+      const P2 &a = pg[e], &b2 = pg[(e + 1) % pg.size()];
+      double ex = b2.x - a.x, ey = b2.y - a.y, len = std::hypot(ex, ey);
+      if (len < 1e-9) continue;
+      double mx = ey / len, my = -ex / len, bb = mx * a.x + my * a.y;
+      // m^T p <= bb - mg,  p = c - kz c''
+      double *r = row();
+      double fr = 0;
+      for (int ax = 0; ax < 2; ax++) {
+        double m = ax == 0 ? mx : my;
+        double fc = ph[0] * st[ax][0] + ph[1] * st[ax][1] + ph[2] * st[ax][2];
+        double fa = ph[6] * st[ax][0] + ph[7] * st[ax][1] + ph[8] * st[ax][2];
+        fr += m * (fc - kz * fa);
+        for (int a2 = 0; a2 < NB; a2++) r[ax * NB + a2] = -m * (gm[0 * NB + a2] - kz * gm[2 * NB + a2]) / L;
+      }
+      r[2 * NB + blk] = 1;
+      cv.back() = (fr - bb + mg) / L;
+    }
+  }
+  for (int b = 0; b < NB; b++) { double *r = row(); r[2 * NB + b] = 1; cv.back() = 0; }
+  int it = 0;
+  int stt = qp.solve(nv, Hm, gv, (int)cv.size(), C, cv, x, 20 * ((int)cv.size() + nv), it);
+  u[0] = u[1] = 0;
+  if (slackOut) *slackOut = 0;
+  if (stt >= 0) {
+    u[0] = x[0]; u[1] = x[NB];
+    if (slackOut) for (int b = 0; b < NB; b++) *slackOut = std::max(*slackOut, x[2 * NB + b] * L);
+  }
+  return stt;
+}
+
+int wbqp_plan_balance(WbQP *h, int n, const double *q_ref, const double *root_ref, int *contact, int *support, double *com_out) {
+  if (n <= 0) return 0;
+  const int nj = (int)h->joints.size();
+  const double L = h->L, dt = h->P(P_DT);
+  // 水平の移動を bal_travel 倍に縮める (小さなロボットには人の歩く速さは速すぎる. 倒れないことを優先して参照より遅れて進む)
+  h->travelK = std::clamp(h->P(P_BAL_TRAVEL), 0.0, 1.0);
+  h->travelO[0] = root_ref[0]; h->travelO[1] = root_ref[1];
+  std::vector<double> rootT(root_ref, root_ref + (size_t)n * 12);
+  for (int i = 0; i < n; i++) {
+    rootT[i * 12 + 0] = h->travelO[0] + h->travelK * (root_ref[i * 12 + 0] - h->travelO[0]);
+    rootT[i * 12 + 1] = h->travelO[1] + h->travelK * (root_ref[i * 12 + 1] - h->travelO[1]);
+  }
+  root_ref = rootT.data();
+  // 接地 (一歩ずつ): 基本は両足を着けたまま. 着いた足は, 参照の足が止めた位置から bal_step·L より離れるか, bal_step_yaw より回るか,
+  //   bal_lift_on·L より上がったときだけ離す (もう片足が bal_ds コマ以上着いているときだけ. 両足が浮くことはない).
+  //   離れた足は bal_min_swing コマ以上たって参照の足が低く (contact_on) なったら, その位置に着く. 小さな足踏み・すべりは無視
+  std::vector<double> fz((size_t)n * 2);
+  {
+    std::vector<double> fx((size_t)n * 2), fy((size_t)n * 2), fyaw((size_t)n * 2);
+    std::vector<Pose> Wr;
+    for (int i = 0; i < n; i++) {
+      fk(*h, q_ref + (size_t)i * nj, Pose::from12(root_ref + (size_t)i * 12), Wr);
+      for (int s = 0; s < 2; s++) {
+        if (h->feet[s].link < 0) { fz[i * 2 + s] = 0; fx[i * 2 + s] = fy[i * 2 + s] = fyaw[i * 2 + s] = 0; continue; }
+        const Pose &F = Wr[h->feet[s].link];
+        fz[i * 2 + s] = footHeight(*h, Wr, s);
+        fx[i * 2 + s] = F.p.x; fy[i * 2 + s] = F.p.y; fyaw[i * 2 + s] = yawOf(F.R * h->feet[s].flat.T());
+      }
+    }
+    const double step = h->P(P_BAL_STEP) * L, stepYaw = h->P(P_BAL_STEP_YAW), liftOn = h->P(P_BAL_LIFT_ON) * L, on = h->P(P_CONTACT_ON) * L;
+    const int ds = std::max(0, (int)h->P(P_BAL_DS)), minSwing = std::max(1, (int)h->P(P_BAL_MIN_SWING));
+    bool planted[2] = {true, true};
+    double ax[2] = {fx[0], fx[1]}, ay[2] = {fy[0], fy[1]}, ayaw[2] = {fyaw[0], fyaw[1]};
+    int since[2] = {ds, ds}, swingStart[2] = {0, 0};
+    for (int i = 0; i < n; i++) {
+      for (int s = 0; s < 2; s++) {
+        if (h->feet[s].link < 0) continue;
+        int o = 1 - s;
+        if (planted[s]) {
+          double dyaw = std::remainder(fyaw[i * 2 + s] - ayaw[s], 2 * M_PI);
+          bool want = fz[i * 2 + s] > liftOn || std::hypot(fx[i * 2 + s] - ax[s], fy[i * 2 + s] - ay[s]) > step || std::fabs(dyaw) > stepYaw;
+          if (want && planted[o] && since[o] >= ds && since[s] >= ds) { planted[s] = false; swingStart[s] = i; }
+        } else if (i - swingStart[s] >= minSwing && fz[i * 2 + s] < on) {
+          planted[s] = true; since[s] = 0;
+          ax[s] = fx[i * 2 + s]; ay[s] = fy[i * 2 + s]; ayaw[s] = fyaw[i * 2 + s];
+        }
+      }
+      for (int s = 0; s < 2; s++) if (planted[s]) since[s]++;
+      contact[i] = (planted[0] ? 1 : 0) | (planted[1] ? 2 : 0);
+    }
+  }
+  noFlightContacts(h, n, contact);
+  int P = std::max(0, (int)h->P(P_PREVIEW));
+  for (int i = 0; i < n; i++) {
+    int s = contact[i];
+    for (int k = i + 1; k <= std::min(n - 1, i + P); k++) { int t = s & contact[k]; if (t == 0) break; s = t; }
+    support[i] = s;
+  }
+  // 1. 今の QP (重心は静的) で一度解き, 重心の参照と, 着いた足の位置 (支持多角形) を集める
+  std::vector<V3> cref(n);
+  std::vector<std::vector<P2>> poly(n);
+  std::vector<Pose> feetPlan((size_t)n * 2);
+  std::vector<double> qo(nj);
+  double ro[12];
+  std::vector<Pose> W;
+  wbqp_reset(h);
+  for (int i = 0; i < n; i++) {
+    wbqp_solve(h, q_ref + (size_t)i * nj, root_ref + (size_t)i * 12, contact[i], support[i], nullptr, qo.data(), ro, nullptr);
+    fk(*h, qo.data(), Pose::from12(ro), W);
+    cref[i] = comOf(*h, W);
+    Pose fp[2];
+    for (int s = 0; s < 2; s++) if (h->feet[s].link >= 0) fp[s] = h->anchored[s] ? h->anchor[s] : W[h->feet[s].link];
+    poly[i] = supportPolygon(*h, W, contact[i], fp);
+    for (int s = 0; s < 2; s++) feetPlan[i * 2 + s] = fp[s];
+  }
+  wbqp_reset(h);
+  // 2. 重心の軌道 (MPC, 台車の模型, comMpc): 毎コマ解いて初めのコマだけ進める
+  const double A[3][3] = {{1, dt, dt * dt / 2}, {0, 1, dt}, {0, 0, 1}}, B[3] = {dt * dt * dt / 6, dt * dt / 2, dt};
+  double st[2][3] = {{cref[0].x, 0, 0}, {cref[0].y, 0, 0}};
+  GIQP qp;
+  int nslackUsed = 0;
+  // 振り出しの高さ: 浮いている区間 [i0, i1] で bal_lift·L · sin(π 位相) (参照の足の高さに足す, 参照が十分高ければ足さない)
+  std::vector<double> lift((size_t)n * 2, 0.0);
+  for (int s = 0; s < 2; s++) {
+    int i = 0;
+    while (i < n) {
+      if (contact[i] & (1 << s)) { i++; continue; }
+      int i0 = i;
+      while (i < n && !(contact[i] & (1 << s))) i++;
+      int i1 = i;   // [i0, i1)
+      double hc = h->P(P_BAL_LIFT) * L;
+      for (int k = i0; k < i1; k++) {
+        double ph = (k - i0 + 1.0) / (i1 - i0 + 1.0);
+        lift[k * 2 + s] = std::max(0.0, hc * std::sin(M_PI * ph) - std::max(0.0, fz[k * 2 + s]));
+      }
+    }
+  }
+  for (int i = 0; i < n; i++) {
+    com_out[i * 5 + 0] = st[0][0]; com_out[i * 5 + 1] = st[1][0]; com_out[i * 5 + 2] = cref[i].z;
+    com_out[i * 5 + 3] = lift[i * 2]; com_out[i * 5 + 4] = lift[i * 2 + 1];
+    if (i == n - 1) break;
+    double u[2] = {0, 0}, slack = 0;
+    if (comMpc(h, i, n, cref, poly, Xf2(), st, u, &slack, qp) >= 0 && slack > 1e-4) nslackUsed++;
+    for (int ax = 0; ax < 2; ax++) {
+      double s0[3] = {st[ax][0], st[ax][1], st[ax][2]};
+      for (int k = 0; k < 3; k++) st[ax][k] = A[k][0] * s0[0] + A[k][1] * s0[1] + A[k][2] * s0[2] + B[k] * u[ax];
+    }
+  }
+  // 閉ループの MPC (wbqp_mpc_step) のために計画を覚えておく
+  h->bal.n = n;
+  h->bal.com.assign(n, V3());
+  for (int i = 0; i < n; i++) h->bal.com[i] = V3(com_out[i * 5], com_out[i * 5 + 1], com_out[i * 5 + 2]);
+  h->bal.cref = cref;
+  h->bal.poly = poly;
+  h->bal.contact.assign(contact, contact + n);
+  h->bal.lift = lift;
+  h->bal.feet = feetPlan;
+  h->mpc.valid = false;
+  return nslackUsed;   // ZMP の制約を緩めたコマの数
+}
+
+// MARK: - 閉ループの MPC (物理・実機の今の状態から毎コマ計画し直す)
+
+int wbqp_mpc_step(WbQP *h, int i, const double *q_meas, const double root_meas[12],
+                  const double *q_plan, const double root_plan[12], double *q_out, double info[8]) {
+  if (h->bal.n <= 0) return -2;
+  const int n = h->bal.n, nj = (int)h->joints.size();
+  i = std::clamp(i, 0, n - 1);
+  const double dt = h->P(P_DT), L = h->L, g = 9.81;
+  const auto &BC = h->bal.contact;
+  auto has = [&](int f, int s) { return (BC[std::clamp(f, 0, n - 1)] >> s) & 1; };
+  // 1. 今の状態: 重心と速さ (差分をならす), 着いている足の位置
+  std::vector<Pose> W;
+  Pose rootM = Pose::from12(root_meas);
+  fk(*h, q_meas, rootM, W);
+  V3 c = comOf(*h, W);
+  auto &M = h->mpc;
+  if (!M.valid || i == 0) {
+    M.valid = true; M.com = c; M.vel[0] = M.vel[1] = M.acc[0] = M.acc[1] = 0;
+    for (int s = 0; s < 2; s++) { M.step[s][0] = M.step[s][1] = M.stepStart[s][0] = M.stepStart[s][1] = 0; M.prevC[s] = has(i, s); }
+    M.ref = has(i, 0) ? 0 : 1;
+    M.out.clear();
+  }
+  const double af = std::clamp(h->P(P_MPC_VEL_FILTER), 0.0, 1.0);
+  double v[2] = {(c.x - M.com.x) / dt, (c.y - M.com.y) / dt};
+  for (int k = 0; k < 2; k++) M.vel[k] = af * M.vel[k] + (1 - af) * v[k];
+  M.com = c;
+  int contact = BC[i];
+  // 足を離した: 離した位置のずらし (step) を振り出しの始まりとして覚え, 着地のずらしは 0 から決め直す
+  for (int s = 0; s < 2; s++) {
+    int cs = has(i, s);
+    if (M.prevC[s] && !cs) { M.stepStart[s][0] = M.step[s][0]; M.stepStart[s][1] = M.step[s][1]; M.step[s][0] = M.step[s][1] = 0; }
+    M.prevC[s] = cs;
+  }
+  // 足ごとのずらし (計画の座標) を, コマ f で使うか: 着いている足は次に離すまで, 振り出し中の足は着地から次に離すまで
+  int land[2], lift[2];
+  for (int s = 0; s < 2; s++) {
+    land[s] = i; while (land[s] < n - 1 && !has(land[s], s)) land[s]++;          // 着いているなら i
+    lift[s] = land[s]; while (lift[s] < n - 1 && has(lift[s], s)) lift[s]++;     // その次に離すコマ
+  }
+  auto shiftOf = [&](int s, int f) -> P2 {
+    if (f >= land[s] && f < lift[s]) return {M.step[s][0], M.step[s][1]};
+    return {0, 0};
+  };
+  // 計画とのずれ: 基準の足 (着いている足のうち先に着いていた方) の 今の位置・向き と 計画の位置 (+ ずらし)・向き から,
+  //   計画の座標 → 今の座標 の変換 (ヨー + 平行移動). もう片方の着いた足は, 実際に着いた位置との差を そのずらし にする
+  //   (両足の平均で合わせると, 届かなかった着地のずれが変換に入り, キャプチャポイントのずれ → さらにずらす の繰り返しになる)
+  Xf2 xf;
+  {
+    if (!(contact & (1 << M.ref))) M.ref = (contact & 1) ? 0 : (contact & 2) ? 1 : M.ref;
+    int r = M.ref;
+    if ((contact & (1 << r)) && h->feet[r].link >= 0) {
+      const Pose &F = W[h->feet[r].link], &Fp = h->bal.feet[i * 2 + r];
+      double d = std::remainder(yawOf(F.R * h->feet[r].flat.T()) - yawOf(Fp.R * h->feet[r].flat.T()), 2 * M_PI);
+      xf.c = std::cos(d); xf.s = std::sin(d);
+      P2 q = xf.rot({Fp.p.x + M.step[r][0], Fp.p.y + M.step[r][1]});
+      xf.tx = F.p.x - q.x; xf.ty = F.p.y - q.y;
+      M.xf[0] = xf.c; M.xf[1] = xf.s; M.xf[2] = xf.tx; M.xf[3] = xf.ty;
+      int o = 1 - r;
+      if ((contact & (1 << o)) && h->feet[o].link >= 0) {
+        const Pose &Fo = W[h->feet[o].link], &Fpo = h->bal.feet[i * 2 + o];
+        double dx = Fo.p.x - xf.tx, dy = Fo.p.y - xf.ty;
+        P2 pc{xf.c * dx + xf.s * dy, -xf.s * dx + xf.c * dy};   // 今の座標 → 計画の座標
+        M.step[o][0] = pc.x - Fpo.p.x; M.step[o][1] = pc.y - Fpo.p.y;
+      }
+    } else { xf.c = M.xf[0]; xf.s = M.xf[1]; xf.tx = M.xf[2]; xf.ty = M.xf[3]; }   // 着いた足がなければ前の変換
+  }
+  // 2. キャプチャポイント (ξ = c + c' / ω, ω = √(g / z)) で, 振り出している足の着地をずらす:
+  //    Δ = cp_gain · (ξ_今 − ξ_計画) · e^{ω T}  (T = 着地までの時間), |Δ| ≤ cp_max·L. 計画の座標にして, なめらかに (cp_filter)
+  const double z = std::max(0.05 * L, c.z), om = std::sqrt(g / z);
+  P2 xiM{c.x + M.vel[0] / om, c.y + M.vel[1] / om};
+  V3 cp = h->bal.com[i], cp1 = h->bal.com[std::min(n - 1, i + 1)];
+  P2 xiP = xf.apply({cp.x + (cp1.x - cp.x) / dt / om, cp.y + (cp1.y - cp.y) / dt / om});
+  P2 err{xiM.x - xiP.x, xiM.y - xiP.y};
+  if (std::getenv("WBQP_MPC_DEBUG") && i % 15 == 0) {
+    P2 cpw = xf.apply({cp.x, cp.y});
+    std::fprintf(stderr, "MPCDBG %d c%d ref%d yaw %.2f com %.3f %.3f plancom %.3f %.3f vel %.3f %.3f planvel %.3f %.3f", i, contact, M.ref, std::atan2(xf.s, xf.c) * 180 / M_PI,
+                 c.x, c.y, cpw.x, cpw.y, M.vel[0], M.vel[1], (cp1.x - cp.x) / dt, (cp1.y - cp.y) / dt);
+    for (int s = 0; s < 2; s++) if (h->feet[s].link >= 0) {
+      const Pose &F = W[h->feet[s].link], &Fp = h->bal.feet[i * 2 + s];
+      P2 fw = xf.apply({Fp.p.x + M.step[s][0], Fp.p.y + M.step[s][1]});
+      std::fprintf(stderr, " foot%d %.3f %.3f plan %.3f %.3f", s, F.p.x, F.p.y, fw.x, fw.y);
+    }
+    std::fprintf(stderr, "\n");
+  }
+  P2 errPlan{xf.c * err.x + xf.s * err.y, -xf.s * err.x + xf.c * err.y};   // 回転を戻す
+  double cpOut = 0;
+  if (h->P(P_CP_GAIN) > 0) for (int s = 0; s < 2; s++) {
+    if (has(i, s) || h->feet[s].link < 0) continue;
+    double T = (land[s] - i) * dt;
+    double k = h->P(P_CP_GAIN) * std::exp(om * T);
+    P2 d{k * errPlan.x, k * errPlan.y};
+    double len = std::hypot(d.x, d.y), mx = h->P(P_CP_MAX) * L;
+    if (len > mx) { d.x *= mx / len; d.y *= mx / len; }
+    double fl = std::clamp(h->P(P_CP_FILTER), 0.0, 1.0);
+    M.step[s][0] = fl * M.step[s][0] + (1 - fl) * d.x;
+    M.step[s][1] = fl * M.step[s][1] + (1 - fl) * d.y;
+    cpOut = std::max(cpOut, std::hypot(M.step[s][0], M.step[s][1]));
+  }
+  // 支持多角形と重心の参照を, ずらした足に合わせて作り直す (計画の座標)
+  MpcAdjust adj;
+  adj.comShift = [&](int f) -> P2 {
+    P2 sum{0, 0}; int k = 0;
+    for (int s = 0; s < 2; s++) if (has(f, s)) { P2 d = shiftOf(s, f); sum.x += d.x; sum.y += d.y; k++; }
+    return k ? P2{sum.x / k, sum.y / k} : P2{0, 0};
+  };
+  adj.polyAt = [&](int f) -> std::vector<P2> {
+    f = std::clamp(f, 0, n - 1);
+    std::vector<P2> pts;
+    for (int s = 0; s < 2; s++) {
+      if (!has(f, s) || h->feet[s].link < 0) continue;
+      P2 d = shiftOf(s, f);
+      const Pose &F = h->bal.feet[f * 2 + s];
+      for (auto &vv : h->feet[s].sole) { V3 w = F.apply(vv); pts.push_back({w.x + d.x, w.y + d.y}); }
+    }
+    return pts.empty() ? h->bal.poly[f] : hull2(pts);
+  };
+  // 3. MPC: 今の重心・速さ・(前の計画の) 加速度から
+  double st[2][3] = {{c.x, M.vel[0], M.acc[0]}, {c.y, M.vel[1], M.acc[1]}};
+  double u[2] = {0, 0}, slack = 0;
+  int ms = comMpc(h, i, n, h->bal.cref, h->bal.poly, xf, st, u, &slack, h->qp, &adj, h->P(P_MPC_W_COM));
+  // 次の重心 (サーボの遅れの分 mpc_lead 秒だけ先を狙う)
+  double T = dt + std::max(0.0, h->P(P_MPC_LEAD)), tgt[2];
+  for (int ax = 0; ax < 2; ax++) {
+    tgt[ax] = st[ax][0] + st[ax][1] * T + st[ax][2] * T * T / 2 + u[ax] * T * T * T / 6;
+    M.acc[ax] = st[ax][2] + u[ax] * dt;
+  }
+  // 4. 全身 QP: 今の姿勢から, 着いている足はその場 (水平に), 浮いている足は計画 + ずらし, 手は計画, 重心を tgt に (最優先)
+  Pose rp = Pose::from12(root_plan);
+  {
+    P2 q = xf.apply({rp.p.x, rp.p.y});
+    rp.p.x = q.x; rp.p.y = q.y;
+    rp.R = rotZ(std::atan2(xf.s, xf.c)) * rp.R;
+  }
+  std::vector<Pose> Wp;
+  fk(*h, q_plan, rp, Wp);
+  double targets[48];
+  for (int s = 0; s < 2; s++) {
+    Pose hd = h->hands[s].link >= 0 ? Wp[h->hands[s].link] : Pose();
+    if (h->hands[s].link >= 0) hd.p = Wp[h->hands[s].link].apply(h->hands[s].off);
+    hd.to12(targets + s * 12);
+    Pose ft = h->feet[s].link >= 0 ? Wp[h->feet[s].link] : Pose();
+    if (h->feet[s].link >= 0) {
+      if (contact & (1 << s)) ft = flatFoot(*h, s, W[h->feet[s].link]);
+      else {
+        // 振り出し: 離したときのずらし → 着地のずらし を位相でつなぐ (計画の座標 → 今の座標)
+        int lo = i; while (lo > 0 && !has(lo - 1, s)) lo--;
+        double ph = std::clamp((i - lo + 1.0) / std::max(1, land[s] - lo + 1), 0.0, 1.0);
+        P2 d{M.stepStart[s][0] * (1 - ph) + M.step[s][0] * ph, M.stepStart[s][1] * (1 - ph) + M.step[s][1] * ph};
+        P2 dw = xf.rot(d);
+        ft.p.x += dw.x; ft.p.y += dw.y;
+      }
+    }
+    ft.to12(targets + (2 + s) * 12);
+  }
+  double com5[5] = {tgt[0], tgt[1], c.z, h->bal.lift[i * 2], h->bal.lift[i * 2 + 1]};
+  double k0 = h->travelK;
+  h->travelK = 1;   // root_plan はもう縮めた後の計画
+  h->qPrev.assign(q_meas, q_meas + nj); h->rootPrev = rootM; h->hasPrev = true;
+  h->anchored[0] = h->anchored[1] = false; h->delta[0] = h->delta[1] = 0;
+  wbqp_set_com_target(h, com5);
+  double ro[12], rp12[12];
+  rp.to12(rp12);
+  WbqpDiag dg;
+  int stt = wbqp_solve(h, q_plan, rp12, contact, contact, targets, q_out, ro, &dg);
+  wbqp_set_com_target(h, nullptr);
+  h->travelK = k0;
+  // 出力をなめらかに: 前のコマの目標から mpc_smooth で近づけ, 1 コマの変化を mpc_dq_max (rad) までに (毎コマ今の姿勢から解くので答えが振動する)
+  if ((int)M.out.size() != nj || i == 0) M.out.assign(q_out, q_out + nj);
+  else {
+    const double sm = std::clamp(h->P(P_MPC_SMOOTH), 0.0, 0.95), dq = std::max(1e-4, h->P(P_MPC_DQ_MAX));
+    for (int j = 0; j < nj; j++) {
+      double t = M.out[j] + (1 - sm) * (q_out[j] - M.out[j]);
+      t = std::clamp(t, M.out[j] - dq, M.out[j] + dq);
+      M.out[j] = std::clamp(t, h->joints[j].lo, h->joints[j].hi);
+      q_out[j] = M.out[j];
+    }
+  }
+  if (info) {
+    info[0] = c.x; info[1] = c.y; info[2] = tgt[0]; info[3] = tgt[1];
+    info[4] = std::hypot(err.x, err.y); info[5] = cpOut; info[6] = slack; info[7] = ms;
+  }
+  return stt;
+}
+
 // MARK: - コマごとの QP
 
 int wbqp_solve(WbQP *h, const double *q_ref, const double root_ref[12], int contact, int support,
@@ -856,6 +1316,10 @@ int wbqp_solve(WbQP *h, const double *q_ref, const double root_ref[12], int cont
   const int nj = (int)h->joints.size(), nv0 = 6 + nj;
   const double L = h->L;
   Pose rootRef = Pose::from12(root_ref);
+  if (h->hasComTarget && h->travelK != 1) {   // QP + バランス: 水平の移動を縮める (plan_balance と同じ)
+    rootRef.p.x = h->travelO[0] + h->travelK * (rootRef.p.x - h->travelO[0]);
+    rootRef.p.y = h->travelO[1] + h->travelK * (rootRef.p.y - h->travelO[1]);
+  }
   std::vector<Pose> Wr;
   fk(*h, q_ref, rootRef, Wr);
   if (contact < 0) contact = wbqp_contact_of(h, q_ref, root_ref, h->prevContact);
@@ -895,6 +1359,13 @@ int wbqp_solve(WbQP *h, const double *q_ref, const double root_ref[12], int cont
     for (int k = 0; k < 2; k++) h->delta[k] += g * (dnew[k] / na - h->delta[k]);
   }
   for (int k = 0; k < 4; k++) { tgt[k].p.x += h->delta[0]; tgt[k].p.y += h->delta[1]; }
+  // QP + バランス: 振り出す足は水平にして, 足の裏の高さ = max(参照の足の裏の高さ, 計画の高さ) まで上げる (つま先で床を引きずらない)
+  if (h->hasComTarget) for (int s = 0; s < 2; s++) {
+    if ((contact & (1 << s)) || h->feet[s].link < 0) continue;
+    Pose f = flatFoot(*h, s, tgt[2 + s]);
+    f.p.z += std::max(0.0, footHeight(*h, Wr, s)) + h->footLift[s];
+    tgt[2 + s] = f;
+  }
   Pose rootTgt = rootRef;
   rootTgt.p.x += h->delta[0]; rootTgt.p.y += h->delta[1];
   // 始める姿勢: 前のコマの答え (初めは参照)
@@ -947,8 +1418,11 @@ int wbqp_solve(WbQP *h, const double *q_ref, const double root_ref[12], int cont
       if (poly.empty()) useCom = false;
     }
     const int ncoll = (int)coll.size();
+    const bool useTarget = h->hasComTarget;
+    if (useTarget) useCom = false;   // 計画した重心 (ZMP が支持多角形の中) に合わせるので, 静的な重心の制約は使わない
     const bool useZmp = useCom && h->P(P_EN_ZMP) > 0 && h->nComHist >= 2;
-    const int nslack = ncoll + (useCom ? 1 : 0) + (useZmp ? 1 : 0);
+    const int iTarget = ncoll + (useCom ? 1 : 0) + (useZmp ? 1 : 0);
+    const int nslack = iTarget + (useTarget ? 1 : 0);
     const int nv = nv0 + nslack;
     Hm.assign(nv * nv, 0); g.assign(nv, 0);
     auto addRows = [&](const double *J, const double *e, int rows, double w) {   // w^2 |J x - e|^2
@@ -999,14 +1473,15 @@ int wbqp_solve(WbQP *h, const double *q_ref, const double root_ref[12], int cont
       for (auto &v : Jt) v /= L;
       V3 e = (T.p - F.p) * (1 / L);
       double e3[3] = {e.x, e.y, e.z};
-      addRows(Jt.data(), e3, 3, st ? h->P(P_W_STANCE) : h->P(P_W_FOOT));
+      const bool swingBal = !st && h->hasComTarget;
+      addRows(Jt.data(), e3, 3, st ? h->P(P_W_STANCE) : swingBal ? h->P(P_BAL_W_SWING) : h->P(P_W_FOOT));
       rotJac(*h, W, f.link, nv0, Jr.data());
       V3 er = logR(T.R * F.R.T());
       double r3[3] = {er.x, er.y, er.z};
-      addRows(Jr.data(), r3, 3, st ? h->P(P_W_STANCE_ROT) : h->P(P_W_FOOT_ROT));
+      addRows(Jr.data(), r3, 3, st ? h->P(P_W_STANCE_ROT) : swingBal ? h->P(P_BAL_W_SWING_ROT) : h->P(P_W_FOOT_ROT));
     }
     for (int a = 0; a < nv0; a++) Hm[a * nv + a] += h->P(P_W_REG);
-    for (int k = 0; k < nslack; k++) Hm[(nv0 + k) * nv + nv0 + k] += h->P(P_W_SLACK);
+    for (int k = 0; k < nslack; k++) Hm[(nv0 + k) * nv + nv0 + k] += (useTarget && k == iTarget) ? h->P(P_W_SLACK_COM) : h->P(P_W_SLACK);
     // 制約 C x >= c
     C.clear(); c.clear();
     auto row = [&]() -> double * { C.resize(C.size() + nv, 0.0); c.push_back(0); return &C[C.size() - nv]; };
@@ -1102,6 +1577,30 @@ int wbqp_solve(WbQP *h, const double *q_ref, const double root_ref[12], int cont
         }
       }
     }
+    // QP + バランス: 重心 (x, y) を計画した値に (|c + J x - t| <= com_tol, 緩めの重みは w_slack_com でいちばん強い)
+    if (useTarget) {
+      std::fill(Jc.begin(), Jc.end(), 0.0);
+      double M = 0;
+      for (size_t i = 0; i < h->links.size(); i++) {
+        const Link &l = h->links[i];
+        if (l.mass <= 0) continue;
+        pointJac(*h, W, (int)i, W[i].apply(l.com), nv0, Jt.data());
+        for (int a = 0; a < 3 * nv0; a++) Jc[a] += l.mass * Jt[a];
+        M += l.mass;
+      }
+      for (auto &v : Jc) v /= M;
+      V3 cm = comOf(*h, W);
+      double tol = h->P(P_COM_TOL) * L;
+      for (int ax = 0; ax < 2; ax++) {
+        double e = (ax == 0 ? h->comTarget.x - cm.x : h->comTarget.y - cm.y);
+        for (int sgn = -1; sgn <= 1; sgn += 2) {   // sgn (J x - e) <= tol  →  -sgn J x + s >= -sgn e - tol
+          double *r = row();
+          for (int k = 0; k < nv0; k++) r[k] = -sgn * Jc[ax * nv0 + k] / L;
+          r[nv0 + iTarget] = 1;
+          c.back() = (-sgn * e - tol) / L;
+        }
+      }
+    }
     // 緩める量は 0 以上
     for (int k = 0; k < nslack; k++) { double *r = row(); r[nv0 + k] = 1; c.back() = 0; }
     const int m = (int)c.size();
@@ -1128,6 +1627,11 @@ int wbqp_solve(WbQP *h, const double *q_ref, const double root_ref[12], int cont
     if (h->hasPrev) { q = h->qPrev; root = h->rootPrev; } else { for (int j = 0; j < nj; j++) q[j] = q_ref[j]; root = rootTgt; }
   }
   for (int j = 0; j < nj; j++) q[j] = std::clamp(q[j], h->joints[j].lo, h->joints[j].hi);
+  if (std::getenv("WBQP_LIFT_DEBUG") && (h->footLift[0] > 0 || h->footLift[1] > 0)) {
+    std::vector<Pose> W2; fk(*h, q.data(), root, W2);
+    for (int s2 = 0; s2 < 2; s2++) if (h->footLift[s2] > 0)
+      std::fprintf(stderr, "LIFTSOLVE side %d lift %.4f tgt z %.4f got z %.4f anchored %d contact %d status %d slack %.4f\n", s2, h->footLift[s2], tgt[2 + s2].p.z, W2[h->feet[s2].link].p.z, (int)h->anchored[s2], contact, status, dg.slack_max);
+  }
   h->qPrev = q; h->rootPrev = root; h->hasPrev = true;
   for (int j = 0; j < nj; j++) q_out[j] = q[j];
   root.to12(root_out);

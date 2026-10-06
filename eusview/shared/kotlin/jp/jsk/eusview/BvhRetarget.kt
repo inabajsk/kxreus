@@ -159,7 +159,12 @@ class RetargetTables(
     }
 }
 
-enum class RetargetMethod(val title: String) { NAMES("関節名"), GMR("GMR"), GMRQP("GMR + QP") }
+/** BVH の動作の方法. label は選ぶボタンの短い名前. BALANCE: GMR + QP + バランス (runGmrQpBalance, 物理で再生するときは足首で安定化) */
+enum class RetargetMethod(val title: String, val label: String = title) {
+    NAMES("関節名"), GMR("GMR"), GMRQP("GMR + QP"), BALANCE("GMR + QP + バランス", "QP+バランス"),
+    /** GMR + MPC (閉ループ): QP + バランスの計画に対して, 物理オンのとき毎コマ物理の今の状態から目標を出す (WholeBodyQp.mpcStep) */
+    MPC("GMR + MPC", "GMR+MPC")
+}
 
 /** 関節名が <limb>-<joint>-<r|p|y> の決まりのロボットか (両脚と片腕以上) */
 fun robotSupportsRetarget(m: RobotModel): Boolean {

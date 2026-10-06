@@ -1,5 +1,6 @@
 // wbqp_jni.cpp : wbqp.h (全身の QP, ios/EusView/QP/wbqp.{h,cpp} のコピー) を Kotlin (jp.jsk.eusview.WbqpNative) から呼ぶ JNI
 //   Android 版とデスクトップ版で共通 (odesim_jni.cpp と同じ libeusviewode に入れる). 使い方は shared/kotlin/.../WholeBodyQp.kt
+//   閉ループの MPC は mpcStep (wbqp_mpc_step).
 //   WbqpEval は 14 個の double, WbqpDiag は 37 個の double に並べて返す (WholeBodyQp.kt の WbqpEval.of / WbqpDiag.of)
 #include <jni.h>
 #include <cmath>
@@ -136,5 +137,26 @@ JNIEXPORT void JNICALL F(planContacts)(JNIEnv *e, jclass, jlong h, jint n, jdoub
   D qq(e, q), rr(e, root);
   I c(e, contact, true), s(e, support, true);
   wbqp_plan_contacts(S(h), n, qq.p, rr.p, reinterpret_cast<int *>(c.p), reinterpret_cast<int *>(s.p));
+}
+// GMR + QP + バランス: 全部のコマの参照 (q_ref n×nj, root_ref n×12) から重心の軌道を決める. contact, support, comOut (n×5) に書く.
+//   戻り値: ZMP の制約を緩めたコマの数 (wbqp.h の wbqp_plan_balance)
+JNIEXPORT jint JNICALL F(planBalance)(JNIEnv *e, jclass, jlong h, jint n, jdoubleArray q, jdoubleArray root, jintArray contact, jintArray support,
+                                      jdoubleArray comOut) {
+  D qq(e, q), rr(e, root), co(e, comOut, true);
+  I c(e, contact, true), s(e, support, true);
+  return wbqp_plan_balance(S(h), n, qq.p, rr.p, reinterpret_cast<int *>(c.p), reinterpret_cast<int *>(s.p), co.p);
+}
+// 次の solve の重心の目標 (com: 5 個. null で外す)
+JNIEXPORT void JNICALL F(setComTarget)(JNIEnv *e, jclass, jlong h, jdoubleArray com) {
+  D c(e, com);
+  wbqp_set_com_target(S(h), c.p);
+}
+// 閉ループの MPC (wbqp_mpc_step): planBalance のあとで, 再生中に毎コマ呼ぶ. qMeas / qPlan: 関節角 (rad / m, 関節の数),
+//   rootMeas / rootPlan: ルートのリンクの姿勢 (12 個: 位置, 回転 3x3 行優先), qOut: サーボの目標 (rad / m), info: 8 個 (null 可).
+//   戻り値: QP の状態 (負なら qOut を使わない. -2 = 計画がない)
+JNIEXPORT jint JNICALL F(mpcStep)(JNIEnv *e, jclass, jlong h, jint i, jdoubleArray qMeas, jdoubleArray rootMeas, jdoubleArray qPlan,
+                                  jdoubleArray rootPlan, jdoubleArray qOut, jdoubleArray info) {
+  D qm(e, qMeas), rm(e, rootMeas), qp(e, qPlan), rp(e, rootPlan), qo(e, qOut, true), in(e, info, true);
+  return wbqp_mpc_step(S(h), i, qm.p, rm.p, qp.p, rp.p, qo.p, in.p);
 }
 }

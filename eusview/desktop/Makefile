@@ -31,6 +31,10 @@ ARGS ?=
 run: native
 	./gradlew run $(if $(ARGS),--args="$(ARGS)",)
 
+# ロボットの一覧の画像 (../robots/<グループ>/<名前>.png). ONLY=名前の一部 で 1 つだけ
+thumbs:
+	./gradlew run --args="-thumbs $(abspath ../robots)$(if $(ONLY), -only $(ONLY),)"
+
 native:
 	cmake -S native -B build/native-build -DCMAKE_BUILD_TYPE=Release $(CMAKE_ODE)
 	cmake --build build/native-build -j 4

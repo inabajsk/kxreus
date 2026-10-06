@@ -1,6 +1,6 @@
 // EusView (Android): jskeus / kxreus のロボットモデル (eus2json.l で書き出した JSON) を表示するアプリ
 //   iOS 版 eusview/ios/EusView と同じ機能:
-//   ・ロボットを選ぶ (KXR / KHR / JSK, 名前で探す) → OpenGL ES で表示 (1 本指で回転, 2 本指で移動・拡大)
+//   ・ロボットを選ぶ (KXR / KHR / JSK → 身体の形の分類 → 画像と名前, 名前で探す. 共通の RobotPicker.kt) → OpenGL ES で表示 (1 本指で回転, 2 本指で移動・拡大)
 //   ・関節角のスライダー, 姿勢 (reset-pose など), 動作の再生, 物理 (ODE)
 //   ・接続: Mac などの EusLisp から WebSocket で関節角を受け取って動かす ({"angles": [...]} など)
 //   ロボットのデータ・状態・物理・BVH・下の欄の画面はデスクトップ版と共通 (eusview/shared/kotlin, app/build.gradle.kts で読む)
@@ -68,6 +68,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -102,6 +103,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Platform.store = AndroidStore(this)
+        Thumbnails.decode = { b -> android.graphics.BitmapFactory.decodeByteArray(b, 0, b.size)?.asImageBitmap() }
         Platform.log = { Log.i("EusView", it) }
         Platform.logError = { m, e -> Log.e("EusView", m, e) }
         intent?.extras?.let { b -> Launch.extras = b.keySet().mapNotNull { k -> b.getString(k)?.let { k to it } }.toMap() }
@@ -148,38 +150,14 @@ fun App() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RobotListScreen(files: List<RobotFile>, onBvh: () -> Unit, onOpen: (RobotFile) -> Unit) {
-    val ctx = LocalContext.current
-    val prefs = remember { ctx.getSharedPreferences("eusview", Context.MODE_PRIVATE) }
-    var group by remember { mutableStateOf(prefs.getString("robotGroup", "kxr") ?: "kxr") }
-    var search by rememberSaveable { mutableStateOf("") }
-    val shown = files.filter { it.group == group && (search.isEmpty() || it.name.contains(search, ignoreCase = true)) }
+    // 一覧の画像は JSON の隣の <名前>.png (assets/robots/<グループ>/, desktop の make thumbs で作る)
+    val items = remember(files) { files.map { PickerRobot(it.path, it.group, it.name, it.path.removeSuffix(".json") + ".png") } }
     Scaffold(topBar = {
         TopAppBar(title = { Text("EusLisp ロボット") }, actions = {
             TextButton(onBvh) { Icon(Icons.Filled.PlayArrow, null); Spacer(Modifier.width(4.dp)); Text("BVH") }
         })
     }) { pad ->
-        Column(Modifier.padding(pad).fillMaxSize()) {
-            SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)) {
-                robotGroups.forEachIndexed { i, g ->
-                    SegmentedButton(selected = group == g, onClick = { group = g; prefs.edit().putString("robotGroup", g).apply() },
-                        shape = SegmentedButtonDefaults.itemShape(i, robotGroups.size), icon = {}) {
-                        Text("${g.uppercase()}（${files.count { it.group == g }}）", maxLines = 1)
-                    }
-                }
-            }
-            OutlinedTextField(search, { search = it }, Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
-                placeholder = { Text("名前で探す") }, singleLine = true,
-                leadingIcon = { Icon(Icons.Filled.Search, null) },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Ascii))
-            if (shown.isEmpty()) Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("このグループのロボットはありません", color = MaterialTheme.colorScheme.onSurfaceVariant)
-            } else LazyColumn(Modifier.fillMaxSize()) {
-                items(shown, key = { it.path }) { f ->
-                    Text(f.name, Modifier.fillMaxWidth().clickable { onOpen(f) }.padding(horizontal = 20.dp, vertical = 14.dp))
-                    HorizontalDivider(Modifier.padding(start = 20.dp))
-                }
-            }
-        }
+        RobotPicker(items, null, { p -> files.firstOrNull { it.path == p.key }?.let(onOpen) }, Modifier.padding(pad).fillMaxSize(), cell = 104.dp, sidePad = 16.dp)
     }
 }
 

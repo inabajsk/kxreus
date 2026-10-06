@@ -18,21 +18,28 @@ func robot(_ name: String) -> RobotModel {
 }
 
 var args = Array(CommandLine.arguments.dropFirst())
-var physics = true, maxSec = 60.0, realServo = false
+var physics = true, maxSec = 60.0, realServo = false, balance = false, stabilize = true, mpcOn = false, recover = false, stopAtFall = false
 var params = [String: Double]()
 var files = [String](), robots = ["kxrl2l6a6h2", "khr20h2", "sample-robot"]
 var jsonOut: String? = nil
 var dumpDir: String? = nil
+var saveRobot: String? = nil
 while !args.isEmpty {
   let a = args.removeFirst()
   switch a {
   case "-physics": physics = args.removeFirst() != "0"
   case "-maxsec": maxSec = Double(args.removeFirst())!
   case "-realservo": realServo = args.removeFirst() != "0"
+  case "-balance": balance = args.removeFirst() != "0"
+  case "-stopatfall": stopAtFall = args.removeFirst() != "0"   // 初めて倒れたら物理を止める (長い動作を速く測る)
+  case "-recover": recover = args.removeFirst() != "0"   // 倒れたら起き上がって続ける (FallRecovery) でも再生
+  case "-mpc": mpcOn = args.removeFirst() != "0"; balance = balance || mpcOn   // 閉ループの MPC (wbqp_mpc_step) でも再生
+  case "-stabilize": stabilize = args.removeFirst() != "0"   // QP+バランスの再生で足首の安定化 (BalanceStabilizer)
   case "-p": let kv = args.removeFirst().split(separator: "="); params[String(kv[0])] = Double(kv[1])!
   case "-robots": robots = args.removeFirst().split(separator: ",").map(String.init)
   case "-json": jsonOut = args.removeFirst()
   case "-dump": dumpDir = args.removeFirst()
+  case "-saverobot": saveRobot = args.removeFirst()   // 動作 (GMR, GMR+QP, QP+バランス) を入れたロボットの JSON (rendervideo 用)
   default: files.append(a)
   }
 }
@@ -48,21 +55,81 @@ func stats(_ v: [Float]) -> (Float, Float) {
 }
 
 /// 物理: 関節角の列をサーボの目標にして再生. 腰 (ルートのリンク) の傾きの列 (度) を返す
-func simulate(_ m: RobotModel, _ frames: [[Float]], fps: Double, maxFrames: Int) -> [Float] {
+var traceKin: [QPFrame]? = nil
+var recordedTargets: [[Float]] = []
+var stopRef: [Float]? = nil   // -stopatfall 1: 参照の傾きの列. 参照が立っている (< 30°) のに 60° より傾いたら物理を止める (初めて倒れた時刻だけ測る)   // 閉ループの MPC がサーボに入れた目標 (rendervideo で同じ物理を再生する)
+var traceFeet: [Int] = []
+func simulate(_ m: RobotModel, _ frames: [[Float]], fps: Double, maxFrames: Int, plan: [QPFrame]? = nil, stab: BalanceStabilizer? = nil, mpc: WholeBodyQP? = nil) -> [Float] {
   let rl = m.links.firstIndex { $0.parent < 0 } ?? 0
   let b = m.links[rl].rest.rot3.transpose * SIMD3<Float>(0, 0, 1)
   let sim = PhysicsSim(model: m, angles: frames[0], realServo: realServo)
   sim.step(0.5)
   var tilt = [Float]()
   for (i, f) in frames.enumerated() where i < maxFrames {
-    sim.setTargets(f)
+    if let q = mpc, let pl = plan, i < pl.count {
+      // 閉ループの MPC: 物理の今の状態から毎コマ計画し直す
+      let qm = q.toQ(sim.jointValues()), rm = WholeBodyQP.pose12(sim.linkPoses()[rl])
+      var qo = [Double](repeating: 0, count: m.joints.count), info = [Double](repeating: 0, count: 8)
+      let st = wbqp_mpc_step(q.h, Int32(i), qm, rm, q.toQ(pl[i].q), WholeBodyQP.pose12(pl[i].root), &qo, &info)
+      let tg = st >= 0 ? q.toAngles(qo) : f
+      recordedTargets.append(tg)
+      sim.setTargets(tg)
+      if let r0 = ProcessInfo.processInfo.environment["QPTEST_MPC"].flatMap({ Int($0) }), i >= r0, i < r0 + 60, i % 3 == 0 {
+        print(String(format: "M %d st %d com %.3f %.3f tgt %.3f %.3f off %.3f %.3f slack %.4f c%d", i, st, info[0], info[1], info[2], info[3], info[4], info[5], info[6], pl[i].diag.contact))
+      }
+    } else if let st = stab, let pl = plan, i < pl.count {
+      sim.setTargets(st.adjust(f, planRoot: pl[i].root, contact: pl[i].diag.contact, poses: sim.linkPoses(), dt: Float(1 / fps)))
+    } else { sim.setTargets(f) }
     sim.step(1 / fps)
     let w = sim.linkPoses()[rl]
     let up = w.rot3 * b
     if !up.z.isFinite { tilt.append(180); continue }
     tilt.append(acos(max(-1, min(1, up.z))) * 180 / .pi)
+    if let r = stopRef, i < r.count, tilt.last! > 60, r[i] < 30 { break }
+    if let tk = traceKin, i < tk.count, let r0 = ProcessInfo.processInfo.environment["QPTEST_TRACE"].flatMap({ Int($0) }), i >= r0, i < r0 + 90, i % 2 == 0 {
+      let P = sim.linkPoses()
+      var M: Float = 0, c = SIMD3<Float>(0, 0, 0)
+      let pl = m.physics?.links ?? []
+      for k in 0..<min(pl.count, P.count) { let ms = Float(pl[k].mass ?? 0); let cc = pl[k].com ?? [0, 0, 0]; M += ms; c += ms * (P[k] * SIMD4<Float>(Float(cc[0]), Float(cc[1]), Float(cc[2]), 1)).xyz }
+      c /= max(M, 1e-6)
+      let d = tk[i].diag
+      let fz = traceFeet.map { String(format: "%.3f", P[$0].pos3.z) }.joined(separator: " ")
+      print(String(format: "T %d tilt %.0f c%d simcom %.3f %.3f kincom %.3f %.3f simfeet %@ kinfoot %.3f %.3f slack %.4f", i, tilt.last!, d.contact, c.x, c.y, d.after.com.0, d.after.com.1, fz, d.after.foot_height.0, d.after.foot_height.1, d.slack_max))
+    }
   }
+  if ProcessInfo.processInfo.environment["QPTEST_TILT"] != nil { print("tilt", stride(from: 0, to: min(tilt.count, 60), by: 3).map { String(format: "%.0f", tilt[$0]) }.joined(separator: " ")) }
   return tilt
+}
+
+/// 倒れたら起き上がって続ける再生 (FallRecovery). 動作の最後まで (時間の上限 limit 秒) 進め, 倒れた回数などを返す
+func simulateRecover(_ m: RobotModel, _ frames: [[Float]], fps: Double, maxFrames: Int, plan: [QPFrame]? = nil, stab: BalanceStabilizer? = nil, mpc: WholeBodyQP? = nil) -> (FallRecovery, Int, Double) {
+  let rl = m.links.firstIndex { $0.parent < 0 } ?? 0
+  var sim = PhysicsSim(model: m, angles: frames[0], realServo: realServo)
+  sim.step(0.5)
+  let rec = FallRecovery(model: m)
+  var i = 0, ticks = 0
+  let n = min(frames.count, maxFrames), limit = Int(Double(n) * 3 + fps * 60)
+  while i < n && ticks < limit {
+    ticks += 1
+    let f = frames[i]
+    if let ov = rec.step(sim: sim, dt: 1 / fps, resume: f, replace: { a in sim = PhysicsSim(model: m, angles: a, realServo: realServo); sim.step(0.3) }) {
+      sim.setTargets(ov)
+      if rec.phase == .blend, let q = mpc { wbqp_reset(q.h) }   // 起き上がったら MPC の速さの見積もりをやり直す
+      sim.step(1 / fps)
+      continue
+    }
+    if let q = mpc, let pl = plan, i < pl.count {
+      let qm = q.toQ(sim.jointValues()), rm = WholeBodyQP.pose12(sim.linkPoses()[rl])
+      var qo = [Double](repeating: 0, count: m.joints.count)
+      let st = wbqp_mpc_step(q.h, Int32(i), qm, rm, q.toQ(pl[i].q), WholeBodyQP.pose12(pl[i].root), &qo, nil)
+      sim.setTargets(st >= 0 ? q.toAngles(qo) : f)
+    } else if let st = stab, let pl = plan, i < pl.count {
+      sim.setTargets(st.adjust(f, planRoot: pl[i].root, contact: pl[i].diag.contact, poses: sim.linkPoses(), dt: Float(1 / fps)))
+    } else { sim.setTargets(f) }
+    sim.step(1 / fps)
+    i += 1
+  }
+  return (rec, i, Double(ticks) / fps)
 }
 
 var results = [[String: Any]]()
@@ -87,6 +154,19 @@ for rn in robots {
       if ProcessInfo.processInfo.environment["QPTEST_PAIRS"] != nil { print("   組:", names.joined(separator: " ")) }
     }
     var out = [QPFrame]()
+    if ProcessInfo.processInfo.environment["QPTEST_FEET"] != nil {
+      var o0 = [QPFrame]()
+      runGMRQP(rt: rt, qp: qp, emit: { i, fr in if i < 3 { o0.append(fr) } })
+      for fr in o0.prefix(1) {
+        let Wr = robotFK(m, fr.qRef, root: qp.rootT(fr.rootRef)), Wq = robotFK(m, fr.q, root: qp.rootT(fr.root))
+        for ln in ["lleg", "rleg"] { if let L = rt.limbs[ln] { let k = L.footLink ?? L.endLink
+          print(ln, m.links[k].name, "ref", Wr[k].pos3, "qp", Wq[k].pos3, "ref rot z-axis", Wr[k].rot3 * SIMD3<Float>(0,0,1)) } }
+        print("root ref", Wr[rl].pos3, "qp", Wq[rl].pos3)
+        let d = fr.diag
+        print("before min", d.before.min_dist, m.links[Int(d.before.pair.0)].name, m.links[Int(d.before.pair.1)].name, "n", d.before.n_collide, "after min", d.after.min_dist, m.links[Int(d.after.pair.0)].name, m.links[Int(d.after.pair.1)].name, "slack", d.slack_max, "rows", d.n_collision_rows)
+      }
+      qp.reset()
+    }
     let t0 = Date()
     runGMRQP(rt: rt, qp: qp, emit: { _, fr in out.append(fr) })
     let total = Date().timeIntervalSince(t0) * 1000
@@ -168,6 +248,7 @@ for rn in robots {
     if physics {
       let maxF = Int(maxSec * mo.fps)
       let refTilt = out.prefix(maxF).map { fr -> Float in let up = fr.rootRef.rot3 * bUp; return acos(max(-1, min(1, up.z))) * 180 / .pi }
+      stopRef = stopAtFall ? refTilt : nil
       let tG = simulate(m, out.map { $0.qRef }, fps: mo.fps, maxFrames: maxF)
       let tQ = simulate(m, out.map { $0.q }, fps: mo.fps, maxFrames: maxF)
       func fall(_ t: [Float]) -> (Double?, Double, Double) {   // 初めて倒れた時刻 (参照は立っているのに 60° より傾いた), 倒れていた割合, 参照との傾きの差の平均
@@ -179,6 +260,54 @@ for rn in robots {
         return (first, pct(down, t.count), Double(diff) / Double(max(1, t.count)))
       }
       let (fG, dG, eG) = fall(tG), (fQ, dQ, eQ) = fall(tQ)
+      if balance {
+        // GMR + QP + バランス
+        let qb = WholeBodyQP(model: m, rt: rt, fps: mo.fps, params: params)
+        var outB = [QPFrame]()
+        var slackFrames = 0
+        let tb0 = Date()
+        runGMRQPBalance(rt: rt, qp: qb, zmpSlack: &slackFrames, emit: { _, fr in outB.append(fr) })
+        let msB = Date().timeIntervalSince(tb0) * 1000 / Double(max(1, outB.count))
+        traceKin = outB
+        traceFeet = ["lleg", "rleg"].compactMap { rt.limbs[$0] }.map { $0.footLink ?? $0.endLink }
+        let feetLinks = ["lleg", "rleg"].compactMap { rt.limbs[$0] }.map { $0.footLink ?? $0.endLink }
+        let tB = simulate(m, outB.map { $0.q }, fps: mo.fps, maxFrames: maxF, plan: outB, stab: stabilize ? BalanceStabilizer(model: m, feet: feetLinks) : nil)
+        traceKin = nil
+        let (fB, dB, eB) = fall(tB)
+        var jb = [Float]()
+        for fr in outB { for k in 0..<m.joints.count where m.joints[k].type != "linear" { jb.append(abs(fr.q[k] - fr.qRef[k])) } }
+        let (jbm, jb95) = stats(jb)
+        let collB = outB.filter { $0.diag.after.n_collide > 0 }.count
+        print(String(format: "   QP+バランス: %@ (倒れていた %.0f%%, 傾きの差 %.0f°), ZMP を緩めたコマ %d, 衝突 %.1f%%, 関節のずれ %.1f° / %.1f°, %.2f ms/コマ",
+                     fB.map { String(format: "%.1f 秒で倒れる", $0) } ?? "倒れない", dB, eB, slackFrames, pct(collB, outB.count), jbm, jb95, msB))
+        if mpcOn {
+          recordedTargets = []
+          let tM = simulate(m, outB.map { $0.q }, fps: mo.fps, maxFrames: maxF, plan: outB, mpc: qb)
+          let (fM, dM, eM) = fall(tM)
+          print(String(format: "   GMR+MPC（閉ループ）: %@ (倒れていた %.0f%%, 傾きの差 %.0f°)", fM.map { String(format: "%.1f 秒で倒れる", $0) } ?? "倒れない", dM, eM))
+          r["phys_fall_mpc"] = fM ?? -1; r["phys_down_mpc"] = dM
+        }
+        if let sp = saveRobot {
+          var mm = m
+          let fps = Float(mo.fps)
+          mm.motions = [RobotMotion(name: "gmr", fps: fps, frames: out.map { $0.qRef }, root: nil),
+                        RobotMotion(name: "gmrqp", fps: fps, frames: out.map { $0.q }, root: nil),
+                        RobotMotion(name: "balance", fps: fps, frames: outB.map { $0.q }, root: nil)]
+          if !recordedTargets.isEmpty { mm.motions!.append(RobotMotion(name: "mpc_targets", fps: fps, frames: recordedTargets, root: nil)) }
+          if let d = try? JSONEncoder().encode(mm) { try? d.write(to: URL(fileURLWithPath: sp)); print("wrote \(sp)") }
+        }
+        if recover {
+          func rs(_ x: (FallRecovery, Int, Double), _ n: Int) -> String {
+            String(format: "%@, 最後まで %@ (%d / %d コマ, %.0f 秒かかった)", x.0.summary, x.1 >= n ? "再生できた" : "届かない", x.1, n, x.2)
+          }
+          let nF = min(out.count, maxF)
+          print("   起き上がり つき: GMR+QP", rs(simulateRecover(m, out.map { $0.q }, fps: mo.fps, maxFrames: maxF), nF))
+          print("   起き上がり つき: QP+バランス", rs(simulateRecover(m, outB.map { $0.q }, fps: mo.fps, maxFrames: maxF, plan: outB, stab: stabilize ? BalanceStabilizer(model: m, feet: feetLinks) : nil), nF))
+          if mpcOn { print("   起き上がり つき: GMR+MPC", rs(simulateRecover(m, outB.map { $0.q }, fps: mo.fps, maxFrames: maxF, plan: outB, mpc: qb), nF)) }
+        }
+        r["phys_fall_bal"] = fB ?? -1; r["phys_down_bal"] = dB; r["phys_tiltdiff_bal"] = eB; r["bal_zmp_slack"] = slackFrames
+        r["bal_collide"] = pct(collB, outB.count); r["bal_joint_err_mean"] = jbm; r["bal_joint_err_p95"] = jb95; r["bal_ms"] = msB
+      }
       let refDown = pct(refTilt.filter { $0 > 60 }.count, refTilt.count)
       func ft(_ x: Double?) -> String { x.map { String(format: "%.1f 秒で倒れる", $0) } ?? "倒れない" }
       print(String(format: "   物理%@ (%.0f 秒): GMR %@ (倒れていた %.0f%%, 傾きの差 %.0f°) / GMR+QP %@ (倒れていた %.0f%%, 傾きの差 %.0f°)  参照が倒れている %.0f%%",

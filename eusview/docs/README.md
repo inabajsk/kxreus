@@ -18,3 +18,10 @@ SKILL_DIR=<pptx スキルのディレクトリ> node build_eusview.js     # → 
 - 動画と表紙は `eusview_media/` から読む。フォントは BIZ UDPGothic（コードは BIZ UDGothic）。
 - 同じものができることは, 作り直した pptx を展開して比べて確かめた（違いは作った日時とセクションの id だけ）。
 - もとは inabajsk/mnist（cuda-backend）の `docs/eusview.pptx`, `docs/src/build_eusview.js` にあったものを移した（2026-10-06）。
+
+## 動画の一斉再生（pptx-video-sync）
+
+`build_eusview.js` は書き出しの最後に `pptx-video-sync`（khieus の `.claude/skills/pptx-video-sync`, install.sh で
+`~/.local/bin` に入る）と `--check` を呼ぶ。動画を最前面へ移し、スライドを開いたら全部の動画を同時に再生・繰り返し・
+クリックで一時停止にする（動画が後ろにあると LibreOffice では 1 本しか再生されない）。ツールがないときはスクリプト内の
+簡易版の後処理（同時再生・繰り返し・最前面）だけになり、警告を出す。動画入りの pptx を作るときは毎回これを通す。

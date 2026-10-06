@@ -12,6 +12,6 @@ clang++ -std=c++17 -O2 -c EusView/QP/wbqp.cpp -o "$OUT/wbqp.o"
 cp tools/qptest.swift "$OUT/main.swift"
 swiftc -O -swift-version 5 -import-objc-header EusView/Physics/Bridging.h -I EusView/Physics -I $ODE/Headers \
   "$OUT/main.swift" EusView/App/BVHData.swift EusView/App/BVHRetarget.swift EusView/App/RobotModel.swift \
-  EusView/Physics/PhysicsSim.swift EusView/QP/WholeBodyQP.swift "$OUT/odesim.o" "$OUT/wbqp.o" $ODE/libode.a -lc++ \
+  EusView/Physics/PhysicsSim.swift EusView/Physics/BalanceStabilizer.swift EusView/Physics/FallRecovery.swift EusView/QP/WholeBodyQP.swift "$OUT/odesim.o" "$OUT/wbqp.o" $ODE/libode.a -lc++ \
   -o "$OUT/qptest"
 echo "built $OUT/qptest"

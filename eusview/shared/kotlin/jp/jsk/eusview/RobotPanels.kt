@@ -42,6 +42,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -106,13 +107,20 @@ fun MotionList(st: RobotState) {
                 Column(Modifier.weight(1f)) { Text(st.bvhInfo, fontSize = 12.sp); LinearProgressIndicator({ p.toFloat() }, Modifier.fillMaxWidth()) }
                 TextButton({ st.cancelBVH() }) { Text("やめる") }
             } else {
-                ListButton("BVH から選ぶ（種類 → ファイル → 関節名 / GMR / GMR + QP）", Icons.Filled.PlayArrow) { picker = true }
+                ListButton("BVH から選ぶ（種類 → ファイル → 関節名 / GMR / GMR + QP / QP + バランス / GMR + MPC）", Icons.Filled.PlayArrow) { picker = true }
                 st.bvhMotion?.let { m ->
                     val on = st.playing == m.name
                     ListButton("${m.name}（${m.frames.size} コマ）", if (on) StopIcon else Icons.Filled.PlayArrow) { if (on) st.stop() else st.play(m, follow = true) }
                 }
-                if (st.bvhInfo.isNotEmpty()) Text(st.bvhInfo + if (st.physics) "・物理オン: 関節角をサーボの目標に" else "・物理オフ: 腰も BVH のように動かす",
+                if (st.bvhInfo.isNotEmpty()) Text(st.bvhInfo + when {
+                    st.mpcMotion && st.physics -> "・物理オン: 閉ループの MPC（毎コマ物理の今の状態から目標を出す）"
+                    st.mpcMotion -> "・物理オフ: QP + バランスの関節角で表示（GMR + MPC は物理オンのときだけ）"
+                    st.physics -> "・物理オン: 関節角をサーボの目標に" + (if (st.balanceMotion) "（着いた足の足首で傾きを戻す）" else "")
+                    else -> "・物理オフ: 腰も BVH のように動かす"
+                },
                     Modifier.padding(horizontal = 16.dp, vertical = 4.dp), fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                if (st.physics && st.recoverInfo.isNotEmpty()) Text("倒れたら起き上がってから続ける: ${st.recoverInfo}",
+                    Modifier.padding(horizontal = 16.dp, vertical = 2.dp), fontSize = 11.sp, fontWeight = FontWeight.Bold)
             }
             Text("ロボットの動作", Modifier.padding(start = 16.dp, top = 8.dp), fontSize = 13.sp, color = MaterialTheme.colorScheme.primary)
         }
@@ -142,7 +150,7 @@ fun LiveView(st: RobotState) {
     }
 }
 
-/** ロボットの画面の「動作」→ BVH: 種類 → ファイル (名前で探す) → 方法 (関節名 / GMR / GMR + QP) */
+/** ロボットの画面の「動作」→ BVH: 種類 → ファイル (名前で探す) → 方法 (関節名 / GMR / GMR + QP / GMR + QP + バランス / GMR + MPC) */
 @Composable
 fun BvhMotionPicker(onDismiss: () -> Unit, onPick: (BvhEntry, RetargetMethod) -> Unit) {
     val index = remember { loadBvhIndex().orEmpty() }
@@ -166,7 +174,7 @@ fun BvhMotionPicker(onDismiss: () -> Unit, onPick: (BvhEntry, RetargetMethod) ->
                 SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
                     RetargetMethod.entries.forEachIndexed { i, m ->
                         SegmentedButton(selected = method == m, onClick = { method = m }, shape = SegmentedButtonDefaults.itemShape(i, RetargetMethod.entries.size), icon = {}) {
-                            Text(m.title, fontSize = 12.sp, maxLines = 1)
+                            Text(m.label, fontSize = 12.sp, maxLines = 1)
                         }
                     }
                 }
@@ -174,6 +182,8 @@ fun BvhMotionPicker(onDismiss: () -> Unit, onPick: (BvhEntry, RetargetMethod) ->
                     RetargetMethod.NAMES -> "関節名で対応（EusLisp の :copy-state-to と同じ）"
                     RetargetMethod.GMR -> "GMR: 部位の位置を IK で合わせる"
                     RetargetMethod.GMRQP -> "GMR のあと全身 QP で自己衝突・関節の可動範囲・重心を直し, 床に着いた足を止める"
+                    RetargetMethod.BALANCE -> "GMR + QP で, 重心の軌道を先読みで決めてから解く（物理オンでは着いた足の足首で傾きを戻す）"
+                    RetargetMethod.MPC -> "QP + バランスの計画を, 物理オンのとき毎コマ物理の今の状態から MPC で直す（閉ループ, キャプチャポイントで着地をずらす）。物理オフは QP + バランス"
                 }, Modifier.padding(horizontal = 8.dp).padding(bottom = 4.dp), fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 OutlinedTextField(search, { search = it }, Modifier.fillMaxWidth(), placeholder = { Text("名前で探す") }, singleLine = true,
                     leadingIcon = { Icon(Icons.Filled.Search, null) }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Ascii))

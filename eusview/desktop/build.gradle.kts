@@ -56,7 +56,7 @@ dependencies {
 val appRes = layout.buildDirectory.dir("appResources")
 val syncAppData by tasks.registering(Sync::class) {
     into(appRes.map { it.dir("common/data") })
-    from(eusviewDir.resolve("robots")) { include("*/*.json"); into("robots") }
+    from(eusviewDir.resolve("robots")) { include("*/*.json", "*/*.png", "catalog.json"); into("robots") }
     from(eusviewDir.resolve("bvh/cache")) { include("index.json", "*/*.ebvh"); into("bvh") }
     from(eusviewDir.resolve("bvh/retarget_tables.json")) { into("bvh") }
 }
