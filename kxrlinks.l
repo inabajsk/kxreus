@@ -482,7 +482,7 @@
 
 (defun kxr-l4tr-body-link (&key (neck t) neck-align torso (backpack t) magmodule neck-origin
 			     battery-box)
-  (let* ((b0 (kxr-l4tr-bodyset :neck torso :backpack backpack :magmodule magmodule :shoulder-servo t))
+  (let* ((b0 (kxr-l4tr-bodyset :neck torso :backpack backpack :magmodule magmodule))
 	 h (blist (send b0 :bodies)) l)
     (when neck
       (if neck-align
