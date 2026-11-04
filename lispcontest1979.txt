@@ -101,6 +101,23 @@
 (timing 100    (tpu-2))      ;;   2.200 milisec
 (timing 100    (tpu-6))      ;;   3.700 milisec
 ;;---------------------------------------------------
+;; Lets Note WSL Ubuntu24.04 Core-12 Ultra 5 2GHz
+;;---------------------------------------------------
+;; interpreter
+(timing 10000   (bita-7))       ;;   0.006 milisec
+(timing 4000    (bitb-8))       ;;   0.410 milisec
+(timing 2000    (sort-100))     ;;   0.725 milisec
+(timing 100     (tarai-5))      ;;  27.100 milisec
+(timing 100     (tpu-2))        ;;  11.100 milisec
+(timing 100     (tpu-6))        ;;  27.600 milisec
+;; compiled
+(timing 10000   (bita-7))       ;;   0.003 milisec
+(timing 4000    (bitb-8))       ;;   0.262 milisec
+(timing 2000    (sort-100))     ;;   0.165 milisec
+(timing 100     (tarai-5))      ;;   2.100 milisec
+(timing 100     (tpu-2))        ;;   2.500 milisec
+(timing 100     (tpu-6))        ;;   4.200 milisec
+;;---------------------------------------------------
 ;; GPD Win3 gamepad PC, intel 11th core-i7-1195G7@2.90GHz
 ;;---------------------------------------------------
 ;; interpreter
