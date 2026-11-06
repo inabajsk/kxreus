@@ -212,10 +212,23 @@
 	 r)
     (when head (setq model-params
 		     (replace-plist-key-value model-params :head head)))
+    ;; :generate t は既存のmodels/*.lを作り直す。:model t か
+    ;; :use-external-tools t の時だけ外部ツール(export-collada/collada2eus)、
+    ;; それ以外はネイティブ生成(eus2native-collada.l)を使う。
     (when generate
-      (require :eus2wrl)
-      (eus2collada-robot name-str :head head)
-      (setq model t))
+      (cond
+       ((or (eq model t) use-external-tools)
+        (require :eus2wrl)
+        (eus2collada-robot name-str :head head)
+        (setq model t))
+       (t
+        (require :eus2native-collada)
+        (rcb4eus-mkdir "models")
+        (native-robot-to-collada-file
+         name-str
+         :robot (if head (kxr-create-robot name-str :model nil :head head))
+         :outfile (rcb4eus-file (format nil "models/~A.l" name-str)))
+        (if (null model) (setq model :auto)))))
     ;; :model t を明示した時だけ、従来通りexport-collada/collada2eus
     ;; (外部ツール)を使う。それ以外(省略時の既定値・0・:auto等)は
     ;; すべて今回のネイティブ生成(外部ツール不使用、eus2native-collada.l)

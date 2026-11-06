@@ -33,7 +33,7 @@
     (name
      (format t ";; kxr-generate-one: ~A~%" name)
      (let ((t0 (kxr-generate-one-now)))
-       (kxr-make-robot name :model (if *ros-distro-null* nil 0) :viewer nil)
+       (kxr-make-robot name :model :auto :viewer nil)
        ;; machine-parseable timing line, grep'd out of the mixed
        ;; parallel-worker output afterwards to rank slow robots.
        (format t "KXR_GENERATE_TIMING ~A ~A~%" name (- (kxr-generate-one-now) t0))))

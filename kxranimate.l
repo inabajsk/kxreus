@@ -76,7 +76,7 @@
 (setq *ros-distro-null* (or (null *ros-distro*) (equal *ros-distro* "")))
 (defun make-robot (name) (funcall (read-from-string name)))
 (defvar *kxr-sample-robots*)
-(defun kxr-sample-robots (&key (model (if *ros-distro-null* nil 0))
+(defun kxr-sample-robots (&key (model :auto)
 			       generate
 			       (sample 1.0) &aux r)
   (setq *kxr-sample-robot-names* (n-sample *kxr-all-robot-names* sample))
@@ -129,7 +129,8 @@
     (setq name (string-downcase (string r)))
     (unless (probe-file (format nil "~A/models/~A.l" *rcb4eus-dir* name))
       ;;(format t ";; (create-robot-models) generate ~A~%" name)
-      (eus2collada-robot name)
+      (require :eus2native-collada)
+      (native-robot-to-collada-file name)
       )
     (unless (probe-file (format nil "~A/mjcfs/~A" *rcb4eus-dir* name))
       (setq rr (load-robot name))
