@@ -522,12 +522,18 @@
   (let* ((links (send robot :links))
          (joints (send robot :joint-list))
          (root-coords (send (car links) :worldcoords))
-         (classname (format nil "~A-robot" name-str)))
+         (classname (format nil "~A-robot" name-str))
+         tmpfile)
     ;; ジョイント名を先に登録して元の名前を優先させる(リンクと同名の
     ;; 場合はリンク側に"_2"等が付く)。
     (dolist (j joints) (eus-name-string j))
+    ;; 一時ファイルに書いてから最後にrenameで置き換える。直接outfileに
+    ;; 書くと、書き込み途中の(後半のdefmethodが欠けた)ファイルを別の
+    ;; プロセスがprobe-fileで見つけてloadしてしまい、":_make_instance_
+    ;; ..._geom0が見つからない"エラーになる(並行実行時に実際に発生)。
+    (setq tmpfile (format nil "~A.tmp~A" outfile (unix:getpid)))
     (with-open-file
-        (strm outfile :direction :output :if-exists :supersede)
+        (strm tmpfile :direction :output :if-exists :supersede)
       (format strm ";; generation method: native (eus2native-collada.l) -- generated~%")
       (format strm ";; directly from a native robot-model, WITHOUT external tools~%")
       (format strm ";; (no export-collada/collada2eus binaries involved).~%")
@@ -616,6 +622,7 @@
           (dump-glvertices-geom-method
            strm lname (send bbox :center) (send bbox :diagonal) glv-list)))
       (format strm "  )~%"))
+    (unix:rename tmpfile outfile)
     (format t ";; native-robot-to-collada-file: wrote ~A (~A links, ~A joints)~%"
             outfile (length links) (length joints))
     outfile))
