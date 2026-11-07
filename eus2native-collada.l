@@ -550,7 +550,10 @@
       (format strm "(defmethod ~A~%" classname)
       (format strm "  (:init~%")
       (format strm "   (&rest args)~%")
-      (format strm "   (send-super* :init args)~%")
+      ;; :nameを渡さないと(instance <name>-robot :init)で作った時に
+      ;; 名前がnilになる(load-robot経由の:dump-mjcfがmjcfs/nilに出力して
+      ;; しまう)。argsに:nameがあればそちらを優先する。
+      (format strm "   (send-super* :init (append args (list :name ~S)))~%" name-str)
       (dolist (l links) (dump-link-init-form strm l root-coords))
       (dump-link-assoc-forms strm joints (car links))
       (dolist (j joints) (dump-joint-init-form strm j))

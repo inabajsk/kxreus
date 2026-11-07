@@ -27,6 +27,11 @@
     (unless (boundp cls)
       (load (robot-model-file-name name-str)))
     (if (and (fboundp func) (boundp cls))
-	(setq *robot* (instance (eval cls) :init))
+	(progn
+	  (setq *robot* (instance (eval cls) :init))
+	  ;; 古いmodels/*.l(native生成で:nameを渡していなかった)対策
+	  (unless (send *robot* :name)
+	    (send *robot* :name (string-downcase (string name-str))))
+	  *robot*)
       (warn ";; ~A is not defined!!~%" func))
     ))
