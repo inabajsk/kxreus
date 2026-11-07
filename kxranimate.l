@@ -137,76 +137,85 @@
       (send rr :dump-mjcf))
     ))
 
-(defun khr-robots (&rest args &key (robots *khr-robot-names*)
-			 (xcount 10)
-                         (ylines (1+ (/ (length robots) xcount)))
-                         (titley 60)
-                         (height (- (/ (- (send x::*root* :height) 300 titley) ylines) titley))
-                         (width height)
-			 ;;(xcount (round (+ 0.5 (/ (length robots) (float ylines)))))
-			 (rs 5) (msec 1)
-			 ;;(xcount (* (/ xcount0 rs) rs))
-			 (x0 (x0 (* xcount (+ width)))) (y0 50)
-                         &allow-other-keys)
-  (create-robot-models robots)
-  (apply #'create-piped-robots :robots robots :rs rs :x0 x0 :y0 y0 :width width :height height :xcount xcount :msec msec args))
+;; 画面サイズ(x::*root*)とロボット台数nから、全ウィンドウが画面に
+;; 収まる配置を求める。xcount(1行の台数)を省略すると、ウィンドウが
+;; 最大になる台数を選ぶ。yskipはタイトルバー分の縦の隙間。
+;; 戻り値: (xcount size x0 y0)
+(defun kxr-robots-layout (n &key xcount (xskip 10) (yskip 50)
+			    (margin 20) (top 50) (max-size 400))
+  (let* ((sw (send x::*root* :width))
+	 (sh (send x::*root* :height))
+	 (best-xc 1) (best-size 0) size ylines)
+    (dolist (xc (if xcount (list xcount)
+		  (let (l) (dotimes (i n) (push (1+ i) l)) l)))
+      (setq ylines (ceiling (/ n (float xc))))
+      (setq size (min max-size
+		      (floor (- (/ (- sw (* 2 margin)) (float xc)) xskip))
+		      (floor (- (/ (- sh top margin) (float ylines)) yskip))))
+      (when (> size best-size) (setq best-size size best-xc xc)))
+    (list best-xc best-size
+	  (max 0 (round (/ (- sw (* best-xc (+ best-size xskip))) 2.0)))
+	  top)))
 
+(defun khr-robots (&rest args &key (robots *khr-robot-names*) &allow-other-keys)
+  (apply #'kxr-robots :robots robots args))
+
+;; 全ロボットのウィンドウを画面に収めて並べる。xcount/width/height/x0/y0を
+;; 指定しなければkxr-robots-layoutで自動計算する。rsは1プロセスに
+;; 割り当てるロボット数。
 (defun kxr-robots (&rest args &key (robots *kxr-robot-names*)
-                         (xcount 12) (rs 4)
-                         (ylines (1+ (/ (length robots) xcount)))
-                         (titley 60)
-                         (height (- (/ (- (send x::*root* :height) 200 titley) ylines) titley))
-                         (width height) (msec 1)
-			 (x0 (x0 (* xcount (+ width)))) (y0 50)
+			 xcount (rs 4) width height x0 y0 (msec 1)
+			 (xskip 10) (yskip 50)
                          &allow-other-keys)
-  (create-robot-models robots)
-  (apply #'create-piped-robots :robots robots :rs rs :x0 x0 :y0 y0 :width width :height height :xcount xcount :msec msec args))
+  (let ((lay (kxr-robots-layout (length robots) :xcount xcount
+				:xskip xskip :yskip yskip)))
+    (create-robot-models robots)
+    (apply #'create-piped-robots :robots robots :rs rs
+	   :xcount (or xcount (elt lay 0))
+	   :width (or width (elt lay 1)) :height (or height width (elt lay 1))
+	   :x0 (or x0 (elt lay 2)) :y0 (or y0 (elt lay 3))
+	   :xskip xskip :yskip yskip :msec msec args)))
 
 (defun all-robots (&rest
 		   args
 		   &key (robots (append *kxr-robot-names* *khr-robot-names*))
-		   (xcount 14) (rs 7)
+		   (rs 7)
 		   &allow-other-keys)
-  (apply #'kxr-robots :robots robots :xcount xcount :rs rs args))
+  (apply #'kxr-robots :robots robots :rs rs args))
 
 (defun all-robots2 nil
   (khr-robots :robots (append *kxr-robot-names* *khr-robot-names*)))
 
+;; 各ロボットのウィンドウ位置はここで計算して子プロセスに渡す
+;; (rs台ずつのまとまりが行をまたいでも崩れないように)。
 (defun create-piped-robots (&key (robots *kxr-robot-names*)
                                  (width 280) (height 280)
                                  (xskip 10)  (yskip 50) (xcount 10)
-				 ;;(rs (if (> (length robots) 28) 2 1))
 				 (rs xcount) (msec 10)
-				 (x0 (x0 (* xcount (+ width)))) (y0 50)
+				 (x0 0) (y0 50)
 				 &allow-other-keys)
-  (let ((len (/ (length robots) rs)) name (x x0) (y y0) strm)
+  (let ((i 0) names poss)
     (setq *piped-streams* nil)
-    (dotimes (i len)
-      (setq n nil)
-      (dotimes (j rs) (push (pop robots) n))
-      (setq strm (piped-robot (reverse n)
-			      :x x :y y :wx width :wy height :msec msec))
-      (push strm *piped-streams*)
+    (while robots
+      (setq names nil poss nil)
       (dotimes (j rs)
-	(if
-	    (= (1- xcount) (mod (+ j (* i rs)) xcount))
-	    (setq x x0 y (+ y height yskip))
-	  (setq x (+ x width xskip))))
-      )
-    (when robots
-      (setq strm (piped-robot robots :x x :y y :wx width :wy height))
-      (push strm *piped-streams*)
-      (dotimes (j (length robots))
-	(setq x (+ x width xskip)))
-      ))
-  )
+	(when robots
+	  (push (pop robots) names)
+	  (push (list (+ x0 (* (mod i xcount) (+ width xskip)))
+		      (+ y0 (* (/ i xcount) (+ height yskip))))
+		poss)
+	  (incf i)))
+      (push (piped-robot (reverse names) :positions (reverse poss)
+			 :wx width :wy height :msec msec)
+	    *piped-streams*))
+    *piped-streams*))
 
-(defun piped-robot (nlist &key (x 50) (y 50) (wx 200) (wy 200) (msec 10))
+(defun piped-robot (nlist &key positions (x 50) (y 50) (wx 200) (wy 200) (msec 10))
   (piped-fork
    (format
     nil
-    "irteusgl kxranimate.l '(robot-non-itimer (quote ~A) :x0 ~A :y0 ~A :width ~A :height ~A :xcount ~A :msec ~A)' 2> /dev/null"
-    nlist x y wx wy (length nlist) msec))
+    "irteusgl kxranimate.l '(robot-non-itimer (quote ~A) :positions (quote ~A) :x0 ~A :y0 ~A :width ~A :height ~A :xcount ~A :msec ~A)' 2> /dev/null"
+    nlist positions x y wx wy (length nlist) msec))
   )
 
 (defun irteus-pids (&optional (str "irt"))
@@ -279,12 +288,19 @@
 			       (msec 10)
 			       (width 200) (height 200) (xcount 11)
 			       (x0 (x0 (* xcount (+ width)))) (y0 50)
-			       ) 
+			       positions)
+  ;; positions: ((x y) ...) 各ロボットのウィンドウ位置(create-piped-robots
+  ;; が計算して渡す)。省略時は従来通りx0,y0から横に並べる。
   (let* ((len (length names))
 	 (robots (instantiate vector len))
+	 (poss (instantiate vector len))
+	 (tick 0)
 	 name (x x0) (y y0) (xskip 10)  (yskip 55))
     (bvh-load)
     (dotimes (i len)
+      (when (nth i positions)
+	(setq x (car (nth i positions)) y (cadr (nth i positions))))
+      (setf (elt poss i) (list x y))
       (setf (elt robots i) (load-robot (elt names i)))
       (send (elt robots i)
 	    :show-self :x x :y y :width width :height height)
@@ -292,13 +308,26 @@
 	  (= (1- xcount) (mod i xcount))
 	  (setq x x0 y (+ y height yskip))
 	(setq x (+ x width xskip))))
-    (do-until-key
-     (dotimes (i len)
-       (when (derivedp (elt robots i) robot-model)
-	 (send (elt robots i) :mcd-tick))
-       (x::window-main-one)
-       (unix::usleep (* msec 1000))
-       )))
+    ;; WSLg(Weston)ではウィンドウが表示(map)される前の:moveが無視されて
+    ;; WM任せの位置に置かれることがある(どのウィンドウかは毎回変わる)。
+    ;; 表示後に何回か指定位置へ移動し直す。
+    (flet ((re-move ()
+	     (dotimes (i len)
+	       (when (get (elt robots i) :viewer)
+		 (send (get (elt robots i) :viewer) :move
+		       (car (elt poss i)) (cadr (elt poss i)))))
+	     (x::window-main-one)))
+      (unix::usleep (* 300 1000))
+      (re-move)
+      (do-until-key
+       (when (member tick '(20 100 300)) (re-move))
+       (incf tick)
+       (dotimes (i len)
+	 (when (derivedp (elt robots i) robot-model)
+	   (send (elt robots i) :mcd-tick))
+	 (x::window-main-one)
+	 (unix::usleep (* msec 1000))
+	 ))))
   )
 
 (defmethod robot-model
