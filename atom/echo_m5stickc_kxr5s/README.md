@@ -95,3 +95,7 @@ echo-kxrl4t.l での対処:
 - 確認: `:call-motion 0` + 0.1秒ごとの `:viewer-update` を2回 → 2回ともモーション完走、読み出しエラーなし、
   終了後 sysreg=`#xC293`。
 - 確認用 `(echo-pc)` (PC・sysreg 表示)、異常時 `(echo-recover)`、駄目なら RCB4 の電源再投入。
+
+## WSL への USB 接続 (`wsl/`)
+Windows 側で ATOM Echo (と AtomS3) を WSL に渡すスクリプト `wsl/M5-WSL-attach.cmd` / `.ps1`。
+Windows のデスクトップ等にコピーし、USB を挿し直したらダブルクリックする。詳細は `wsl/README.md`。
